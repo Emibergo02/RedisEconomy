@@ -1,0 +1,39 @@
+name: RedisEconomy
+version: '${project.version}'
+main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
+api-version: 1.19
+author: Unnm3d
+depend:
+  - Vault
+commands:
+  pay:
+    description: Pay a player
+    usage: /pay <player> <amount>
+    permission: rediseconomy.pay
+  balance:
+    description: Show balances
+    usage: /balance [player]
+    aliases: [money,bal]
+    permission: rediseconomy.balance
+  balancetop:
+    description: Show top balances
+    usage: /balancetop
+    aliases: [moneytop,baltop]
+    permission: rediseconomy.balancetop
+  transaction:
+    description: Show transactions
+    usage: /transaction <player>
+    permission: rediseconomy.admin
+permissions:
+    rediseconomy.pay:
+        description: Allows to use /pay
+        default: true
+    rediseconomy.balance:
+        description: Allows to use /balance
+        default: true
+    rediseconomy.balancetop:
+        description: Allows to use /balancetop
+        default: true
+    rediseconomy.admin:
+        description: Allows to use admin commands
+        default: op

@@ -1,0 +1,28 @@
+server-id: "server-1"
+currency-single: "dollar"
+currency-plural: "dollars"
+transactions-retained: 200
+redis:
+  host: "localhost"
+  port: 6379
+  user: "redis"
+  password: "password"
+  database: 0
+  timeout: 0
+lang:
+  no-console: "<red>You must be in-game to use this command!</red>"
+  no-permission: "<red>You do not have permission to use this command!</red>"
+  player-not-found: "<red>Player not found!</red>"
+  invalid-amount: "<red>Invalid amount!<"
+  insufficient-funds: "<red>You do not have enough money!</red>"
+  balance: "<green>You have %balance%$!</green>"
+  balance-set: "<green>You set %player% account to %balance%$ !</green>"
+  balance-other: "<green>%player% has %balance%$ !</green>"
+  balance-top: "<green>Top richest players:</green>"
+  balance-top-format: "<aqua>Top %player% %amount%$</aqua>"
+  pay-self: "<red>You cannot pay yourself!</red>"
+  pay-success: "<green>You paid %player% %amount%$!</green>"
+  pay-fail: "<red>Pay failed!</red>"
+  pay-received: "<green>You received %amount% from %player%$!</green>"
+  transaction-item: "<aqua>%timestamp%</aqua> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> -> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%<green></click> %amount%$!"
+
