@@ -1,18 +1,21 @@
 package dev.unnm3d.rediseconomy;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
-import dev.unnm3d.rediseconomy.command.BalanceCommand;
-import dev.unnm3d.rediseconomy.command.BalanceTopCommand;
-import dev.unnm3d.rediseconomy.command.PayCommand;
-import dev.unnm3d.rediseconomy.command.TransactionCommand;
+import dev.unnm3d.rediseconomy.command.*;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
 
@@ -25,7 +28,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         this.saveDefaultConfig();
-        this.reloadConfig();
         this.settings = new Settings(this.getConfig());
 
         if (!setupRedis()) {
@@ -39,6 +41,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getServer().getPluginManager().disablePlugin(this);
             return;
         } else this.getLogger().info("Hooked into Vault!");
+
         registerRedisChannels();
 
         EconomyExchange exchange = new EconomyExchange(economy);
@@ -53,6 +56,13 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         getServer().getPluginCommand("transaction").setExecutor(new TransactionCommand(economy, exchange));
         getServer().getPluginCommand("transaction").setTabCompleter(new TransactionCommand(economy, exchange));
 
+
+    }
+
+    @Override
+    public void onDisable() {
+        economy.getEzRedisMessenger().destroy();
+        this.getServer().getServicesManager().unregister(Economy.class, economy);
     }
 
     private void registerRedisChannels() {
@@ -64,7 +74,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             economy.updateAccountLocal(UUID.fromString(ua.uuid()), ua.playerName(), ua.balance());
 
         }, RedisEconomy.UpdateAccount.class);
-
         ezRedisMessenger.registerChannelObjectListener("rediseco:paymsg", (packet) -> {
             PayCommand.PayMsg payMsgPacket = (PayCommand.PayMsg) packet;
             Player online = getServer().getPlayer(payMsgPacket.receiverName());
@@ -98,7 +107,40 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         if (vault == null)
             return false;
         economy = new RedisEconomy(ezRedisMessenger, getConfig().getString("currency-single", "coin"), getConfig().getString("currency-plural", "coins"));
-        this.getServer().getServicesManager().register(Economy.class, economy, vault, ServicePriority.High);
+
+        if(getConfig().getBoolean("migration-enabled", false)) {
+
+            @NotNull Collection<RegisteredServiceProvider<Economy>> existentProviders= Bukkit.getServer().getServicesManager().getRegistrations(Economy.class);
+            CompletableFuture.supplyAsync(() -> {
+                Bukkit.getLogger().info("§aStarting migration from " + existentProviders.size() + " providers...");
+
+                if(ezRedisMessenger.getJedis().isConnected())
+                    existentProviders.forEach(reg -> {
+                        Bukkit.getLogger().info("§aMigrating from " + reg.getProvider().getName() + "...");
+                        if (reg.getProvider() != economy) {
+                            for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+                                try {
+                                    Thread.sleep(2000);
+                                } catch (InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                double bal = reg.getProvider().getBalance(offlinePlayer);
+                                economy.setPlayerBalance(offlinePlayer, bal);
+                                Bukkit.getLogger().info("Migrated " + offlinePlayer.getName() + "'s balance of " + bal);
+                            }
+
+                        }
+                    });
+                Bukkit.getLogger().info("§aMigration finished");
+                return economy;
+            }).thenAccept((economy) -> {
+                this.getServer().getServicesManager().register(Economy.class, economy, vault, ServicePriority.High);
+                getConfig().set("migration-enabled", false);
+                saveConfig();
+            });
+        }else
+            this.getServer().getServicesManager().register(Economy.class, economy, vault, ServicePriority.High);
+
 
         return true;
     }
@@ -115,10 +157,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         return instance.settings;
     }
 
-    @Override
-    public void onDisable() {
-        economy.getEzRedisMessenger().destroy();
-        this.getServer().getServicesManager().unregister(Economy.class, economy);
-    }
+
 
 }

@@ -24,6 +24,10 @@ commands:
     description: Show transactions
     usage: /transaction <player>
     permission: rediseconomy.admin
+  migrate-economy:
+    description: Migrate economy data
+    usage: /migrate-economy
+    permission: rediseconomy.admin
 permissions:
     rediseconomy.pay:
         description: Allows to use /pay

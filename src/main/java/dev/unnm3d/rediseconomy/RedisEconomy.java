@@ -178,8 +178,6 @@ public class RedisEconomy implements Economy {
     }
 
     public EconomyResponse setPlayerBalance(OfflinePlayer player, double amount) {
-        if (!hasAccount(player))
-            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         updateAccountStorage(player.getUniqueId(), player.getName(), amount);
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
@@ -321,8 +319,12 @@ public class RedisEconomy implements Economy {
             if (balance == 0.0D) p.zincrby("rediseco:balances", balance, uuid.toString());
             else p.zadd("rediseco:balances", balance, uuid.toString());
             p.hset("rediseco:nameuuid", playerName, uuid.toString());
-            p.sync();
-            return jedis;
+            p.syncAndReturnAll();
+            System.out.println("Updated account " + playerName + " with balance " + balance);
+            return null;
+        }).exceptionally(e -> {
+            e.printStackTrace();
+            return null;
         });
         updateAccountLocal(uuid, playerName, balance);
         ezRedisMessenger.sendObjectPacketAsync("rediseco", new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));

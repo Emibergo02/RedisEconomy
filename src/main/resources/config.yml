@@ -2,6 +2,7 @@ server-id: "server-1"
 currency-single: "dollar"
 currency-plural: "dollars"
 transactions-retained: 200
+migration-enabled: false
 redis:
   host: "localhost"
   port: 6379

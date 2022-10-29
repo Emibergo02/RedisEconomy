@@ -75,7 +75,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.19.2-R0.1-SNAPSHOT</version>
+            <version>1.18.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -85,7 +85,7 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>dev.unnm3d.redislib</groupId>
+            <groupId>com.github.Emibergo02</groupId>
             <artifactId>EzRedisLib</artifactId>
             <version>3.3-SNAPSHOT</version>
         </dependency>
