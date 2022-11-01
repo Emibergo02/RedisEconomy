@@ -17,12 +17,16 @@ public class BalanceTopCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        economy.getAccountsRedis().thenAccept(balances -> {
-            sender.sendMessage(RedisEconomyPlugin.settings().parse(RedisEconomyPlugin.settings().BALANCE_TOP));
+        economy.getAccountsRedis().thenApply(balances->{
+            if (balances.size() > 10)
+                balances = balances.subList(0, 10);
+            return balances;
+        }).thenAccept(balances -> {
+            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP);
             int i = 1;
             for (Tuple t : balances) {
                 if (i > 10) break;
-                sender.sendMessage(RedisEconomyPlugin.settings().parse(RedisEconomyPlugin.settings().BALANCE_TOP_FORMAT.replace("%pos%", i + "").replace("%player%", economy.getPlayerName(UUID.fromString(t.getElement()))).replace("%balance%", t.getScore() + "")));
+                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP_FORMAT.replace("%pos%", i + "").replace("%player%", economy.getPlayerName(UUID.fromString(t.getElement()))).replace("%balance%", t.getScore() + ""));
                 i++;
             }
         });

@@ -5,7 +5,6 @@ import dev.unnm3d.rediseconomy.command.*;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -28,7 +27,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         this.saveDefaultConfig();
-        this.settings = new Settings(this.getConfig());
+        this.settings = new Settings(this);
 
         if (!setupRedis()) {
             this.getLogger().severe("Disabled: redis server unreachable!");
@@ -79,7 +78,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             Player online = getServer().getPlayer(payMsgPacket.receiverName());
             if (online != null) {
                 if (online.isOnline())
-                    online.sendMessage(settings.parse(settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount())));
+                    settings.send(online,settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount()));
             }
         }, PayCommand.PayMsg.class);
     }
@@ -147,10 +146,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     public static RedisEconomy getEconomy() {
         return economy;
-    }
-
-    public static FileConfiguration getConfiguration() {
-        return instance.getConfig();
     }
 
     public static Settings settings() {

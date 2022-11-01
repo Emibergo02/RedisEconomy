@@ -20,7 +20,7 @@ lang:
   balance-set: "<green>You set %player% account to %balance%$ !</green>"
   balance-other: "<green>%player% has %balance%$ !</green>"
   balance-top: "<green>Top richest players:</green>"
-  balance-top-format: "<aqua>Top %player% %amount%$</aqua>"
+  balance-top-format: "<aqua>Top %player% %balance%$</aqua>"
   pay-self: "<red>You cannot pay yourself!</red>"
   pay-success: "<green>You paid %player% %amount%$!</green>"
   pay-fail: "<red>Pay failed!</red>"

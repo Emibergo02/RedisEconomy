@@ -4,7 +4,6 @@ import dev.unnm3d.rediseconomy.EconomyExchange;
 import dev.unnm3d.rediseconomy.RedisEconomy;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import lombok.AllArgsConstructor;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -18,7 +17,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 @AllArgsConstructor
-public class TransactionCommand implements @Nullable CommandExecutor, @Nullable TabCompleter {
+public class TransactionCommand implements CommandExecutor, TabCompleter {
     private final RedisEconomy economy;
     private final EconomyExchange exchange;
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
@@ -43,15 +42,15 @@ public class TransactionCommand implements @Nullable CommandExecutor, @Nullable 
             sender.sendMessage("§3Transactions of player " + target + ":");
             for (EconomyExchange.Transaction t : transactions) {
                 if (isAfter(t.timestamp, afterDateString) && isBefore(t.timestamp, beforeDateString)) {
-                    MiniMessage.miniMessage().escapeTags("a");
-                    sender.sendMessage(RedisEconomyPlugin.settings().parse(
+                    RedisEconomyPlugin.settings().send(sender,
                             RedisEconomyPlugin.settings().TRANSACTION_ITEM
                                     .replace("%amount%", t.amount)
                                     .replace("%sender%", t.sender)
                                     .replace("%receiver%", t.target)
                                     .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
                                     .replace("%afterbefore%", afterDateString + " " + beforeDateString)
-                    ));
+                    );
+
                 }
 
             }

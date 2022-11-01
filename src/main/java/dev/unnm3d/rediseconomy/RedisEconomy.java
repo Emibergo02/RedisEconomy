@@ -85,7 +85,7 @@ public class RedisEconomy implements Economy {
         return accounts.containsKey(player.getUniqueId());
     }
 
-    @Deprecated
+
     @Override
     public boolean hasAccount(String playerName, String worldName) {
         return hasAccount(playerName);
@@ -96,7 +96,7 @@ public class RedisEconomy implements Economy {
         return hasAccount(player);
     }
 
-    @Deprecated
+
     @Override
     public double getBalance(String playerName) {
         return accounts.get(nameUniqueIds.get(playerName));
@@ -107,7 +107,7 @@ public class RedisEconomy implements Economy {
         return accounts.get(player.getUniqueId());
     }
 
-    @Deprecated
+
     @Override
     public double getBalance(String playerName, String world) {
         return getBalance(playerName);
@@ -118,7 +118,7 @@ public class RedisEconomy implements Economy {
         return getBalance(player);
     }
 
-    @Deprecated
+
     @Override
     public boolean has(String playerName, double amount) {
         return getBalance(playerName) >= amount;
@@ -129,7 +129,7 @@ public class RedisEconomy implements Economy {
         return getBalance(player) >= amount;
     }
 
-    @Deprecated
+
     @Override
     public boolean has(String playerName, String worldName, double amount) {
         return has(playerName, amount);
@@ -140,7 +140,6 @@ public class RedisEconomy implements Economy {
         return has(player, amount);
     }
 
-    @Deprecated
     @Override
     public EconomyResponse withdrawPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
@@ -166,7 +165,6 @@ public class RedisEconomy implements Economy {
 
     }
 
-    @Deprecated
     @Override
     public EconomyResponse withdrawPlayer(String playerName, String worldName, double amount) {
         return withdrawPlayer(playerName, amount);
@@ -182,7 +180,6 @@ public class RedisEconomy implements Economy {
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
-    @Deprecated
     public EconomyResponse setPlayerBalance(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
@@ -190,7 +187,6 @@ public class RedisEconomy implements Economy {
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
-    @Deprecated
     @Override
     public EconomyResponse depositPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
@@ -207,7 +203,7 @@ public class RedisEconomy implements Economy {
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
-    @Deprecated
+
     @Override
     public EconomyResponse depositPlayer(String playerName, String worldName, double amount) {
         return depositPlayer(playerName, amount);
@@ -278,7 +274,7 @@ public class RedisEconomy implements Economy {
         return List.of();
     }
 
-    @Deprecated
+
     @Override
     public boolean createPlayerAccount(String playerName) {
         if (hasAccount(playerName))
@@ -297,7 +293,7 @@ public class RedisEconomy implements Economy {
         return true;
     }
 
-    @Deprecated
+
     @Override
     public boolean createPlayerAccount(String playerName, String worldName) {
         return createPlayerAccount(playerName);
@@ -320,7 +316,6 @@ public class RedisEconomy implements Economy {
             else p.zadd("rediseco:balances", balance, uuid.toString());
             p.hset("rediseco:nameuuid", playerName, uuid.toString());
             p.syncAndReturnAll();
-            System.out.println("Updated account " + playerName + " with balance " + balance);
             return null;
         }).exceptionally(e -> {
             e.printStackTrace();
@@ -331,20 +326,13 @@ public class RedisEconomy implements Economy {
     }
 
     public CompletableFuture<List<Tuple>> getAccountsRedis() {
-        return ezRedisMessenger.jedisResourceFuture(jedis -> {
-            List<Tuple> balances = jedis.zrevrangeWithScores("rediseco:balances", 0, -1);
-            if (balances.size() > 10)
-                balances = balances.subList(0, 10);
-            return balances;
-        });
+        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances", 0, -1));
     }
 
     public CompletableFuture<Map<String, UUID>> getRedisNameUniqueIds() {
         return ezRedisMessenger.jedisResourceFuture(jedis -> {
             Map<String, UUID> nameUuids = new HashMap<>();
-            jedis.hgetAll("rediseco:nameuuid").forEach((name, uuid) -> {
-                nameUuids.put(name, UUID.fromString(uuid));
-            });
+            jedis.hgetAll("rediseco:nameuuid").forEach((name, uuid) -> nameUuids.put(name, UUID.fromString(uuid)));
             return nameUuids;
         });
     }

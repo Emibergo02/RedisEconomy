@@ -1,35 +1,38 @@
 package dev.unnm3d.rediseconomy;
 
-import net.kyori.adventure.text.Component;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public class Settings {
 
-    public String CURRENCY_SINGLE = "coin";
-    public String CURRENCY_PLURAL = "coins";
-    public String SERVER_ID = "server1";
+    private final BukkitAudiences audiences;
+    public String CURRENCY_SINGLE;
+    public String CURRENCY_PLURAL;
+    public String SERVER_ID;
 
-    public int TRANSACTIONS_RETAINED = 100;
-    public String NO_CONSOLE = "<red>This command can't be executed from console!";
-    public String NO_PERMISSION = "<red>You don't have permission to execute this command!";
-    public String PLAYER_NOT_FOUND = "<red>This player doesn't exist!";
-    public String BALANCE_TOP = "<gold>Top 10 richest players:";
-    public String BALANCE_TOP_FORMAT = "<gold>%pos%. <white>%player% <gold>with <white>%balance% <gold>coins";
-    public String BALANCE = "<gold>Your balance is <white>%balance% <gold>coins";
-    public String BALANCE_OTHER = "<gold>%player%'s balance is <white>%balance% <gold>coins";
-    public String BALANCE_SET = "<gold>Your balance has been set to <white>%balance% <gold>coins";
-    public String BALANCE_SET_OTHER = "<gold>%player%'s balance has been set to <white>%balance% <gold>coins";
-    public String PAY_SUCCESS = "<gold>You have paid <white>%player% <gold>%amount% <gold>coins";
-    public String PAY_SELF = "<red>You can't pay yourself!";
-    public String PAY_FAIL = "<red>You don't have enough money to pay <white>%amount% <gold>coins to <white>%player%";
-    public String PAY_RECEIVED = "<gold>You received <white>%amount% <gold>coins from <white>%player%";
-    public String TRANSACTION_ITEM = "<aqua>%timestamp%</aqua> <dark_green>%sender%<dark_green> -> <green>%receiver%<green> <gold>%amount%</gold>!";
-    public String INVALID_AMOUNT = "<red>Invalid amount!";
-    public String INSUFFICIENT_FUNDS = "<red>You don't have enough money!";
+    public int TRANSACTIONS_RETAINED;
+    public String NO_CONSOLE;
+    public String NO_PERMISSION;
+    public String PLAYER_NOT_FOUND;
+    public String BALANCE_TOP;
+    public String BALANCE_TOP_FORMAT;
+    public String BALANCE;
+    public String BALANCE_OTHER;
+    public String BALANCE_SET;
+    public String BALANCE_SET_OTHER;
+    public String PAY_SUCCESS;
+    public String PAY_SELF;
+    public String PAY_FAIL;
+    public String PAY_RECEIVED;
+    public String TRANSACTION_ITEM;
+    public String INVALID_AMOUNT;
+    public String INSUFFICIENT_FUNDS;
 
-    public Settings(FileConfiguration config) {
-
+    public Settings(RedisEconomyPlugin plugin) {
+        this.audiences= BukkitAudiences.create(plugin);
+        FileConfiguration config = plugin.getConfig();
         this.CURRENCY_SINGLE = config.getString("currency-single", "coin");
         this.CURRENCY_PLURAL = config.getString("currency-plural", "coins");
         this.SERVER_ID = config.getString("server-id", "server1");
@@ -52,7 +55,7 @@ public class Settings {
         this.INSUFFICIENT_FUNDS = config.getString("lang.insufficient-funds", "<red>You don't have enough money!");
     }
 
-    public Component parse(String text) {
-        return MiniMessage.miniMessage().deserialize(text);
+    public void send(CommandSender sender,String text) {
+        audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text));
     }
 }

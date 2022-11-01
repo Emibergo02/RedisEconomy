@@ -1,7 +1,6 @@
 name: RedisEconomy
 version: '${project.version}'
 main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
-api-version: 1.19
 author: Unnm3d
 depend:
   - Vault
