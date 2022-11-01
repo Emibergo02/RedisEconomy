@@ -1,7 +1,12 @@
 package dev.unnm3d.rediseconomy;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
-import dev.unnm3d.rediseconomy.command.*;
+import dev.unnm3d.rediseconomy.command.BalanceCommand;
+import dev.unnm3d.rediseconomy.command.BalanceTopCommand;
+import dev.unnm3d.rediseconomy.command.PayCommand;
+import dev.unnm3d.rediseconomy.command.TransactionCommand;
+import dev.unnm3d.rediseconomy.vaultcurrency.EconomyExchange;
+import dev.unnm3d.rediseconomy.vaultcurrency.RedisEconomy;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -47,13 +52,16 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
 
         getServer().getPluginManager().registerEvents(new JoinListener(economy), this);
-        getServer().getPluginCommand("pay").setExecutor(new PayCommand(economy, exchange));
-        getServer().getPluginCommand("pay").setTabCompleter(new PayCommand(economy, exchange));
-        getServer().getPluginCommand("balance").setExecutor(new BalanceCommand(economy));
-        getServer().getPluginCommand("balance").setTabCompleter(new BalanceCommand(economy));
+        PayCommand payCommand = new PayCommand(economy, exchange);
+        getServer().getPluginCommand("pay").setExecutor(payCommand);
+        getServer().getPluginCommand("pay").setTabCompleter(payCommand);
+        BalanceCommand balanceCommand = new BalanceCommand(economy);
+        getServer().getPluginCommand("balance").setExecutor(balanceCommand);
+        getServer().getPluginCommand("balance").setTabCompleter(balanceCommand);
         getServer().getPluginCommand("balancetop").setExecutor(new BalanceTopCommand(economy));
-        getServer().getPluginCommand("transaction").setExecutor(new TransactionCommand(economy, exchange));
-        getServer().getPluginCommand("transaction").setTabCompleter(new TransactionCommand(economy, exchange));
+        TransactionCommand transactionCommand = new TransactionCommand(economy, exchange);
+        getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
+        getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
 
 
     }
@@ -78,7 +86,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             Player online = getServer().getPlayer(payMsgPacket.receiverName());
             if (online != null) {
                 if (online.isOnline())
-                    settings.send(online,settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount()));
+                    settings.send(online, settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount()));
             }
         }, PayCommand.PayMsg.class);
     }
@@ -107,13 +115,13 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             return false;
         economy = new RedisEconomy(ezRedisMessenger, getConfig().getString("currency-single", "coin"), getConfig().getString("currency-plural", "coins"));
 
-        if(getConfig().getBoolean("migration-enabled", false)) {
+        if (getConfig().getBoolean("migration-enabled", false)) {
 
-            @NotNull Collection<RegisteredServiceProvider<Economy>> existentProviders= Bukkit.getServer().getServicesManager().getRegistrations(Economy.class);
+            @NotNull Collection<RegisteredServiceProvider<Economy>> existentProviders = Bukkit.getServer().getServicesManager().getRegistrations(Economy.class);
             CompletableFuture.supplyAsync(() -> {
                 Bukkit.getLogger().info("§aStarting migration from " + existentProviders.size() + " providers...");
 
-                if(ezRedisMessenger.getJedis().isConnected())
+                if (ezRedisMessenger.getJedis().isConnected())
                     existentProviders.forEach(reg -> {
                         Bukkit.getLogger().info("§aMigrating from " + reg.getProvider().getName() + "...");
                         if (reg.getProvider() != economy) {
@@ -137,7 +145,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                 getConfig().set("migration-enabled", false);
                 saveConfig();
             });
-        }else
+        } else
             this.getServer().getServicesManager().register(Economy.class, economy, vault, ServicePriority.High);
 
 
@@ -151,7 +159,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     public static Settings settings() {
         return instance.settings;
     }
-
 
 
 }

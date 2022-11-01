@@ -1,8 +1,8 @@
 package dev.unnm3d.rediseconomy.command;
 
-import dev.unnm3d.rediseconomy.EconomyExchange;
-import dev.unnm3d.rediseconomy.RedisEconomy;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.vaultcurrency.EconomyExchange;
+import dev.unnm3d.rediseconomy.vaultcurrency.RedisEconomy;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -45,21 +45,23 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (economy.withdrawPlayer(p, amount).transactionSuccess()) {
-            if (economy.depositPlayer(target, amount).transactionSuccess()) {
-                //Send msg to sender
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_SUCCESS.replace("%amount%", economy.format(amount)).replace("%player%", target));
-                //Send msg to target
-                economy.getEzRedisMessenger().sendObjectPacketAsync("rediseco:paymsg", new PayMsg(sender.getName(), target, economy.format(amount)));
-                //Register transaction
-                exchange.saveTransaction(p.getName(), target, economy.format(amount));
-            } else {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_FAIL);
-            }
-
-        } else {
+        if (!economy.withdrawPlayer(p, amount).transactionSuccess()) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INSUFFICIENT_FUNDS);
+            return true;
         }
+
+        if (!economy.depositPlayer(target, amount).transactionSuccess()) {
+            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_FAIL);
+            return true;
+        }
+
+        //Send msg to sender
+        RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_SUCCESS.replace("%amount%", economy.format(amount)).replace("%player%", target));
+        //Send msg to target
+        economy.getEzRedisMessenger().sendObjectPacketAsync("rediseco:paymsg", new PayMsg(sender.getName(), target, economy.format(amount)));
+        //Register transaction
+        exchange.saveTransaction(p.getName(), target, economy.format(amount));
+
 
         return true;
     }
@@ -68,7 +70,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            return economy.getNameUniqueIds().keySet().stream().toList();
+            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
         } else if (args.length == 2)
             return List.of("69");
 

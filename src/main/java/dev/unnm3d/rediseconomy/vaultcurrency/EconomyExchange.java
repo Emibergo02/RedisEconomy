@@ -1,11 +1,10 @@
-package dev.unnm3d.rediseconomy;
+package dev.unnm3d.rediseconomy.vaultcurrency;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.unnm3d.rediseconomy.command.PayCommand;
+import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
-import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Map;
@@ -51,11 +50,11 @@ public class EconomyExchange {
     }
 
     private Transaction[] updateArraySpace(Transaction[] transactions) {
-        final int transactionMaxSize=RedisEconomyPlugin.settings().TRANSACTIONS_RETAINED;
+        final int transactionMaxSize = RedisEconomyPlugin.settings().TRANSACTIONS_RETAINED;
         Transaction[] newTransactions;
-        if (transactions.length > transactionMaxSize-1) {
+        if (transactions.length > transactionMaxSize - 1) {
             newTransactions = new Transaction[transactionMaxSize];
-            System.arraycopy(transactions, 1, newTransactions, 0, transactionMaxSize-1);
+            System.arraycopy(transactions, 1, newTransactions, 0, transactionMaxSize - 1);
         } else {
             newTransactions = new Transaction[transactions.length + 1];
             System.arraycopy(transactions, 0, newTransactions, 0, transactions.length);

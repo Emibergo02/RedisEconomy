@@ -1,5 +1,6 @@
 package dev.unnm3d.rediseconomy;
 
+import dev.unnm3d.rediseconomy.vaultcurrency.RedisEconomy;
 import lombok.AllArgsConstructor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,6 +13,12 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        economy.createPlayerAccount(e.getPlayer());
+        economy.getAccountRedis(e.getPlayer().getUniqueId()).thenAccept(balance -> {
+            if (balance == null) {
+                economy.createPlayerAccount(e.getPlayer());
+            } else {
+                economy.updateAccountLocal(e.getPlayer().getUniqueId(), e.getPlayer().getName(), balance);
+            }
+        });
     }
 }

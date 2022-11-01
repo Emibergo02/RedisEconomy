@@ -1,13 +1,15 @@
-package dev.unnm3d.rediseconomy;
+package dev.unnm3d.rediseconomy.vaultcurrency;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
 import dev.unnm3d.jedis.Pipeline;
 import dev.unnm3d.jedis.resps.Tuple;
+import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
 import java.io.Serializable;
@@ -62,7 +64,7 @@ public class RedisEconomy implements Economy {
 
     @Override
     public String format(double amount) {
-        return String.format("%.2f", amount);
+        return String.format("%.2f", amount) + (amount == 1 ? currencySingular : currencyPlural);
     }
 
     @Override
@@ -146,7 +148,7 @@ public class RedisEconomy implements Economy {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         if (!has(playerName, amount))
             return new EconomyResponse(0, getBalance(playerName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
-        updateAccountStorage(nameUniqueIds.get(playerName), playerName, getBalance(playerName) - amount);
+        updateAccount(nameUniqueIds.get(playerName), playerName, getBalance(playerName) - amount);
 
 
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
@@ -158,7 +160,7 @@ public class RedisEconomy implements Economy {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         if (!has(player, amount))
             return new EconomyResponse(0, getBalance(player), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
-        updateAccountStorage(player.getUniqueId(), player.getName(), getBalance(player) - amount);
+        updateAccount(player.getUniqueId(), player.getName(), getBalance(player) - amount);
 
 
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
@@ -176,14 +178,14 @@ public class RedisEconomy implements Economy {
     }
 
     public EconomyResponse setPlayerBalance(OfflinePlayer player, double amount) {
-        updateAccountStorage(player.getUniqueId(), player.getName(), amount);
+        updateAccount(player.getUniqueId(), player.getName(), amount);
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
     public EconomyResponse setPlayerBalance(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        updateAccountStorage(nameUniqueIds.get(playerName), playerName, amount);
+        updateAccount(nameUniqueIds.get(playerName), playerName, amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -191,7 +193,7 @@ public class RedisEconomy implements Economy {
     public EconomyResponse depositPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        updateAccountStorage(nameUniqueIds.get(playerName), playerName, getBalance(playerName) + amount);
+        updateAccount(nameUniqueIds.get(playerName), playerName, getBalance(playerName) + amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -199,7 +201,7 @@ public class RedisEconomy implements Economy {
     public EconomyResponse depositPlayer(OfflinePlayer player, double amount) {
         if (!hasAccount(player))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        updateAccountStorage(player.getUniqueId(), player.getName(), getBalance(player) + amount);
+        updateAccount(player.getUniqueId(), player.getName(), getBalance(player) + amount);
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -279,7 +281,7 @@ public class RedisEconomy implements Economy {
     public boolean createPlayerAccount(String playerName) {
         if (hasAccount(playerName))
             return false;
-        updateAccountStorage(nameUniqueIds.get(playerName), playerName, 0.0);
+        updateAccount(nameUniqueIds.get(playerName), playerName, 0.0);
         return true;
     }
 
@@ -288,7 +290,7 @@ public class RedisEconomy implements Economy {
     public boolean createPlayerAccount(OfflinePlayer player) {
         if (hasAccount(player))
             return false;
-        updateAccountStorage(player.getUniqueId(), player.getName(), 0.0);
+        updateAccount(player.getUniqueId(), player.getName(), 0.0);
 
         return true;
     }
@@ -304,12 +306,19 @@ public class RedisEconomy implements Economy {
         return createPlayerAccount(player);
     }
 
-    public void updateAccountLocal(UUID uuid, String playerName, double balance) {
-        accounts.put(uuid, balance);
+    public synchronized void updateAccountLocal(UUID uuid, String playerName, double balance) {
         nameUniqueIds.put(playerName, uuid);
+        accounts.put(uuid, balance);
     }
 
-    public void updateAccountStorage(UUID uuid, String playerName, double balance) {
+    public void updateAccount(UUID uuid, String playerName, double balance) {
+        updateAccountCloudCache(uuid, playerName, balance, 0);
+        updateAccountLocal(uuid, playerName, balance);
+        //Update cache in other servers directly
+        ezRedisMessenger.sendObjectPacket("rediseco", new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
+    }
+
+    private void updateAccountCloudCache(UUID uuid, String playerName, double balance, int tries) {
         ezRedisMessenger.jedisResourceFuture(jedis -> {
             Pipeline p = jedis.pipelined();
             if (balance == 0.0D) p.zincrby("rediseco:balances", balance, uuid.toString());
@@ -317,16 +326,23 @@ public class RedisEconomy implements Economy {
             p.hset("rediseco:nameuuid", playerName, uuid.toString());
             p.syncAndReturnAll();
             return null;
-        }).exceptionally(e -> {
-            e.printStackTrace();
+        }, 300).exceptionally(e -> {
+            if (tries > 4) {
+                e.printStackTrace();
+                Bukkit.getLogger().severe("Failed to update account " + playerName + " after 5 tries");
+                Bukkit.getLogger().severe("Player accounts are desyncronized");
+            } else updateAccountCloudCache(uuid, playerName, balance, tries + 1);
             return null;
         });
-        updateAccountLocal(uuid, playerName, balance);
-        ezRedisMessenger.sendObjectPacketAsync("rediseco", new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
+
     }
 
     public CompletableFuture<List<Tuple>> getAccountsRedis() {
         return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances", 0, -1));
+    }
+
+    public CompletableFuture<Double> getAccountRedis(UUID player) {
+        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances", player.toString()));
     }
 
     public CompletableFuture<Map<String, UUID>> getRedisNameUniqueIds() {

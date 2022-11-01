@@ -1,7 +1,7 @@
 package dev.unnm3d.rediseconomy.command;
 
-import dev.unnm3d.rediseconomy.RedisEconomy;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.vaultcurrency.RedisEconomy;
 import lombok.AllArgsConstructor;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.command.Command;
@@ -79,7 +79,7 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1)
-            return economy.getNameUniqueIds().keySet().stream().toList();
+            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
         else if (args.length == 2)
             return List.of("give", "take", "set");
         else if (args.length == 3)

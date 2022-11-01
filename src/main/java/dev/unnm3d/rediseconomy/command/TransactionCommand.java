@@ -1,8 +1,8 @@
 package dev.unnm3d.rediseconomy.command;
 
-import dev.unnm3d.rediseconomy.EconomyExchange;
-import dev.unnm3d.rediseconomy.RedisEconomy;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.vaultcurrency.EconomyExchange;
+import dev.unnm3d.rediseconomy.vaultcurrency.RedisEconomy;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -91,7 +91,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1)
-            return economy.getNameUniqueIds().keySet().stream().toList();
+            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
         else if (args.length == 2) {
             if (args[1].trim().equals(""))
                 return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");

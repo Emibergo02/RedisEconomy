@@ -31,7 +31,7 @@ public class Settings {
     public String INSUFFICIENT_FUNDS;
 
     public Settings(RedisEconomyPlugin plugin) {
-        this.audiences= BukkitAudiences.create(plugin);
+        this.audiences = BukkitAudiences.create(plugin);
         FileConfiguration config = plugin.getConfig();
         this.CURRENCY_SINGLE = config.getString("currency-single", "coin");
         this.CURRENCY_PLURAL = config.getString("currency-plural", "coins");
@@ -55,7 +55,7 @@ public class Settings {
         this.INSUFFICIENT_FUNDS = config.getString("lang.insufficient-funds", "<red>You don't have enough money!");
     }
 
-    public void send(CommandSender sender,String text) {
+    public void send(CommandSender sender, String text) {
         audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text));
     }
 }
