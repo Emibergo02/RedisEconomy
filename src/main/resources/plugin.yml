@@ -4,6 +4,12 @@ main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
 author: Unnm3d
 depend:
   - Vault
+softdepend:
+  - Essentials
+  - EssentialsX
+  - XConomy
+  - CMI
+  - EconomyPlus
 commands:
   pay:
     description: Pay a player

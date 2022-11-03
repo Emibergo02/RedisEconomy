@@ -1,9 +1,10 @@
-package dev.unnm3d.rediseconomy.vaultcurrency;
+package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
 import dev.unnm3d.jedis.Pipeline;
 import dev.unnm3d.jedis.resps.Tuple;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,23 +23,33 @@ import java.util.concurrent.CompletableFuture;
 @AllArgsConstructor
 @Setter
 @Getter
-public class RedisEconomy implements Economy {
+public class Currency implements Economy {
 
     private EzRedisMessenger ezRedisMessenger;
     private boolean enabled;
+    private String currencyName;
     private String currencySingular;
     private String currencyPlural;
+    private double startingBalance;
+    private double payTax;
     private HashMap<UUID, Double> accounts;
-    private Map<String, UUID> nameUniqueIds;
+    //TODO: move nameUniqueIds to CurrenciesManager
+    private static Map<String, UUID> nameUniqueIds=new HashMap<>();
 
-    public RedisEconomy(EzRedisMessenger ezRedisMessenger, String currencySingular, String currencyPlural) {
+
+    public Currency(EzRedisMessenger ezRedisMessenger, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double payTax) {
         this.ezRedisMessenger = ezRedisMessenger;
         this.enabled = true;
+        this.currencyName = currencyName;
         this.currencySingular = currencySingular;
         this.currencyPlural = currencyPlural;
+        this.startingBalance = startingBalance;
+        this.payTax = payTax;
         this.accounts = new HashMap<>();
         getAccountsRedis().join().forEach(t -> accounts.put(UUID.fromString(t.getElement()), t.getScore()));
-        this.nameUniqueIds = getRedisNameUniqueIds().join();
+        if(nameUniqueIds.isEmpty())
+            nameUniqueIds = getRedisNameUniqueIds().join();
+        registerChannelListener();
     }
 
 
@@ -146,9 +157,10 @@ public class RedisEconomy implements Economy {
     public EconomyResponse withdrawPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        if (!has(playerName, amount))
+        double amountToWithdraw = amount+(amount*payTax);
+        if (!has(playerName, amountToWithdraw))
             return new EconomyResponse(0, getBalance(playerName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
-        updateAccount(nameUniqueIds.get(playerName), playerName, getBalance(playerName) - amount);
+        updateAccount(nameUniqueIds.get(playerName), playerName, getBalance(playerName) - amountToWithdraw);
 
 
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
@@ -158,9 +170,10 @@ public class RedisEconomy implements Economy {
     public EconomyResponse withdrawPlayer(OfflinePlayer player, double amount) {
         if (!hasAccount(player))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        if (!has(player, amount))
+        double amountToWithdraw = amount+(amount*payTax);
+        if (!has(player, amountToWithdraw))
             return new EconomyResponse(0, getBalance(player), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
-        updateAccount(player.getUniqueId(), player.getName(), getBalance(player) - amount);
+        updateAccount(player.getUniqueId(), player.getName(), getBalance(player) - amountToWithdraw);
 
 
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
@@ -183,8 +196,6 @@ public class RedisEconomy implements Economy {
     }
 
     public EconomyResponse setPlayerBalance(String playerName, double amount) {
-        if (!hasAccount(playerName))
-            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         updateAccount(nameUniqueIds.get(playerName), playerName, amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
@@ -281,7 +292,7 @@ public class RedisEconomy implements Economy {
     public boolean createPlayerAccount(String playerName) {
         if (hasAccount(playerName))
             return false;
-        updateAccount(nameUniqueIds.get(playerName), playerName, 0.0);
+        updateAccount(nameUniqueIds.get(playerName), playerName, startingBalance);
         return true;
     }
 
@@ -290,7 +301,7 @@ public class RedisEconomy implements Economy {
     public boolean createPlayerAccount(OfflinePlayer player) {
         if (hasAccount(player))
             return false;
-        updateAccount(player.getUniqueId(), player.getName(), 0.0);
+        updateAccount(player.getUniqueId(), player.getName(), startingBalance);
 
         return true;
     }
@@ -315,14 +326,13 @@ public class RedisEconomy implements Economy {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
         //Update cache in other servers directly
-        ezRedisMessenger.sendObjectPacket("rediseco", new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
+        ezRedisMessenger.sendObjectPacket("rediseco_"+currencyName, new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
     }
 
     private void updateAccountCloudCache(UUID uuid, String playerName, double balance, int tries) {
         ezRedisMessenger.jedisResourceFuture(jedis -> {
             Pipeline p = jedis.pipelined();
-            if (balance == 0.0D) p.zincrby("rediseco:balances", balance, uuid.toString());
-            else p.zadd("rediseco:balances", balance, uuid.toString());
+            p.zadd("rediseco:balances_"+currencyName, balance, uuid.toString());
             p.hset("rediseco:nameuuid", playerName, uuid.toString());
             p.syncAndReturnAll();
             return null;
@@ -338,11 +348,11 @@ public class RedisEconomy implements Economy {
     }
 
     public CompletableFuture<List<Tuple>> getAccountsRedis() {
-        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances", 0, -1));
+        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances_"+currencyName, 0, -1));
     }
 
     public CompletableFuture<Double> getAccountRedis(UUID player) {
-        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances", player.toString()));
+        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_"+currencyName, player.toString()));
     }
 
     public CompletableFuture<Map<String, UUID>> getRedisNameUniqueIds() {
@@ -361,7 +371,20 @@ public class RedisEconomy implements Economy {
         }
         return "N/A";
     }
+    private void registerChannelListener(){
+        ezRedisMessenger.registerChannelObjectListener("rediseco_"+currencyName, (packet) -> {
+            Currency.UpdateAccount ua = (Currency.UpdateAccount) packet;
 
+            if (ua.sender().equals(RedisEconomyPlugin.settings().SERVER_ID)) return;
+
+            updateAccountLocal(UUID.fromString(ua.uuid()), ua.playerName(), ua.balance());
+
+        }, Currency.UpdateAccount.class);
+    }
+
+    public static Map<String, UUID> getNameUniqueIds() {
+        return nameUniqueIds;
+    }
 
     public record UpdateAccount(String sender, String uuid, String playerName, double balance) implements Serializable {
     }
