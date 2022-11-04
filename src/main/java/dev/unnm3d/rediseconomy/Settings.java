@@ -7,11 +7,10 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 public class Settings {
 
-    private final BukkitAudiences audiences;
-    public String CURRENCY_SINGLE;
-    public String CURRENCY_PLURAL;
-    public String SERVER_ID;
 
+    private final BukkitAudiences audiences;
+    public String SERVER_ID;
+    public boolean DEBUG;
     public int TRANSACTIONS_RETAINED;
     public String NO_CONSOLE;
     public String NO_PERMISSION;
@@ -33,9 +32,8 @@ public class Settings {
     public Settings(RedisEconomyPlugin plugin) {
         this.audiences = BukkitAudiences.create(plugin);
         FileConfiguration config = plugin.getConfig();
-        this.CURRENCY_SINGLE = config.getString("currency-single", "coin");
-        this.CURRENCY_PLURAL = config.getString("currency-plural", "coins");
-        this.SERVER_ID = config.getString("server-id", "server1");
+        this.SERVER_ID = config.getString("server-id", System.currentTimeMillis() + "");
+        this.DEBUG= config.getBoolean("debug", false);
         this.TRANSACTIONS_RETAINED = config.getInt("transactions-retained", 200);
         this.NO_CONSOLE = config.getString("lang.no-console", "<red>This command can't be executed from console!");
         this.NO_PERMISSION = config.getString("lang.no-permission", "<red>You don't have permission to execute this command!");

@@ -25,12 +25,11 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
      * @param command Command which was executed
      * @param label Alias of the command which was used
      * @param args Passed command arguments
-     * @return
      */
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         Currency defaultCurrency=economy.getDefaultCurrency();
-
+        long init = System.currentTimeMillis();
         if (args.length == 0) {
             selfBalancePlayer(sender, defaultCurrency);
         } else if (args.length == 1) {
@@ -75,6 +74,9 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
                 else sender.sendMessage(er.errorMessage);
             }
         }
+        if(RedisEconomyPlugin.settings().DEBUG)
+            RedisEconomyPlugin.settings().send(sender, "§aCommand executed in " + (System.currentTimeMillis() - init) + "ms");
+
 
 
         return true;
@@ -100,7 +102,7 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1)
-            return Currency.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
+            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
         else if (args.length == 2)
             return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1])&& sender.hasPermission("rediseconomy.balance."+args[1])).toList();
         else if (args.length == 3)

@@ -1,8 +1,6 @@
-server-id: "server-1"
-currency-single: "dollar"
-currency-plural: "dollars"
 transactions-retained: 200
 migration-enabled: false
+debug: false
 redis:
   host: "localhost"
   port: 6379
@@ -22,7 +20,7 @@ lang:
   balance-top: "<green>Top richest players:</green><br>%prevpage%      %page%      %nextpage%"
   balance-top-format: "<aqua>%pos% - %player% %balance%</aqua>"
   pay-self: "<red>You cannot pay yourself!</red>"
-  pay-success: "<green>You paid %player% %amount%!</green>"
+  pay-success: "<green>You paid %player% %amount% with %tax_percentage% %tax_applied% of transaction fee!</green>"
   pay-fail: "<red>Pay failed!</red>"
   pay-received: "<green>You received %amount% from %player%!</green>"
   transaction-item: "<aqua>%timestamp%</aqua> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> -> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%<green></click> %amount%!"
@@ -30,5 +28,10 @@ currencies:
   vault:
     currency-single: "dollar"
     currency-plural: "dollars"
+    starting-balance: 0
+    pay-tax: 0
+  zircon:
+    currency-single: "zircon"
+    currency-plural: "zircons"
     starting-balance: 0
     pay-tax: 0

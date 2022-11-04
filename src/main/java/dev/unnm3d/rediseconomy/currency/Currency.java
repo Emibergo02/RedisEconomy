@@ -1,10 +1,8 @@
 package dev.unnm3d.rediseconomy.currency;
 
-import dev.unnm3d.ezredislib.EzRedisMessenger;
 import dev.unnm3d.jedis.Pipeline;
 import dev.unnm3d.jedis.resps.Tuple;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 @Getter
 public class Currency implements Economy {
 
-    private EzRedisMessenger ezRedisMessenger;
+    private CurrenciesManager currenciesManager;
     private boolean enabled;
     private String currencyName;
     private String currencySingular;
@@ -33,12 +31,12 @@ public class Currency implements Economy {
     private double startingBalance;
     private double payTax;
     private HashMap<UUID, Double> accounts;
-    //TODO: move nameUniqueIds to CurrenciesManager
-    private static Map<String, UUID> nameUniqueIds=new HashMap<>();
 
 
-    public Currency(EzRedisMessenger ezRedisMessenger, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double payTax) {
-        this.ezRedisMessenger = ezRedisMessenger;
+
+
+    public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double payTax) {
+        this.currenciesManager = currenciesManager;
         this.enabled = true;
         this.currencyName = currencyName;
         this.currencySingular = currencySingular;
@@ -47,8 +45,7 @@ public class Currency implements Economy {
         this.payTax = payTax;
         this.accounts = new HashMap<>();
         getAccountsRedis().join().forEach(t -> accounts.put(UUID.fromString(t.getElement()), t.getScore()));
-        if(nameUniqueIds.isEmpty())
-            nameUniqueIds = getRedisNameUniqueIds().join();
+
         registerChannelListener();
     }
 
@@ -90,7 +87,7 @@ public class Currency implements Economy {
 
     @Override
     public boolean hasAccount(String playerName) {
-        return accounts.containsKey(nameUniqueIds.get(playerName));
+        return accounts.containsKey(currenciesManager.getUniqueId(playerName));
     }
 
     @Override
@@ -112,7 +109,7 @@ public class Currency implements Economy {
 
     @Override
     public double getBalance(String playerName) {
-        return accounts.get(nameUniqueIds.get(playerName));
+        return accounts.get(currenciesManager.getUniqueId(playerName));
     }
 
     @Override
@@ -160,7 +157,7 @@ public class Currency implements Economy {
         double amountToWithdraw = amount+(amount*payTax);
         if (!has(playerName, amountToWithdraw))
             return new EconomyResponse(0, getBalance(playerName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
-        updateAccount(nameUniqueIds.get(playerName), playerName, getBalance(playerName) - amountToWithdraw);
+        updateAccount(currenciesManager.getUniqueId(playerName), playerName, getBalance(playerName) - amountToWithdraw);
 
 
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
@@ -196,7 +193,7 @@ public class Currency implements Economy {
     }
 
     public EconomyResponse setPlayerBalance(String playerName, double amount) {
-        updateAccount(nameUniqueIds.get(playerName), playerName, amount);
+        updateAccount(currenciesManager.getUniqueId(playerName), playerName, amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -204,7 +201,7 @@ public class Currency implements Economy {
     public EconomyResponse depositPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        updateAccount(nameUniqueIds.get(playerName), playerName, getBalance(playerName) + amount);
+        updateAccount(currenciesManager.getUniqueId(playerName), playerName, getBalance(playerName) + amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -292,7 +289,7 @@ public class Currency implements Economy {
     public boolean createPlayerAccount(String playerName) {
         if (hasAccount(playerName))
             return false;
-        updateAccount(nameUniqueIds.get(playerName), playerName, startingBalance);
+        updateAccount(currenciesManager.getUniqueId(playerName), playerName, startingBalance);
         return true;
     }
 
@@ -318,7 +315,7 @@ public class Currency implements Economy {
     }
 
     public synchronized void updateAccountLocal(UUID uuid, String playerName, double balance) {
-        nameUniqueIds.put(playerName, uuid);
+        currenciesManager.updateNameUniqueId(playerName, uuid);
         accounts.put(uuid, balance);
     }
 
@@ -326,11 +323,11 @@ public class Currency implements Economy {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
         //Update cache in other servers directly
-        ezRedisMessenger.sendObjectPacket("rediseco_"+currencyName, new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
+        currenciesManager.getEzRedisMessenger().sendObjectPacket("rediseco_"+currencyName, new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
     }
 
     private void updateAccountCloudCache(UUID uuid, String playerName, double balance, int tries) {
-        ezRedisMessenger.jedisResourceFuture(jedis -> {
+        currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> {
             Pipeline p = jedis.pipelined();
             p.zadd("rediseco:balances_"+currencyName, balance, uuid.toString());
             p.hset("rediseco:nameuuid", playerName, uuid.toString());
@@ -348,31 +345,24 @@ public class Currency implements Economy {
     }
 
     public CompletableFuture<List<Tuple>> getAccountsRedis() {
-        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances_"+currencyName, 0, -1));
+        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances_"+currencyName, 0, -1));
     }
 
     public CompletableFuture<Double> getAccountRedis(UUID player) {
-        return ezRedisMessenger.jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_"+currencyName, player.toString()));
+        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_"+currencyName, player.toString()));
     }
 
-    public CompletableFuture<Map<String, UUID>> getRedisNameUniqueIds() {
-        return ezRedisMessenger.jedisResourceFuture(jedis -> {
-            Map<String, UUID> nameUuids = new HashMap<>();
-            jedis.hgetAll("rediseco:nameuuid").forEach((name, uuid) -> nameUuids.put(name, UUID.fromString(uuid)));
-            return nameUuids;
-        });
-    }
 
-    //With for loop
+
     public String getPlayerName(UUID uuid) {
-        for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
+        for (Map.Entry<String, UUID> entry : currenciesManager.getNameUniqueIds().entrySet()) {
             if (entry.getValue().equals(uuid))
                 return entry.getKey();
         }
         return "N/A";
     }
     private void registerChannelListener(){
-        ezRedisMessenger.registerChannelObjectListener("rediseco_"+currencyName, (packet) -> {
+        currenciesManager.getEzRedisMessenger().registerChannelObjectListener("rediseco_"+currencyName, (packet) -> {
             Currency.UpdateAccount ua = (Currency.UpdateAccount) packet;
 
             if (ua.sender().equals(RedisEconomyPlugin.settings().SERVER_ID)) return;
@@ -380,10 +370,6 @@ public class Currency implements Economy {
             updateAccountLocal(UUID.fromString(ua.uuid()), ua.playerName(), ua.balance());
 
         }, Currency.UpdateAccount.class);
-    }
-
-    public static Map<String, UUID> getNameUniqueIds() {
-        return nameUniqueIds;
     }
 
     public record UpdateAccount(String sender, String uuid, String playerName, double balance) implements Serializable {

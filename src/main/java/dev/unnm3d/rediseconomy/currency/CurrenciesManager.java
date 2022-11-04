@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -13,30 +14,37 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class CurrenciesManager {
     private final RedisEconomyPlugin plugin;
+    @Getter
     private final EzRedisMessenger ezRedisMessenger;
     private final HashMap<String,Currency> currencies;
+    @Getter
+    private final ConcurrentHashMap<String, UUID> nameUniqueIds;
 
     public CurrenciesManager(EzRedisMessenger ezRedisMessenger,RedisEconomyPlugin plugin) {
         this.ezRedisMessenger = ezRedisMessenger;
         this.plugin = plugin;
         this.currencies = new HashMap<>();
+        this.nameUniqueIds =getRedisNameUniqueIds().join();
         ConfigurationSection configurationSection=plugin.getConfig().getConfigurationSection("currencies");
-        for(String key:configurationSection.getKeys(false)){
-            String singleSymbol=configurationSection.getString(key+".currency-single","€");
-            String pluralSymbol=configurationSection.getString(key+".currency-plural","€");
-            double starting=configurationSection.getDouble(key+".starting-balance",0.0);
-            double tax=configurationSection.getDouble(key+".pay-tax",0.0);
-            System.out.println("Loaded currency "+key+" with single symbol "+singleSymbol+" and plural symbol "+pluralSymbol+" and starting balance "+starting+" and tax "+tax);
-            Currency currency=new Currency(ezRedisMessenger,key,singleSymbol,pluralSymbol,starting,tax);
-            currencies.put(key,currency);
-        }
+        if(configurationSection!=null)
+            for(String key: configurationSection.getKeys(false)){
+                String singleSymbol=configurationSection.getString(key+".currency-single","€");
+                String pluralSymbol=configurationSection.getString(key+".currency-plural","€");
+                double starting=configurationSection.getDouble(key+".starting-balance",0.0);
+                double tax=configurationSection.getDouble(key+".pay-tax",0.0);
+                Currency currency=new Currency(this,key,singleSymbol,pluralSymbol,starting,tax);
+                currencies.put(key,currency);
+            }
         if(currencies.get("vault")==null){
-            currencies.put("vault",new Currency(ezRedisMessenger,"vault","€","€",0.0,0.0));
+            currencies.put("vault",new Currency(this,"vault","€","€",0.0,0.0));
         }
     }
 
@@ -88,5 +96,27 @@ public class CurrenciesManager {
     }
     public Currency getDefaultCurrency(){
         return currencies.get("vault");
+    }
+
+    public void updateNameUniqueId(String name,UUID uuid){
+        nameUniqueIds.put(name,uuid);
+    }
+    public UUID getUniqueId(String name){
+        return nameUniqueIds.get(name);
+    }
+    public String getName(UUID uuid){
+        for(Map.Entry<String,UUID> entry:nameUniqueIds.entrySet()){
+            if(entry.getValue().equals(uuid))
+                return entry.getKey();
+        }
+        return null;
+    }
+
+    public CompletableFuture<ConcurrentHashMap<String, UUID>> getRedisNameUniqueIds() {
+        return ezRedisMessenger.jedisResourceFuture(jedis -> {
+            ConcurrentHashMap<String, UUID> nameUuids = new ConcurrentHashMap<>();
+            jedis.hgetAll("rediseco:nameuuid").forEach((name, uuid) -> nameUuids.put(name, UUID.fromString(uuid)));
+            return nameUuids;
+        });
     }
 }

@@ -5,6 +5,7 @@ import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import lombok.AllArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -40,6 +41,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
     }
 
     private void payDefaultCurrency(Player sender, Currency currency, String[] args) {
+        long init = System.currentTimeMillis();
         String target = args[0];
         double amount;
         try {
@@ -69,18 +71,29 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         }
 
         //Send msg to sender
-        RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_SUCCESS.replace("%amount%", currency.format(amount)).replace("%player%", target));
+        RedisEconomyPlugin.settings().send(sender,
+                RedisEconomyPlugin.settings().PAY_SUCCESS
+                        .replace("%amount%", currency.format(amount))
+                        .replace("%player%", target)
+                        .replace("%tax_percentage%", (currency.getPayTax()*100)+"%")
+                        .replace("%tax_applied%", currency.format(currency.getPayTax()*amount))
+        );
         //Send msg to target
-        currency.getEzRedisMessenger().sendObjectPacketAsync("rediseco:paymsg", new PayMsg(sender.getName(), target, currency.format(amount)));
+        economy.getEzRedisMessenger().sendObjectPacketAsync("rediseco:paymsg", new PayMsg(sender.getName(), target, currency.format(amount)));
+        if(RedisEconomyPlugin.settings().DEBUG){
+            Bukkit.getLogger().info("Pay msg sent in "+(System.currentTimeMillis()-init)+"ms. current timestamp"+System.currentTimeMillis());
+        }
         //Register transaction
         exchange.saveTransaction(sender.getName(), target, currency.format(amount));
+        if(RedisEconomyPlugin.settings().DEBUG)
+            Bukkit.getLogger().info("Pay transaction took " + (System.currentTimeMillis() - init) + "ms");
     }
 
     @Nullable
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            return Currency.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
+            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
         } else if (args.length == 2)
             return List.of("69");
         else if (args.length == 3)

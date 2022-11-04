@@ -10,6 +10,9 @@ softdepend:
   - XConomy
   - CMI
   - EconomyPlus
+  - BetterEconomy
+  - ArcaneEconomy
+  - EasyConomy
 commands:
   pay:
     description: Pay a player

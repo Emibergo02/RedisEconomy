@@ -3,7 +3,7 @@ package dev.unnm3d.rediseconomy.transaction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
@@ -16,14 +16,14 @@ import java.util.concurrent.CompletableFuture;
 public class EconomyExchange {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private final Currency defaultCurrency;
+    private final CurrenciesManager currenciesManager;
 
     public CompletableFuture<Transaction[]> getTransactions(String player) {
-        return defaultCurrency.getEzRedisMessenger().jedisResourceFuture(jedis -> getTransactionsFromJson(jedis.hget("rediseco:transactions", player)));
+        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> getTransactionsFromJson(jedis.hget("rediseco:transactions", player)));
     }
 
     public void saveTransaction(String sender, String target, String amount) {
-        defaultCurrency.getEzRedisMessenger().jedisResourceFuture(jedis -> {
+        currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> {
 
             //Retrieve all serialized transactions from redis
             List<String> lista = jedis.hmget("rediseco:transactions", sender, target);

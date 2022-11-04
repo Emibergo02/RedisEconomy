@@ -1,7 +1,7 @@
 package dev.unnm3d.rediseconomy.command;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
@@ -18,7 +18,7 @@ import java.util.TimeZone;
 
 @AllArgsConstructor
 public class TransactionCommand implements CommandExecutor, TabCompleter {
-    private final Currency defaultCurrency;
+    private final CurrenciesManager currenciesManager;
     private final EconomyExchange exchange;
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
 
@@ -91,7 +91,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1)
-            return Currency.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
+            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
         else if (args.length == 2) {
             if (args[1].trim().equals(""))
                 return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
