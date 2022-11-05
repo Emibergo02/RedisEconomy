@@ -68,6 +68,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         TransactionCommand transactionCommand = new TransactionCommand(currenciesManager, exchange);
         getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
         getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
+        new Metrics(this, 16802);
     }
 
     @Override
