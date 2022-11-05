@@ -45,3 +45,9 @@ permissions:
     rediseconomy.admin:
         description: Allows to use admin commands
         default: op
+    rediseconomy.pay.*:
+      description: Allows to use /pay all currencies
+      default: op
+    rediseconomy.balance.*:
+      description: Allows to use /balance with other currencies
+      default: op

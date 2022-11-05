@@ -75,7 +75,7 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
             }
         }
         if(RedisEconomyPlugin.settings().DEBUG)
-            RedisEconomyPlugin.settings().send(sender, "§aCommand executed in " + (System.currentTimeMillis() - init) + "ms");
+            RedisEconomyPlugin.settings().send(sender, "Command executed in " + (System.currentTimeMillis() - init) + "ms");
 
 
 

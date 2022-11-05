@@ -30,7 +30,9 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         }
         if(args.length==2) {
             payDefaultCurrency(p, economy.getDefaultCurrency(), args);
-        }else if(args.length==3&&sender.hasPermission("rediseconomy.pay."+args[2])){
+        }else if(args.length==3){
+            if(!sender.hasPermission("rediseconomy.pay."+args[2]))
+                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
             Currency currency=economy.getCurrency(args[2]);
             payDefaultCurrency(p, currency, args);
         }
@@ -41,6 +43,10 @@ public class PayCommand implements CommandExecutor, TabCompleter {
     }
 
     private void payDefaultCurrency(Player sender, Currency currency, String[] args) {
+        if(!sender.hasPermission("rediseconomy.pay")){
+            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
+            return;
+        }
         long init = System.currentTimeMillis();
         String target = args[0];
         double amount;
