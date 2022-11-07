@@ -25,7 +25,9 @@ public class Currency implements Economy {
     private boolean enabled;
     @Getter
     private final String currencyName;
+    @Getter
     private String currencySingular;
+    @Getter
     private String currencyPlural;
     @Getter
     private double startingBalance;
