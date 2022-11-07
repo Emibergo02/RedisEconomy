@@ -49,7 +49,8 @@ if(api==null){
 Currency currency = api.getCurrencyByName("vault"); //Same as api.getDefaultCurrency()
 api.getCurrencyBySymbol("€");//Gets the currency by symbol
 
-//Currency is a Vault Economy, same methods and everything
+//Currency is a Vault Economy https://github.com/MilkBowl/VaultAPI/blob/master/src/main/java/net/milkbowl/vault/economy/Economy.java, 
+//same methods and everything
 currency.getBalance(offlinePlayer);
 currency.withdrawPlayer(offlinePlayer, 100);
 
