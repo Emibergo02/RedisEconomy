@@ -2,11 +2,15 @@ package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
@@ -20,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-public class CurrenciesManager {
+public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final RedisEconomyPlugin plugin;
     @Getter
     private final EzRedisMessenger ezRedisMessenger;
@@ -29,6 +33,7 @@ public class CurrenciesManager {
     private final ConcurrentHashMap<String, UUID> nameUniqueIds;
 
     public CurrenciesManager(EzRedisMessenger ezRedisMessenger,RedisEconomyPlugin plugin) {
+        INSTANCE=this;
         this.ezRedisMessenger = ezRedisMessenger;
         this.plugin = plugin;
         this.currencies = new HashMap<>();
@@ -46,6 +51,7 @@ public class CurrenciesManager {
         if(currencies.get("vault")==null){
             currencies.put("vault",new Currency(this,"vault","€","€",0.0,0.0));
         }
+
     }
 
 
@@ -66,7 +72,7 @@ public class CurrenciesManager {
                         if (reg.getProvider() != defaultCurrency) {
                             for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
                                 try {
-                                    Thread.sleep(2000);
+                                    Thread.sleep(200);
                                 } catch (InterruptedException e) {
                                     throw new RuntimeException(e);
                                 }
@@ -74,7 +80,6 @@ public class CurrenciesManager {
                                 defaultCurrency.setPlayerBalance(offlinePlayer, bal);
                                 Bukkit.getLogger().info("Migrated " + offlinePlayer.getName() + "'s balance of " + bal);
                             }
-
                         }
                     });
                 Bukkit.getLogger().info("§aMigration finished");
@@ -88,31 +93,54 @@ public class CurrenciesManager {
             plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vault, ServicePriority.High);
         return true;
     }
-    public Currency getCurrency(String name){
+    @Override
+    public Currency getCurrencyByName(String name){
         return currencies.get(name);
     }
+    @Override
     public Collection<Currency> getCurrencies(){
         return currencies.values();
     }
+    @Override
     public Currency getDefaultCurrency(){
         return currencies.get("vault");
     }
 
-    public void updateNameUniqueId(String name,UUID uuid){
+    void updateNameUniqueId(String name,UUID uuid){
         nameUniqueIds.put(name,uuid);
     }
-    public UUID getUniqueId(String name){
-        return nameUniqueIds.get(name);
+    @Override
+    public UUID getUUIDFromUsernameCache(String username){
+        return nameUniqueIds.get(username);
     }
-    public String getName(UUID uuid){
+    @Override
+    public String getUsernameFromUUIDCache(UUID uuid){
         for(Map.Entry<String,UUID> entry:nameUniqueIds.entrySet()){
             if(entry.getValue().equals(uuid))
                 return entry.getKey();
         }
         return null;
     }
+    @Override
+    public Currency getCurrencyBySymbol(String symbol){
+        for(Currency currency:currencies.values()){
+            if(currency.getCurrencySingular().equals(symbol)||currency.getCurrencyPlural().equals(symbol))
+                return currency;
+        }
+        return null;
+    }
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        getCurrencies().forEach(currency -> currency.getAccountRedis(e.getPlayer().getUniqueId()).thenAccept(balance -> {
+            if (balance == null) {
+                currency.createPlayerAccount(e.getPlayer());
+            } else {
+                currency.updateAccountLocal(e.getPlayer().getUniqueId(), e.getPlayer().getName(), balance);
+            }
+        }));
+    }
 
-    public CompletableFuture<ConcurrentHashMap<String, UUID>> getRedisNameUniqueIds() {
+    private CompletableFuture<ConcurrentHashMap<String, UUID>> getRedisNameUniqueIds() {
         return ezRedisMessenger.jedisResourceFuture(jedis -> {
             ConcurrentHashMap<String, UUID> nameUuids = new ConcurrentHashMap<>();
             jedis.hgetAll("rediseco:nameuuid").forEach((name, uuid) -> nameUuids.put(name, UUID.fromString(uuid)));

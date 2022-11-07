@@ -5,6 +5,7 @@ author: Unnm3d
 depend:
   - Vault
 softdepend:
+  - PlaceholderAPI
   - Essentials
   - EssentialsX
   - XConomy

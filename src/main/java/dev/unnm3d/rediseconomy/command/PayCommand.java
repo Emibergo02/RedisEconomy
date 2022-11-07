@@ -33,7 +33,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         }else if(args.length==3){
             if(!sender.hasPermission("rediseconomy.pay."+args[2]))
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
-            Currency currency=economy.getCurrency(args[2]);
+            Currency currency=economy.getCurrencyByName(args[2]);
             payDefaultCurrency(p, currency, args);
         }
 
@@ -81,8 +81,8 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                 RedisEconomyPlugin.settings().PAY_SUCCESS
                         .replace("%amount%", currency.format(amount))
                         .replace("%player%", target)
-                        .replace("%tax_percentage%", (currency.getPayTax()*100)+"%")
-                        .replace("%tax_applied%", currency.format(currency.getPayTax()*amount))
+                        .replace("%tax_percentage%", (currency.getTransactionTax()*100)+"%")
+                        .replace("%tax_applied%", currency.format(currency.getTransactionTax()*amount))
         );
         //Send msg to target
         economy.getEzRedisMessenger().sendObjectPacketAsync("rediseco:paymsg", new PayMsg(sender.getName(), target, currency.format(amount)));

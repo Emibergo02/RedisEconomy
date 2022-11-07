@@ -2,7 +2,7 @@ package dev.unnm3d.rediseconomy.command;
 
 import dev.unnm3d.jedis.resps.Tuple;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @AllArgsConstructor
 public class BalanceTopCommand implements CommandExecutor {
-    private final Currency defaultCurrency;
+    private final CurrenciesManager currenciesManager;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -25,7 +25,7 @@ public class BalanceTopCommand implements CommandExecutor {
             page = 1;
         }
         //Baltop paging, 10 per page
-        defaultCurrency.getAccountsRedis().thenApply(balances -> {
+        currenciesManager.getDefaultCurrency().getOrderedAccounts().thenApply(balances -> {
             if (balances.size() < (page - 1) * 10) {
                 return new ArrayList<Tuple>();
             } else if (balances.size() > page * 10)
@@ -40,7 +40,7 @@ public class BalanceTopCommand implements CommandExecutor {
 
             int i = 1;
             for (Tuple t : balances) {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP_FORMAT.replace("%pos%", i + "").replace("%player%", defaultCurrency.getPlayerName(UUID.fromString(t.getElement()))).replace("%balance%", defaultCurrency.format(t.getScore())));
+                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP_FORMAT.replace("%pos%", i + "").replace("%player%", currenciesManager.getUsernameFromUUIDCache(UUID.fromString(t.getElement()))).replace("%balance%", currenciesManager.getDefaultCurrency().format(t.getScore())));
                 i++;
             }
         });

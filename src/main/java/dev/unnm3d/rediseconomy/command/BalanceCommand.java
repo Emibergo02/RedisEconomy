@@ -39,7 +39,7 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
                 return true;
             }
-            Currency currency=economy.getCurrency(args[1]);
+            Currency currency=economy.getCurrencyByName(args[1]);
             balancePlayer(sender, currency, args);
 
         }else if (args.length == 4) {
@@ -48,7 +48,7 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             String target = args[0];
-            Currency currency = economy.getCurrency(args[1]);
+            Currency currency = economy.getCurrencyByName(args[1]);
             double amount;
             try {
                 amount = Double.parseDouble(args[3]);

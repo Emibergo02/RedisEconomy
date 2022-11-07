@@ -5,47 +5,47 @@ import dev.unnm3d.jedis.resps.Tuple;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @AllArgsConstructor
-@Setter
-@Getter
 public class Currency implements Economy {
 
-    private CurrenciesManager currenciesManager;
+    private final CurrenciesManager currenciesManager;
     private boolean enabled;
-    private String currencyName;
+    @Getter
+    private final String currencyName;
     private String currencySingular;
     private String currencyPlural;
+    @Getter
     private double startingBalance;
-    private double payTax;
-    private HashMap<UUID, Double> accounts;
+    @Getter
+    private double transactionTax;
+    private final ConcurrentHashMap<UUID, Double> accounts;
 
 
 
 
-    public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double payTax) {
+    public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double transactionTax) {
         this.currenciesManager = currenciesManager;
         this.enabled = true;
         this.currencyName = currencyName;
         this.currencySingular = currencySingular;
         this.currencyPlural = currencyPlural;
         this.startingBalance = startingBalance;
-        this.payTax = payTax;
-        this.accounts = new HashMap<>();
-        getAccountsRedis().join().forEach(t -> accounts.put(UUID.fromString(t.getElement()), t.getScore()));
-
+        this.transactionTax = transactionTax;
+        this.accounts = new ConcurrentHashMap<>();
+        getOrderedAccounts().join().forEach(t -> accounts.put(UUID.fromString(t.getElement()), t.getScore()));
         registerChannelListener();
     }
 
@@ -87,7 +87,7 @@ public class Currency implements Economy {
 
     @Override
     public boolean hasAccount(String playerName) {
-        return accounts.containsKey(currenciesManager.getUniqueId(playerName));
+        return accounts.containsKey(currenciesManager.getUUIDFromUsernameCache(playerName));
     }
 
     @Override
@@ -109,7 +109,7 @@ public class Currency implements Economy {
 
     @Override
     public double getBalance(String playerName) {
-        return accounts.get(currenciesManager.getUniqueId(playerName));
+        return accounts.get(currenciesManager.getUUIDFromUsernameCache(playerName));
     }
 
     @Override
@@ -154,10 +154,10 @@ public class Currency implements Economy {
     public EconomyResponse withdrawPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        double amountToWithdraw = amount+(amount*payTax);
+        double amountToWithdraw = amount+(amount* transactionTax);
         if (!has(playerName, amountToWithdraw))
             return new EconomyResponse(0, getBalance(playerName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
-        updateAccount(currenciesManager.getUniqueId(playerName), playerName, getBalance(playerName) - amountToWithdraw);
+        updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, getBalance(playerName) - amountToWithdraw);
 
 
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
@@ -167,7 +167,7 @@ public class Currency implements Economy {
     public EconomyResponse withdrawPlayer(OfflinePlayer player, double amount) {
         if (!hasAccount(player))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        double amountToWithdraw = amount+(amount*payTax);
+        double amountToWithdraw = amount+(amount* transactionTax);
         if (!has(player, amountToWithdraw))
             return new EconomyResponse(0, getBalance(player), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
         updateAccount(player.getUniqueId(), player.getName(), getBalance(player) - amountToWithdraw);
@@ -187,13 +187,24 @@ public class Currency implements Economy {
         return withdrawPlayer(player, amount);
     }
 
+    /**
+     * Set the balance of a player
+     * @param player The player to set the balance of
+     * @param amount The amount to set the balance to
+     * @return The result of the operation
+     */
     public EconomyResponse setPlayerBalance(OfflinePlayer player, double amount) {
         updateAccount(player.getUniqueId(), player.getName(), amount);
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
-
+    /**
+     * Set the balance of a player
+     * @param playerName The player to set the balance of
+     * @param amount The amount to set the balance to
+     * @return The result of the operation
+     */
     public EconomyResponse setPlayerBalance(String playerName, double amount) {
-        updateAccount(currenciesManager.getUniqueId(playerName), playerName, amount);
+        updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -201,7 +212,7 @@ public class Currency implements Economy {
     public EconomyResponse depositPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        updateAccount(currenciesManager.getUniqueId(playerName), playerName, getBalance(playerName) + amount);
+        updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, getBalance(playerName) + amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -289,7 +300,7 @@ public class Currency implements Economy {
     public boolean createPlayerAccount(String playerName) {
         if (hasAccount(playerName))
             return false;
-        updateAccount(currenciesManager.getUniqueId(playerName), playerName, startingBalance);
+        updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, startingBalance);
         return true;
     }
 
@@ -314,12 +325,12 @@ public class Currency implements Economy {
         return createPlayerAccount(player);
     }
 
-    public synchronized void updateAccountLocal(UUID uuid, String playerName, double balance) {
+    void updateAccountLocal(UUID uuid, String playerName, double balance) {
         currenciesManager.updateNameUniqueId(playerName, uuid);
         accounts.put(uuid, balance);
     }
 
-    public void updateAccount(UUID uuid, String playerName, double balance) {
+    private void updateAccount(UUID uuid, String playerName, double balance) {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
         //Update cache in other servers directly
@@ -344,23 +355,25 @@ public class Currency implements Economy {
 
     }
 
-    public CompletableFuture<List<Tuple>> getAccountsRedis() {
+    /**
+     * Get ordered accounts from Redis
+     * Redis uses ordered sets as data structures
+     * This method has a time complexity of O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements returned.
+     * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
+     */
+    public CompletableFuture<List<Tuple>> getOrderedAccounts() {
         return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances_"+currencyName, 0, -1));
     }
 
-    public CompletableFuture<Double> getAccountRedis(UUID player) {
-        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_"+currencyName, player.toString()));
+    /**
+     * Get single ordered account from Redis
+     * @param uuid The UUID of the account
+     * @return The balance associated with the UUID on Redis
+     */
+    public CompletableFuture<Double> getAccountRedis(UUID uuid) {
+        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_"+currencyName, uuid.toString()));
     }
 
-
-
-    public String getPlayerName(UUID uuid) {
-        for (Map.Entry<String, UUID> entry : currenciesManager.getNameUniqueIds().entrySet()) {
-            if (entry.getValue().equals(uuid))
-                return entry.getKey();
-        }
-        return "N/A";
-    }
     private void registerChannelListener(){
         currenciesManager.getEzRedisMessenger().registerChannelObjectListener("rediseco_"+currencyName, (packet) -> {
             Currency.UpdateAccount ua = (Currency.UpdateAccount) packet;
@@ -370,6 +383,14 @@ public class Currency implements Economy {
             updateAccountLocal(UUID.fromString(ua.uuid()), ua.playerName(), ua.balance());
 
         }, Currency.UpdateAccount.class);
+    }
+
+    /**
+     * Get all accounts in cache
+     * @return Unmodifiable map of accounts
+     */
+    public final Map<UUID, Double> getAccounts() {
+        return Collections.unmodifiableMap(accounts);
     }
 
     public record UpdateAccount(String sender, String uuid, String playerName, double balance) implements Serializable {

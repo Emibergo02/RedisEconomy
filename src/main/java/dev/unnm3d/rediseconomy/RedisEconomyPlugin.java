@@ -51,20 +51,23 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         } else{
             this.getLogger().info("Hooked into Vault!");
         }
+        if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new PlaceholderAPIHook(currenciesManager).register();
+        }
 
         registerRedisChannels();
 
         EconomyExchange exchange = new EconomyExchange(currenciesManager);
 
 
-        getServer().getPluginManager().registerEvents(new JoinListener(currenciesManager), this);
+        getServer().getPluginManager().registerEvents(currenciesManager, this);
         PayCommand payCommand = new PayCommand(currenciesManager, exchange);
         getServer().getPluginCommand("pay").setExecutor(payCommand);
         getServer().getPluginCommand("pay").setTabCompleter(payCommand);
         BalanceCommand balanceCommand = new BalanceCommand(currenciesManager);
         getServer().getPluginCommand("balance").setExecutor(balanceCommand);
         getServer().getPluginCommand("balance").setTabCompleter(balanceCommand);
-        getServer().getPluginCommand("balancetop").setExecutor(new BalanceTopCommand(currenciesManager.getDefaultCurrency()));
+        getServer().getPluginCommand("balancetop").setExecutor(new BalanceTopCommand(currenciesManager));
         TransactionCommand transactionCommand = new TransactionCommand(currenciesManager, exchange);
         getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
         getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
@@ -153,6 +156,9 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     public static Settings settings() {
         return instance.settings;
+    }
+    public static RedisEconomyPlugin getInstance() {
+        return instance;
     }
 
 
