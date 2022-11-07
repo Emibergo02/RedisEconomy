@@ -55,11 +55,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
 
-    public boolean loadDefaultCurrency() {
+    public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency= currencies.get("vault");
-        Plugin vault = plugin.getServer().getPluginManager().getPlugin("Vault");
-        if (vault == null)
-            return false;
         if (plugin.getConfig().getBoolean("migration-enabled", false)) {
 
             @NotNull Collection<RegisteredServiceProvider<Economy>> existentProviders = plugin.getServer().getServicesManager().getRegistrations(Economy.class);
@@ -85,24 +82,23 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 Bukkit.getLogger().info("§aMigration finished");
                 return defaultCurrency;
             }).thenAccept((vaultCurrency) -> {
-                plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vault, ServicePriority.High);
+                plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
                 plugin.getConfig().set("migration-enabled", false);
                 plugin.saveConfig();
             });
         } else
-            plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vault, ServicePriority.High);
-        return true;
+            plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
     }
     @Override
-    public Currency getCurrencyByName(String name){
+    public Currency getCurrencyByName(@NotNull String name){
         return currencies.get(name);
     }
     @Override
-    public Collection<Currency> getCurrencies(){
+    public @NotNull Collection<Currency> getCurrencies(){
         return currencies.values();
     }
     @Override
-    public Currency getDefaultCurrency(){
+    public @NotNull Currency getDefaultCurrency(){
         return currencies.get("vault");
     }
 
@@ -110,11 +106,11 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         nameUniqueIds.put(name,uuid);
     }
     @Override
-    public UUID getUUIDFromUsernameCache(String username){
+    public UUID getUUIDFromUsernameCache(@NotNull String username){
         return nameUniqueIds.get(username);
     }
     @Override
-    public String getUsernameFromUUIDCache(UUID uuid){
+    public String getUsernameFromUUIDCache(@NotNull UUID uuid){
         for(Map.Entry<String,UUID> entry:nameUniqueIds.entrySet()){
             if(entry.getValue().equals(uuid))
                 return entry.getKey();
@@ -122,7 +118,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         return null;
     }
     @Override
-    public Currency getCurrencyBySymbol(String symbol){
+    public Currency getCurrencyBySymbol(@NotNull String symbol){
         for(Currency currency:currencies.values()){
             if(currency.getCurrencySingular().equals(symbol)||currency.getCurrencyPlural().equals(symbol))
                 return currency;

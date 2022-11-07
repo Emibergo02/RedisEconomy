@@ -36,8 +36,16 @@ public class Currency implements Economy {
     private final ConcurrentHashMap<UUID, Double> accounts;
 
 
-
-
+    /**
+     * Creates a new currency.
+     * Currency implements Economy from Vault, so it's the same as using any other Vault Economy plugin
+     * @param currenciesManager The CurrenciesManager instance
+     * @param currencyName The name of the currency
+     * @param currencySingular The singular symbol of the currency
+     * @param currencyPlural The plural symbol of the currency
+     * @param startingBalance The starting balance of the currency
+     * @param transactionTax The transaction tax of the currency
+     */
     public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double transactionTax) {
         this.currenciesManager = currenciesManager;
         this.enabled = true;

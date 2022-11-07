@@ -1,6 +1,7 @@
 package dev.unnm3d.rediseconomy.api;
 
 import dev.unnm3d.rediseconomy.currency.Currency;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -14,41 +15,41 @@ public abstract class RedisEconomyAPI {
      * Get all the currencies
      * @return all the currencies in a collection
      */
-    public abstract Collection<Currency> getCurrencies();
+    public abstract @NotNull Collection<Currency> getCurrencies();
 
     /**
      * Get a currency by its name
      * @param name the name of the currency
      * @return the currency
      */
-    public abstract Currency getCurrencyByName(String name);
+    public abstract Currency getCurrencyByName(@NotNull String name);
 
     /**
      * Get default currency (vault currency)
      * @return the default currency
      */
-    public abstract Currency getDefaultCurrency();
+    public abstract @NotNull Currency getDefaultCurrency();
 
     /**
      * Get a currency by its symbol
      * @param symbol the symbol of the currency
      * @return the currency
      */
-    public abstract Currency getCurrencyBySymbol(String symbol);
+    public abstract Currency getCurrencyBySymbol(@NotNull String symbol);
 
     /**
      * Get uuid from cache
      * @param username the username of the player
      * @return the uuid of the player
      */
-    public abstract UUID getUUIDFromUsernameCache(String username);
+    public abstract UUID getUUIDFromUsernameCache(@NotNull String username);
 
     /**
      * Get username from cache
      * @param uuid the uuid of the player
      * @return the username of the player
      */
-    public abstract String getUsernameFromUUIDCache(UUID uuid);
+    public abstract String getUsernameFromUUIDCache(@NotNull UUID uuid);
 
     /**
      * Get API instance

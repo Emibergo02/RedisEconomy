@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.concurrent.CompletableFuture;
@@ -150,8 +151,12 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     private boolean setupEconomy() {
+        Plugin vault = getServer().getPluginManager().getPlugin("Vault");
+        if (vault == null)
+            return false;
         this.currenciesManager = new CurrenciesManager(ezRedisMessenger,this);
-        return currenciesManager.loadDefaultCurrency();
+        currenciesManager.loadDefaultCurrency(vault);
+        return true;
     }
 
     public static Settings settings() {
