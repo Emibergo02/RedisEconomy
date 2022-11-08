@@ -14,8 +14,8 @@ Add the dependency and replace `<version>...</version>` with the latest release 
 ```xml
 <dependency>
   <groupId>com.github.Emibergo02</groupId>
-  <artifactId>EzRedisLib</artifactId>
-  <version>3.3-SNAPSHOT</version>
+  <artifactId>RedisEconomy</artifactId>
+  <version>master-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -30,10 +30,10 @@ allprojects {
 }
 ```
 
-Add the dependency and replace `3.3-SNAPSHOT` with the latest release version:
+Add the dependency and replace `master-SNAPSHOT` with the latest release version:
 ```gradle
 dependencies {
-  implementation 'com.github.Emibergo02:EzRedisLib:3.3-SNAPSHOT'
+  implementation 'com.github.Emibergo02:RedisEconomy:master-SNAPSHOT'
 }
 ```
 ## API usage
