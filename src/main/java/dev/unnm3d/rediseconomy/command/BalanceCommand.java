@@ -21,28 +21,29 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
 
     /**
      * Format /balance [player] [currencyName] set/give/take [amount]
-     * @param sender Source of the command
+     *
+     * @param sender  Source of the command
      * @param command Command which was executed
-     * @param label Alias of the command which was used
-     * @param args Passed command arguments
+     * @param label   Alias of the command which was used
+     * @param args    Passed command arguments
      */
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        Currency defaultCurrency=economy.getDefaultCurrency();
+        Currency defaultCurrency = economy.getDefaultCurrency();
         long init = System.currentTimeMillis();
         if (args.length == 0) {
             selfBalancePlayer(sender, defaultCurrency);
         } else if (args.length == 1) {
             balancePlayer(sender, defaultCurrency, args);
-        }else if(args.length==2){
-            if(!sender.hasPermission("rediseconomy.balance."+args[1])){
+        } else if (args.length == 2) {
+            if (!sender.hasPermission("rediseconomy.balance." + args[1])) {
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
                 return true;
             }
-            Currency currency=economy.getCurrencyByName(args[1]);
+            Currency currency = economy.getCurrencyByName(args[1]);
             balancePlayer(sender, currency, args);
 
-        }else if (args.length == 4) {
+        } else if (args.length == 4) {
             if (!sender.hasPermission("rediseconomy.admin")) {
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
                 return true;
@@ -74,14 +75,14 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
                 else sender.sendMessage(er.errorMessage);
             }
         }
-        if(RedisEconomyPlugin.settings().DEBUG)
+        if (RedisEconomyPlugin.settings().DEBUG)
             RedisEconomyPlugin.settings().send(sender, "Command executed in " + (System.currentTimeMillis() - init) + "ms");
-
 
 
         return true;
     }
-    private void selfBalancePlayer(CommandSender sender, Currency currency){
+
+    private void selfBalancePlayer(CommandSender sender, Currency currency) {
         if (!(sender instanceof Player p)) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_CONSOLE);
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_CONSOLE);
@@ -89,7 +90,8 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
         }
         RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE.replace("%balance%", String.valueOf(currency.format(currency.getBalance(p)))));
     }
-    private void balancePlayer(CommandSender sender, Currency currency, String[] args){
+
+    private void balancePlayer(CommandSender sender, Currency currency, String[] args) {
         String target = args[0];
         if (!currency.hasAccount(target)) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
@@ -104,7 +106,7 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1)
             return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
         else if (args.length == 2)
-            return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1])&& sender.hasPermission("rediseconomy.balance."+args[1])).toList();
+            return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1]) && sender.hasPermission("rediseconomy.balance." + args[1])).toList();
         else if (args.length == 3)
             return List.of("give", "take", "set");
         else if (args.length == 4)

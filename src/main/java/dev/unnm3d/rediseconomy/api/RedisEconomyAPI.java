@@ -13,12 +13,14 @@ public abstract class RedisEconomyAPI {
 
     /**
      * Get all the currencies
+     *
      * @return all the currencies in a collection
      */
     public abstract @NotNull Collection<Currency> getCurrencies();
 
     /**
      * Get a currency by its name
+     *
      * @param name the name of the currency
      * @return the currency
      */
@@ -26,12 +28,14 @@ public abstract class RedisEconomyAPI {
 
     /**
      * Get default currency (vault currency)
+     *
      * @return the default currency
      */
     public abstract @NotNull Currency getDefaultCurrency();
 
     /**
      * Get a currency by its symbol
+     *
      * @param symbol the symbol of the currency
      * @return the currency
      */
@@ -39,6 +43,7 @@ public abstract class RedisEconomyAPI {
 
     /**
      * Get uuid from cache
+     *
      * @param username the username of the player
      * @return the uuid of the player
      */
@@ -46,6 +51,7 @@ public abstract class RedisEconomyAPI {
 
     /**
      * Get username from cache
+     *
      * @param uuid the uuid of the player
      * @return the username of the player
      */
@@ -53,9 +59,10 @@ public abstract class RedisEconomyAPI {
 
     /**
      * Get API instance
+     *
      * @return the API instance
      */
-    public static @Nullable RedisEconomyAPI getAPI(){
+    public static @Nullable RedisEconomyAPI getAPI() {
         return INSTANCE;
     }
 

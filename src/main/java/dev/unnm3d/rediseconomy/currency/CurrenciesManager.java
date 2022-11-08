@@ -28,35 +28,35 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final RedisEconomyPlugin plugin;
     @Getter
     private final EzRedisMessenger ezRedisMessenger;
-    private final HashMap<String,Currency> currencies;
+    private final HashMap<String, Currency> currencies;
     @Getter
     private final ConcurrentHashMap<String, UUID> nameUniqueIds;
 
-    public CurrenciesManager(EzRedisMessenger ezRedisMessenger,RedisEconomyPlugin plugin) {
-        INSTANCE=this;
+    public CurrenciesManager(EzRedisMessenger ezRedisMessenger, RedisEconomyPlugin plugin) {
+        INSTANCE = this;
         this.ezRedisMessenger = ezRedisMessenger;
         this.plugin = plugin;
         this.currencies = new HashMap<>();
-        this.nameUniqueIds =getRedisNameUniqueIds().join();
-        ConfigurationSection configurationSection=plugin.getConfig().getConfigurationSection("currencies");
-        if(configurationSection!=null)
-            for(String key: configurationSection.getKeys(false)){
-                String singleSymbol=configurationSection.getString(key+".currency-single","€");
-                String pluralSymbol=configurationSection.getString(key+".currency-plural","€");
-                double starting=configurationSection.getDouble(key+".starting-balance",0.0);
-                double tax=configurationSection.getDouble(key+".pay-tax",0.0);
-                Currency currency=new Currency(this,key,singleSymbol,pluralSymbol,starting,tax);
-                currencies.put(key,currency);
+        this.nameUniqueIds = getRedisNameUniqueIds().join();
+        ConfigurationSection configurationSection = plugin.getConfig().getConfigurationSection("currencies");
+        if (configurationSection != null)
+            for (String key : configurationSection.getKeys(false)) {
+                String singleSymbol = configurationSection.getString(key + ".currency-single", "€");
+                String pluralSymbol = configurationSection.getString(key + ".currency-plural", "€");
+                double starting = configurationSection.getDouble(key + ".starting-balance", 0.0);
+                double tax = configurationSection.getDouble(key + ".pay-tax", 0.0);
+                Currency currency = new Currency(this, key, singleSymbol, pluralSymbol, starting, tax);
+                currencies.put(key, currency);
             }
-        if(currencies.get("vault")==null){
-            currencies.put("vault",new Currency(this,"vault","€","€",0.0,0.0));
+        if (currencies.get("vault") == null) {
+            currencies.put("vault", new Currency(this, "vault", "€", "€", 0.0, 0.0));
         }
 
     }
 
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
-        Currency defaultCurrency= currencies.get("vault");
+        Currency defaultCurrency = currencies.get("vault");
         if (plugin.getConfig().getBoolean("migration-enabled", false)) {
 
             @NotNull Collection<RegisteredServiceProvider<Economy>> existentProviders = plugin.getServer().getServicesManager().getRegistrations(Economy.class);
@@ -89,42 +89,49 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         } else
             plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
     }
+
     @Override
-    public Currency getCurrencyByName(@NotNull String name){
+    public Currency getCurrencyByName(@NotNull String name) {
         return currencies.get(name);
     }
+
     @Override
-    public @NotNull Collection<Currency> getCurrencies(){
+    public @NotNull Collection<Currency> getCurrencies() {
         return currencies.values();
     }
+
     @Override
-    public @NotNull Currency getDefaultCurrency(){
+    public @NotNull Currency getDefaultCurrency() {
         return currencies.get("vault");
     }
 
-    void updateNameUniqueId(String name,UUID uuid){
-        nameUniqueIds.put(name,uuid);
+    void updateNameUniqueId(String name, UUID uuid) {
+        nameUniqueIds.put(name, uuid);
     }
+
     @Override
-    public UUID getUUIDFromUsernameCache(@NotNull String username){
+    public UUID getUUIDFromUsernameCache(@NotNull String username) {
         return nameUniqueIds.get(username);
     }
+
     @Override
-    public String getUsernameFromUUIDCache(@NotNull UUID uuid){
-        for(Map.Entry<String,UUID> entry:nameUniqueIds.entrySet()){
-            if(entry.getValue().equals(uuid))
+    public String getUsernameFromUUIDCache(@NotNull UUID uuid) {
+        for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
+            if (entry.getValue().equals(uuid))
                 return entry.getKey();
         }
         return null;
     }
+
     @Override
-    public Currency getCurrencyBySymbol(@NotNull String symbol){
-        for(Currency currency:currencies.values()){
-            if(currency.getCurrencySingular().equals(symbol)||currency.getCurrencyPlural().equals(symbol))
+    public Currency getCurrencyBySymbol(@NotNull String symbol) {
+        for (Currency currency : currencies.values()) {
+            if (currency.getCurrencySingular().equals(symbol) || currency.getCurrencyPlural().equals(symbol))
                 return currency;
         }
         return null;
     }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         getCurrencies().forEach(currency -> currency.getAccountRedis(e.getPlayer().getUniqueId()).thenAccept(balance -> {

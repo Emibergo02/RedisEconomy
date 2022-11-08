@@ -39,12 +39,13 @@ public class Currency implements Economy {
     /**
      * Creates a new currency.
      * Currency implements Economy from Vault, so it's the same as using any other Vault Economy plugin
+     *
      * @param currenciesManager The CurrenciesManager instance
-     * @param currencyName The name of the currency
-     * @param currencySingular The singular symbol of the currency
-     * @param currencyPlural The plural symbol of the currency
-     * @param startingBalance The starting balance of the currency
-     * @param transactionTax The transaction tax of the currency
+     * @param currencyName      The name of the currency
+     * @param currencySingular  The singular symbol of the currency
+     * @param currencyPlural    The plural symbol of the currency
+     * @param startingBalance   The starting balance of the currency
+     * @param transactionTax    The transaction tax of the currency
      */
     public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double transactionTax) {
         this.currenciesManager = currenciesManager;
@@ -164,7 +165,7 @@ public class Currency implements Economy {
     public EconomyResponse withdrawPlayer(String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        double amountToWithdraw = amount+(amount* transactionTax);
+        double amountToWithdraw = amount + (amount * transactionTax);
         if (!has(playerName, amountToWithdraw))
             return new EconomyResponse(0, getBalance(playerName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
         updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, getBalance(playerName) - amountToWithdraw);
@@ -177,7 +178,7 @@ public class Currency implements Economy {
     public EconomyResponse withdrawPlayer(OfflinePlayer player, double amount) {
         if (!hasAccount(player))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        double amountToWithdraw = amount+(amount* transactionTax);
+        double amountToWithdraw = amount + (amount * transactionTax);
         if (!has(player, amountToWithdraw))
             return new EconomyResponse(0, getBalance(player), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
         updateAccount(player.getUniqueId(), player.getName(), getBalance(player) - amountToWithdraw);
@@ -199,6 +200,7 @@ public class Currency implements Economy {
 
     /**
      * Set the balance of a player
+     *
      * @param player The player to set the balance of
      * @param amount The amount to set the balance to
      * @return The result of the operation
@@ -207,10 +209,12 @@ public class Currency implements Economy {
         updateAccount(player.getUniqueId(), player.getName(), amount);
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
+
     /**
      * Set the balance of a player
+     *
      * @param playerName The player to set the balance of
-     * @param amount The amount to set the balance to
+     * @param amount     The amount to set the balance to
      * @return The result of the operation
      */
     public EconomyResponse setPlayerBalance(String playerName, double amount) {
@@ -344,13 +348,13 @@ public class Currency implements Economy {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
         //Update cache in other servers directly
-        currenciesManager.getEzRedisMessenger().sendObjectPacket("rediseco_"+currencyName, new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
+        currenciesManager.getEzRedisMessenger().sendObjectPacket("rediseco_" + currencyName, new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
     }
 
     private void updateAccountCloudCache(UUID uuid, String playerName, double balance, int tries) {
         currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> {
             Pipeline p = jedis.pipelined();
-            p.zadd("rediseco:balances_"+currencyName, balance, uuid.toString());
+            p.zadd("rediseco:balances_" + currencyName, balance, uuid.toString());
             p.hset("rediseco:nameuuid", playerName, uuid.toString());
             p.syncAndReturnAll();
             return null;
@@ -369,23 +373,25 @@ public class Currency implements Economy {
      * Get ordered accounts from Redis
      * Redis uses ordered sets as data structures
      * This method has a time complexity of O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements returned.
+     *
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
     public CompletableFuture<List<Tuple>> getOrderedAccounts() {
-        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances_"+currencyName, 0, -1));
+        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances_" + currencyName, 0, -1));
     }
 
     /**
      * Get single ordered account from Redis
+     *
      * @param uuid The UUID of the account
      * @return The balance associated with the UUID on Redis
      */
     public CompletableFuture<Double> getAccountRedis(UUID uuid) {
-        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_"+currencyName, uuid.toString()));
+        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_" + currencyName, uuid.toString()));
     }
 
-    private void registerChannelListener(){
-        currenciesManager.getEzRedisMessenger().registerChannelObjectListener("rediseco_"+currencyName, (packet) -> {
+    private void registerChannelListener() {
+        currenciesManager.getEzRedisMessenger().registerChannelObjectListener("rediseco_" + currencyName, (packet) -> {
             Currency.UpdateAccount ua = (Currency.UpdateAccount) packet;
 
             if (ua.sender().equals(RedisEconomyPlugin.settings().SERVER_ID)) return;
@@ -397,8 +403,10 @@ public class Currency implements Economy {
 
     /**
      * Get all accounts in cache
+     *
      * @return Unmodifiable map of accounts
      */
+    @SuppressWarnings("unused")
     public final Map<UUID, Double> getAccounts() {
         return Collections.unmodifiableMap(accounts);
     }
