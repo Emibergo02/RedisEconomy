@@ -33,7 +33,7 @@ public class Settings {
         this.audiences = BukkitAudiences.create(plugin);
         FileConfiguration config = plugin.getConfig();
         this.SERVER_ID = config.getString("server-id", System.currentTimeMillis() + "");
-        this.DEBUG= config.getBoolean("debug", false);
+        this.DEBUG = config.getBoolean("debug", false);
         this.TRANSACTIONS_RETAINED = config.getInt("transactions-retained", 200);
         this.NO_CONSOLE = config.getString("lang.no-console", "<red>This command can't be executed from console!");
         this.NO_PERMISSION = config.getString("lang.no-permission", "<red>You don't have permission to execute this command!");

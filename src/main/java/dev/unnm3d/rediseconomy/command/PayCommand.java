@@ -28,22 +28,21 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_CONSOLE);
             return true;
         }
-        if(args.length==2) {
+        if (args.length == 2) {
             payDefaultCurrency(p, economy.getDefaultCurrency(), args);
-        }else if(args.length==3){
-            if(!sender.hasPermission("rediseconomy.pay."+args[2]))
+        } else if (args.length == 3) {
+            if (!sender.hasPermission("rediseconomy.pay." + args[2]))
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
-            Currency currency=economy.getCurrencyByName(args[2]);
+            Currency currency = economy.getCurrencyByName(args[2]);
             payDefaultCurrency(p, currency, args);
         }
-
 
 
         return true;
     }
 
     private void payDefaultCurrency(Player sender, Currency currency, String[] args) {
-        if(!sender.hasPermission("rediseconomy.pay")){
+        if (!sender.hasPermission("rediseconomy.pay")) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
             return;
         }
@@ -81,17 +80,17 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                 RedisEconomyPlugin.settings().PAY_SUCCESS
                         .replace("%amount%", currency.format(amount))
                         .replace("%player%", target)
-                        .replace("%tax_percentage%", (currency.getTransactionTax()*100)+"%")
-                        .replace("%tax_applied%", currency.format(currency.getTransactionTax()*amount))
+                        .replace("%tax_percentage%", (currency.getTransactionTax() * 100) + "%")
+                        .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
         );
         //Send msg to target
         economy.getEzRedisMessenger().sendObjectPacketAsync("rediseco:paymsg", new PayMsg(sender.getName(), target, currency.format(amount)));
-        if(RedisEconomyPlugin.settings().DEBUG){
-            Bukkit.getLogger().info("Pay msg sent in "+(System.currentTimeMillis()-init)+"ms. current timestamp"+System.currentTimeMillis());
+        if (RedisEconomyPlugin.settings().DEBUG) {
+            Bukkit.getLogger().info("Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
         }
         //Register transaction
         exchange.saveTransaction(sender.getName(), target, currency.format(amount));
-        if(RedisEconomyPlugin.settings().DEBUG)
+        if (RedisEconomyPlugin.settings().DEBUG)
             Bukkit.getLogger().info("Pay transaction took " + (System.currentTimeMillis() - init) + "ms");
     }
 
@@ -103,7 +102,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 2)
             return List.of("69");
         else if (args.length == 3)
-            return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[2])&&sender.hasPermission("rediseconomy.pay."+args[2])).toList();
+            return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[2]) && sender.hasPermission("rediseconomy.pay." + args[2])).toList();
 
         return List.of();
     }

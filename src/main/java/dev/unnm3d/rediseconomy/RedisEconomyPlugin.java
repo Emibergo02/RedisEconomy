@@ -35,8 +35,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         this.settings = new Settings(this);
 
         //Auto server-id
-        getServerId().thenAccept(s->
-                settings.SERVER_ID=s
+        getServerId().thenAccept(s ->
+                settings.SERVER_ID = s
         );
 
         if (!setupRedis()) {
@@ -49,10 +49,10 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
             return;
-        } else{
+        } else {
             this.getLogger().info("Hooked into Vault!");
         }
-        if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new PlaceholderAPIHook(currenciesManager).register();
         }
 
@@ -88,22 +88,22 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             PayCommand.PayMsg payMsgPacket = (PayCommand.PayMsg) packet;
             Player online = getServer().getPlayer(payMsgPacket.receiverName());
             if (online != null) {
-                if (online.isOnline()){
+                if (online.isOnline()) {
                     settings.send(online, settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount()));
 
-                    if(RedisEconomyPlugin.settings().DEBUG){
-                        Bukkit.getLogger().info("Received pay message to " + online.getName()+" timestamp: "+System.currentTimeMillis());
+                    if (RedisEconomyPlugin.settings().DEBUG) {
+                        Bukkit.getLogger().info("Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
                     }
                 }
             }
         }, PayCommand.PayMsg.class);
     }
 
-    private CompletableFuture<String> getServerId(){
+    private CompletableFuture<String> getServerId() {
         CompletableFuture<String> future = new CompletableFuture<>();
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         this.getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord", (channel, player, message) -> {
-            if(future.isDone()) return;
+            if (future.isDone()) return;
             ByteArrayDataInput in = ByteStreams.newDataInput(message);
             String subchannel = in.readUTF();
             if (subchannel.equals("GetServer")) {
@@ -113,7 +113,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         Listener listener = new Listener() {
             @EventHandler
             public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
-                if(future.isDone()){
+                if (future.isDone()) {
                     return;
                 }
                 ByteArrayDataOutput out = ByteStreams.newDataOutput();
@@ -121,7 +121,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                 event.getPlayer().sendPluginMessage(instance, "BungeeCord", out.toByteArray());//Request server name
             }
         };
-        getServer().getPluginManager().registerEvents(listener,this);//Register listener on player join
+        getServer().getPluginManager().registerEvents(listener, this);//Register listener on player join
 
         return future.thenApply(s -> {
             //Remove listener and channel listeners
@@ -154,7 +154,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         Plugin vault = getServer().getPluginManager().getPlugin("Vault");
         if (vault == null)
             return false;
-        this.currenciesManager = new CurrenciesManager(ezRedisMessenger,this);
+        this.currenciesManager = new CurrenciesManager(ezRedisMessenger, this);
         currenciesManager.loadDefaultCurrency(vault);
         return true;
     }
@@ -162,6 +162,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     public static Settings settings() {
         return instance.settings;
     }
+
     public static RedisEconomyPlugin getInstance() {
         return instance;
     }
