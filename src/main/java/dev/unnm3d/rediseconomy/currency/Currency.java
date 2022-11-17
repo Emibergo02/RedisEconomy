@@ -22,9 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Currency implements Economy {
 
     private final CurrenciesManager currenciesManager;
-    private boolean enabled;
     @Getter
     private final String currencyName;
+    private final ConcurrentHashMap<UUID, Double> accounts;
+    private boolean enabled;
     @Getter
     private String currencySingular;
     @Getter
@@ -33,7 +34,6 @@ public class Currency implements Economy {
     private double startingBalance;
     @Getter
     private double transactionTax;
-    private final ConcurrentHashMap<UUID, Double> accounts;
 
 
     /**

@@ -4,10 +4,7 @@ import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import dev.unnm3d.ezredislib.EzRedisMessenger;
-import dev.unnm3d.rediseconomy.command.BalanceCommand;
-import dev.unnm3d.rediseconomy.command.BalanceTopCommand;
-import dev.unnm3d.rediseconomy.command.PayCommand;
-import dev.unnm3d.rediseconomy.command.TransactionCommand;
+import dev.unnm3d.rediseconomy.command.*;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import net.milkbowl.vault.economy.Economy;
@@ -27,6 +24,14 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private EzRedisMessenger ezRedisMessenger;
     private Settings settings;
     private CurrenciesManager currenciesManager;
+
+    public static Settings settings() {
+        return instance.settings;
+    }
+
+    public static RedisEconomyPlugin getInstance() {
+        return instance;
+    }
 
     @Override
     public void onEnable() {
@@ -60,18 +65,20 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
         EconomyExchange exchange = new EconomyExchange(currenciesManager);
 
-
         getServer().getPluginManager().registerEvents(currenciesManager, this);
         PayCommand payCommand = new PayCommand(currenciesManager, exchange);
         getServer().getPluginCommand("pay").setExecutor(payCommand);
         getServer().getPluginCommand("pay").setTabCompleter(payCommand);
-        BalanceCommand balanceCommand = new BalanceCommand(currenciesManager);
+
+        BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
         getServer().getPluginCommand("balance").setExecutor(balanceCommand);
         getServer().getPluginCommand("balance").setTabCompleter(balanceCommand);
         getServer().getPluginCommand("balancetop").setExecutor(new BalanceTopCommand(currenciesManager));
+
         TransactionCommand transactionCommand = new TransactionCommand(currenciesManager, exchange);
         getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
         getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
+
         new Metrics(this, 16802);
     }
 
@@ -132,7 +139,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         });
     }
 
-
     private boolean setupRedis() {
         try {
             this.ezRedisMessenger = new EzRedisMessenger(
@@ -157,14 +163,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         this.currenciesManager = new CurrenciesManager(ezRedisMessenger, this);
         currenciesManager.loadDefaultCurrency(vault);
         return true;
-    }
-
-    public static Settings settings() {
-        return instance.settings;
-    }
-
-    public static RedisEconomyPlugin getInstance() {
-        return instance;
     }
 
 

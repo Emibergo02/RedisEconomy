@@ -13,6 +13,15 @@ public abstract class RedisEconomyAPI {
     protected static RedisEconomyAPI INSTANCE = null;
 
     /**
+     * Get API instance
+     *
+     * @return the API instance
+     */
+    public static @Nullable RedisEconomyAPI getAPI() {
+        return INSTANCE;
+    }
+
+    /**
      * Get all the currencies
      *
      * @return all the currencies in a collection
@@ -24,7 +33,7 @@ public abstract class RedisEconomyAPI {
      *
      * @return all the currencies
      */
-    public abstract @NotNull Map<String,Currency> getCurrenciesWithNames();
+    public abstract @NotNull Map<String, Currency> getCurrenciesWithNames();
 
     /**
      * Get a currency by its name
@@ -64,14 +73,5 @@ public abstract class RedisEconomyAPI {
      * @return the username of the player
      */
     public abstract @Nullable String getUsernameFromUUIDCache(@NotNull UUID uuid);
-
-    /**
-     * Get API instance
-     *
-     * @return the API instance
-     */
-    public static @Nullable RedisEconomyAPI getAPI() {
-        return INSTANCE;
-    }
 
 }

@@ -44,11 +44,11 @@ public class BalanceTopCommand implements CommandExecutor {
             return new PageData(page, pageBalances);
         }).thenAccept((data) -> {
             PageData pageData = (PageData) data;
-            int i=1;
+            int i = 1;
             for (Tuple tuple : pageData.pageBalances) {
                 String username = currenciesManager.getUsernameFromUUIDCache(UUID.fromString(tuple.getElement()));
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP_FORMAT
-                        .replace("%pos%", String.valueOf((pageData.pageNumber-1)*10+i))
+                        .replace("%pos%", String.valueOf((pageData.pageNumber - 1) * 10 + i))
                         .replace("%player%", username == null ? "Unknown" : username)
                         .replace("%balance%", currenciesManager.getDefaultCurrency().format(tuple.getScore())));
                 i++;
@@ -56,5 +56,7 @@ public class BalanceTopCommand implements CommandExecutor {
         });
         return true;
     }
-    private record PageData(int pageNumber, List<Tuple> pageBalances) {}
+
+    private record PageData(int pageNumber, List<Tuple> pageBalances) {
+    }
 }

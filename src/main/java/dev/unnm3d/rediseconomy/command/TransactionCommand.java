@@ -18,9 +18,9 @@ import java.util.TimeZone;
 
 @AllArgsConstructor
 public class TransactionCommand implements CommandExecutor, TabCompleter {
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
     private final CurrenciesManager currenciesManager;
     private final EconomyExchange exchange;
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -90,9 +90,11 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length == 1)
+        if (args.length == 1) {
+            if (args[0].length() < 3)
+                return List.of();
             return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
-        else if (args.length == 2) {
+        } else if (args.length == 2) {
             if (args[1].trim().equals(""))
                 return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
         }
