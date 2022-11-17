@@ -10,7 +10,9 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+
 
 @AllArgsConstructor
 public class BalanceTopCommand implements CommandExecutor {
@@ -18,32 +20,41 @@ public class BalanceTopCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        final int page;
-        if (args.length == 1) {
-            page = Integer.getInteger(args[0], 1);
-        } else {
-            page = 1;
-        }
+
         //Baltop paging, 10 per page
         currenciesManager.getDefaultCurrency().getOrderedAccounts().thenApply(balances -> {
-            if (balances.size() < (page - 1) * 10) {
+            int page = 1;
+            List<Tuple> pageBalances;
+            try {
+                page = Integer.parseInt(args[0]);
+            } catch (Exception ignored) {
+            }
+
+            if (balances.size() < (page - 1) * 10) {//If the page is higher that the balances available
                 return new ArrayList<Tuple>();
-            } else if (balances.size() > page * 10)
-                balances = balances.subList((page - 1) * 10, page * 10);
-            else balances = balances.subList((page - 1) * 10, balances.size());
+            } else if (balances.size() > page * 10) {
+                pageBalances = balances.subList((page - 1) * 10, page * 10);
+            } else pageBalances = balances.subList((page - 1) * 10, balances.size());
+
             //Page formatting: clickable arrows to go to next/previous page
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP.replace("%page%", String.valueOf(page))
                     .replace("%nextpage%", "<click:run_command:/balancetop " + (balances.size() <= page * 10 ? 1 : page + 1) + ">-></click>")
                     .replace("%prevpage%", "<click:run_command:/balancetop " + (page == 1 ? (balances.size() % 10) + 1 : page - 1) + "><-</click>"));
-            return balances;
-        }).thenAccept(balances -> {
 
-            int i = 1;
-            for (Tuple t : balances) {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP_FORMAT.replace("%pos%", i + "").replace("%player%", currenciesManager.getUsernameFromUUIDCache(UUID.fromString(t.getElement()))).replace("%balance%", currenciesManager.getDefaultCurrency().format(t.getScore())));
+            return new PageData(page, pageBalances);
+        }).thenAccept((data) -> {
+            PageData pageData = (PageData) data;
+            int i=1;
+            for (Tuple tuple : pageData.pageBalances) {
+                String username = currenciesManager.getUsernameFromUUIDCache(UUID.fromString(tuple.getElement()));
+                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_TOP_FORMAT
+                        .replace("%pos%", String.valueOf((pageData.pageNumber-1)*10+i))
+                        .replace("%player%", username == null ? "Unknown" : username)
+                        .replace("%balance%", currenciesManager.getDefaultCurrency().format(tuple.getScore())));
                 i++;
             }
         });
         return true;
     }
+    private record PageData(int pageNumber, List<Tuple> pageBalances) {}
 }

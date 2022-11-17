@@ -15,11 +15,9 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -91,13 +89,18 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     @Override
-    public Currency getCurrencyByName(@NotNull String name) {
+    public @Nullable Currency getCurrencyByName(@NotNull String name) {
         return currencies.get(name);
     }
 
     @Override
     public @NotNull Collection<Currency> getCurrencies() {
         return currencies.values();
+    }
+
+    @Override
+    public @NotNull Map<String, Currency> getCurrenciesWithNames() {
+        return Collections.unmodifiableMap(currencies);
     }
 
     @Override
@@ -110,12 +113,12 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     @Override
-    public UUID getUUIDFromUsernameCache(@NotNull String username) {
+    public @Nullable UUID getUUIDFromUsernameCache(@NotNull String username) {
         return nameUniqueIds.get(username);
     }
 
     @Override
-    public String getUsernameFromUUIDCache(@NotNull UUID uuid) {
+    public @Nullable String getUsernameFromUUIDCache(@NotNull UUID uuid) {
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
             if (entry.getValue().equals(uuid))
                 return entry.getKey();
@@ -124,7 +127,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     @Override
-    public Currency getCurrencyBySymbol(@NotNull String symbol) {
+    public @Nullable Currency getCurrencyBySymbol(@NotNull String symbol) {
         for (Currency currency : currencies.values()) {
             if (currency.getCurrencySingular().equals(symbol) || currency.getCurrencyPlural().equals(symbol))
                 return currency;

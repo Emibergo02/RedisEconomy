@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 
 @SuppressWarnings("unused")
@@ -19,12 +20,19 @@ public abstract class RedisEconomyAPI {
     public abstract @NotNull Collection<Currency> getCurrencies();
 
     /**
+     * Get all the currencies
+     *
+     * @return all the currencies
+     */
+    public abstract @NotNull Map<String,Currency> getCurrenciesWithNames();
+
+    /**
      * Get a currency by its name
      *
      * @param name the name of the currency
      * @return the currency
      */
-    public abstract Currency getCurrencyByName(@NotNull String name);
+    public abstract @Nullable Currency getCurrencyByName(@NotNull String name);
 
     /**
      * Get default currency (vault currency)
@@ -39,7 +47,7 @@ public abstract class RedisEconomyAPI {
      * @param symbol the symbol of the currency
      * @return the currency
      */
-    public abstract Currency getCurrencyBySymbol(@NotNull String symbol);
+    public abstract @Nullable Currency getCurrencyBySymbol(@NotNull String symbol);
 
     /**
      * Get uuid from cache
@@ -47,7 +55,7 @@ public abstract class RedisEconomyAPI {
      * @param username the username of the player
      * @return the uuid of the player
      */
-    public abstract UUID getUUIDFromUsernameCache(@NotNull String username);
+    public abstract @Nullable UUID getUUIDFromUsernameCache(@NotNull String username);
 
     /**
      * Get username from cache
@@ -55,7 +63,7 @@ public abstract class RedisEconomyAPI {
      * @param uuid the uuid of the player
      * @return the username of the player
      */
-    public abstract String getUsernameFromUUIDCache(@NotNull UUID uuid);
+    public abstract @Nullable String getUsernameFromUUIDCache(@NotNull UUID uuid);
 
     /**
      * Get API instance
