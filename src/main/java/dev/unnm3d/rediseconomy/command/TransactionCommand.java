@@ -2,7 +2,9 @@ package dev.unnm3d.rediseconomy.command;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.currency.Currency;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
+import dev.unnm3d.rediseconomy.transaction.Transaction;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -15,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.UUID;
 
 @AllArgsConstructor
 public class TransactionCommand implements CommandExecutor, TabCompleter {
@@ -26,8 +29,14 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length < 1) return true;
         String target = args[0];
-        long init = System.currentTimeMillis();
-        exchange.getTransactions(target).thenAccept(transactions -> {
+        UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
+        if(targetUUID == null) {
+            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
+            return true;
+        }
+
+        exchange.getTransactions(targetUUID).thenAccept(transactions -> {
+            long init = System.currentTimeMillis();
             if (transactions.length == 0) {
                 sender.sendMessage("§cNo transactions found for player " + target);
                 return;
@@ -40,19 +49,24 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
             }
 
             sender.sendMessage("§3Transactions of player " + target + ":");
-            for (EconomyExchange.Transaction t : transactions) {
+            for (Transaction t : transactions) {
+
                 if (isAfter(t.timestamp, afterDateString) && isBefore(t.timestamp, beforeDateString)) {
+                    String senderName = currenciesManager.getUsernameFromUUIDCache(t.sender);
+                    String receiverName = currenciesManager.getUsernameFromUUIDCache(t.receiver);
+                    Currency currency = currenciesManager.getCurrencyByName(t.currencyName);
                     RedisEconomyPlugin.settings().send(sender,
                             RedisEconomyPlugin.settings().TRANSACTION_ITEM
-                                    .replace("%amount%", t.amount)
-                                    .replace("%sender%", t.sender)
-                                    .replace("%receiver%", t.target)
+                                    .replace("%amount%", currency==null ? t.amount + "" : currency.format(t.amount))
+                                    .replace("%sender%", senderName==null?"Unknown":senderName)
+                                    .replace("%receiver%", receiverName==null?"Unknown":receiverName)
                                     .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
+                                    .replace("%reason%", t.reason)
                                     .replace("%afterbefore%", afterDateString + " " + beforeDateString)
                     );
 
                 }
-
+                sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
             sender.sendMessage("§3End transactions of player " + target + " in " + (System.currentTimeMillis() - init) + "ms");
         });

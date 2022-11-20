@@ -8,6 +8,7 @@ redis:
   password: "password"
   database: 0
   timeout: 0
+  url: "redis://localhost:6379"
 lang:
   no-console: "<red>You must be in-game to use this command!</red>"
   no-permission: "<red>You do not have permission to use this command!</red>"

@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
+import io.lettuce.core.api.StatefulRedisConnection;
 import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -56,10 +57,10 @@ public class PayCommand implements CommandExecutor, TabCompleter {
 
             return;
         }
-        if (target.equalsIgnoreCase(sender.getName())) {
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_SELF);
-            return;
-        }
+        //if (target.equalsIgnoreCase(sender.getName())) {
+        //    RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_SELF);
+        //    return;
+        //}
         if (!currency.hasAccount(target)) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
             return;
@@ -84,12 +85,14 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                         .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
         );
         //Send msg to target
-        economy.getEzRedisMessenger().sendObjectPacketAsync("rediseco:paymsg", new PayMsg(sender.getName(), target, currency.format(amount)));
+        try(StatefulRedisConnection<String, String> connection = economy.getRedisClient().connect()) {
+            connection.async().publish("rediseco:paymsg",sender.getName() +";;"+target+";;"+ currency.format(amount));
+        }
         if (RedisEconomyPlugin.settings().DEBUG) {
             Bukkit.getLogger().info("Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
         }
         //Register transaction
-        exchange.saveTransaction(sender.getName(), target, currency.format(amount));
+        exchange.saveTransaction(sender.getUniqueId(), economy.getUUIDFromUsernameCache(target), amount);
         if (RedisEconomyPlugin.settings().DEBUG)
             Bukkit.getLogger().info("Pay transaction took " + (System.currentTimeMillis() - init) + "ms");
     }

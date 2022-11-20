@@ -1,8 +1,9 @@
 package dev.unnm3d.rediseconomy.currency;
 
-import dev.unnm3d.ezredislib.EzRedisMessenger;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
@@ -20,22 +21,23 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 
 public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final RedisEconomyPlugin plugin;
     @Getter
-    private final EzRedisMessenger ezRedisMessenger;
+    private final RedisClient redisClient;
     private final HashMap<String, Currency> currencies;
     @Getter
     private final ConcurrentHashMap<String, UUID> nameUniqueIds;
 
-    public CurrenciesManager(EzRedisMessenger ezRedisMessenger, RedisEconomyPlugin plugin) {
+    public CurrenciesManager(RedisClient redisClient, RedisEconomyPlugin plugin) {
         INSTANCE = this;
-        this.ezRedisMessenger = ezRedisMessenger;
+        this.redisClient = redisClient;
         this.plugin = plugin;
         this.currencies = new HashMap<>();
-        this.nameUniqueIds = getRedisNameUniqueIds().join();
+        this.nameUniqueIds=loadRedisNameUniqueIds();
         ConfigurationSection configurationSection = plugin.getConfig().getConfigurationSection("currencies");
         if (configurationSection != null)
             for (String key : configurationSection.getKeys(false)) {
@@ -60,8 +62,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             @NotNull Collection<RegisteredServiceProvider<Economy>> existentProviders = plugin.getServer().getServicesManager().getRegistrations(Economy.class);
             CompletableFuture.supplyAsync(() -> {
                 Bukkit.getLogger().info("§aStarting migration from " + existentProviders.size() + " providers...");
-
-                if (ezRedisMessenger.getJedis().isConnected())
                     existentProviders.forEach(reg -> {
                         Bukkit.getLogger().info("§aMigrating from " + reg.getProvider().getName() + "...");
                         if (reg.getProvider() != defaultCurrency) {
@@ -138,6 +138,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         getCurrencies().forEach(currency -> currency.getAccountRedis(e.getPlayer().getUniqueId()).thenAccept(balance -> {
+            System.out.println("Balance of " + e.getPlayer().getName() + " in " + currency.getName() + " is " + balance);
             if (balance == null) {
                 currency.createPlayerAccount(e.getPlayer());
             } else {
@@ -146,11 +147,20 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         }));
     }
 
-    private CompletableFuture<ConcurrentHashMap<String, UUID>> getRedisNameUniqueIds() {
-        return ezRedisMessenger.jedisResourceFuture(jedis -> {
-            ConcurrentHashMap<String, UUID> nameUuids = new ConcurrentHashMap<>();
-            jedis.hgetAll("rediseco:nameuuid").forEach((name, uuid) -> nameUuids.put(name, UUID.fromString(uuid)));
-            return nameUuids;
-        });
+    private ConcurrentHashMap<String, UUID> loadRedisNameUniqueIds() {
+
+        try (StatefulRedisConnection<String, String> connection = redisClient.connect()) {
+            ConcurrentHashMap<String, UUID> nameUUIDs = new ConcurrentHashMap<>();
+            connection.sync().hgetall("rediseco:nameuuid").forEach((name, uuid) -> nameUUIDs.put(name, UUID.fromString(uuid)));
+            return nameUUIDs;
+        }
+        //     .thenAccept(map -> {
+           // map.forEach((name, uuid) -> {
+           //     this.nameUniqueIds.put(name, UUID.fromString(uuid));
+           //     System.out.println(name);
+           // }
+           // );
+           // });
+
     }
 }

@@ -3,10 +3,15 @@ package dev.unnm3d.rediseconomy;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import dev.unnm3d.ezredislib.EzRedisMessenger;
 import dev.unnm3d.rediseconomy.command.*;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisFuture;
+import io.lettuce.core.pubsub.RedisPubSubListener;
+import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
+import io.lettuce.core.pubsub.api.async.RedisPubSubAsyncCommands;
+import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -21,9 +26,11 @@ import java.util.concurrent.CompletableFuture;
 public final class RedisEconomyPlugin extends JavaPlugin {
 
     private static RedisEconomyPlugin instance;
-    private EzRedisMessenger ezRedisMessenger;
+    //private EzRedisMessenger ezRedisMessenger;
+    @Getter
     private Settings settings;
     private CurrenciesManager currenciesManager;
+    private RedisClient lettuceRedisMessenger;
 
     public static Settings settings() {
         return instance.settings;
@@ -84,26 +91,32 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        ezRedisMessenger.destroy();
+        //ezRedisMessenger.destroy();
+        lettuceRedisMessenger.shutdown();
         this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
         this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         this.getServer().getMessenger().unregisterIncomingPluginChannel(this);
     }
 
     private void registerRedisChannels() {
-        ezRedisMessenger.registerChannelObjectListener("rediseco:paymsg", (packet) -> {
-            PayCommand.PayMsg payMsgPacket = (PayCommand.PayMsg) packet;
-            Player online = getServer().getPlayer(payMsgPacket.receiverName());
-            if (online != null) {
-                if (online.isOnline()) {
-                    settings.send(online, settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount()));
+        StatefulRedisPubSubConnection<String, String> connection = lettuceRedisMessenger.connectPubSub();
+        connection.addListener(new RedisChannelListener(this));
 
-                    if (RedisEconomyPlugin.settings().DEBUG) {
-                        Bukkit.getLogger().info("Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
-                    }
-                }
-            }
-        }, PayCommand.PayMsg.class);
+        RedisPubSubAsyncCommands<String, String> async = connection.async();
+        async.subscribe("rediseco:paymsg");
+        //ezRedisMessenger.registerChannelObjectListener("rediseco:paymsg", (packet) -> {
+        //    PayCommand.PayMsg payMsgPacket = (PayCommand.PayMsg) packet;
+        //    Player online = getServer().getPlayer(payMsgPacket.receiverName());
+        //    if (online != null) {
+        //        if (online.isOnline()) {
+        //            settings.send(online, settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount()));
+//
+        //            if (RedisEconomyPlugin.settings().DEBUG) {
+        //                Bukkit.getLogger().info("Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
+        //            }
+        //        }
+        //    }
+        //}, PayCommand.PayMsg.class);
     }
 
     private CompletableFuture<String> getServerId() {
@@ -140,27 +153,28 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     private boolean setupRedis() {
-        try {
-            this.ezRedisMessenger = new EzRedisMessenger(
-                    getConfig().getString("redis.host", "localhost"),
-                    getConfig().getInt("redis.port", 6379),
-                    getConfig().getString("redis.user", "").equals("") ? null : getConfig().getString("redis.user"),
-                    getConfig().getString("redis.password", "").equals("") ? null : getConfig().getString("redis.password"),
-                    getConfig().getInt("redis.timeout", 0),
-                    getConfig().getInt("redis.database", 0),
-                    "RedisEconomy");
+        //try {
+           //this.ezRedisMessenger = new EzRedisMessenger(
+           //        getConfig().getString("redis.host", "localhost"),
+           //        getConfig().getInt("redis.port", 6379),
+           //        getConfig().getString("redis.user", "").equals("") ? null : getConfig().getString("redis.user"),
+           //        getConfig().getString("redis.password", "").equals("") ? null : getConfig().getString("redis.password"),
+           //        getConfig().getInt("redis.timeout", 0),
+           //        getConfig().getInt("redis.database", 0),
+           //        "RedisEconomy");
+            this.lettuceRedisMessenger= RedisClient.create(getConfig().getString("redis.url", "redis://localhost:6379"));
             return true;
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-            return false;
-        }
+        //} catch (InstantiationException e) {
+        //    e.printStackTrace();
+        //    return false;
+        //}
     }
 
     private boolean setupEconomy() {
         Plugin vault = getServer().getPluginManager().getPlugin("Vault");
         if (vault == null)
             return false;
-        this.currenciesManager = new CurrenciesManager(ezRedisMessenger, this);
+        this.currenciesManager = new CurrenciesManager(lettuceRedisMessenger, this);
         currenciesManager.loadDefaultCurrency(vault);
         return true;
     }

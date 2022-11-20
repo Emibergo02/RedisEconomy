@@ -4,11 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import org.bukkit.Bukkit;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -18,36 +21,38 @@ public class EconomyExchange {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final CurrenciesManager currenciesManager;
 
-    public CompletableFuture<Transaction[]> getTransactions(String player) {
-        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> getTransactionsFromJson(jedis.hget("rediseco:transactions", player)));
+    public CompletableFuture<Transaction[]> getTransactions(UUID player) {
+        try (StatefulRedisConnection<String, String> connection = currenciesManager.getRedisClient().connect()) {
+            return connection.async().hget("rediseco:transactions", player.toString()).thenApply(this::getTransactionsFromJson).toCompletableFuture();
+        }
     }
 
-    public void saveTransaction(String sender, String target, String amount) {
-        currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> {
+    public void saveTransaction(UUID sender, UUID target, double amount) {
+        try (StatefulRedisConnection<String, String> connection = currenciesManager.getRedisClient().connect()) {
+            RedisAsyncCommands<String,String> commands=connection.async();
 
-            //Retrieve all serialized transactions from redis
-            List<String> lista = jedis.hmget("rediseco:transactions", sender, target);
+            commands.hmget("rediseco:transactions", sender.toString(), target.toString()).thenAccept(lista->{
             //Deserialize
-            Transaction[] senderTransactions = getTransactionsFromJson(lista.get(0));
-            Transaction[] receiverTransactions = getTransactionsFromJson(lista.get(1));
+            Transaction[] senderTransactions = getTransactionsFromJson(lista.get(0).getValue());
+            Transaction[] receiverTransactions = getTransactionsFromJson(lista.get(1).getValue());
 
             //Add a space into arrays and delete the oldest transaction
             senderTransactions = updateArraySpace(senderTransactions);
             receiverTransactions = updateArraySpace(receiverTransactions);
 
             //Add the new transaction
-            senderTransactions[senderTransactions.length - 1] = new Transaction(sender, target, "<red>-" + amount + "</red>", System.currentTimeMillis());
-            receiverTransactions[receiverTransactions.length - 1] = new Transaction(sender, target, "<gold>+" + amount + "</gold>", System.currentTimeMillis());
+            senderTransactions[senderTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, -amount,"vault","Payment");
+            receiverTransactions[receiverTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, amount,"vault","Payment");
 
             try {
                 //Serialize and save transactions
-                Map<String, String> map = Map.of(sender, objectMapper.writeValueAsString(senderTransactions), target, objectMapper.writeValueAsString(receiverTransactions));
-                jedis.hmset("rediseco:transactions", map);
+                Map<String, String> map = Map.of(sender.toString(), objectMapper.writeValueAsString(senderTransactions), target.toString(), objectMapper.writeValueAsString(receiverTransactions));
+                commands.hmset("rediseco:transactions", map);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            return jedis;
         });
+        }
     }
 
     private Transaction[] updateArraySpace(Transaction[] transactions) {
@@ -73,13 +78,5 @@ public class EconomyExchange {
         }
     }
 
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Transaction {
-        public String sender = "";
-        public String target = "";
-        public String amount = "";
-        public long timestamp = 0;
-    }
 
 }
