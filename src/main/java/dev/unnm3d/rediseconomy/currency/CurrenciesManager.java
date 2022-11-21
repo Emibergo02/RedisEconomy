@@ -15,7 +15,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
-import org.bukkit.plugin.ServicePriority;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -83,9 +82,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 });
                 Bukkit.getLogger().info("§aMigration finished");
                 return defaultCurrency;
-            }).thenAccept((vaultCurrency) -> {
-                plugin.getConfig().set("migration-enabled", false);
-                plugin.saveConfig();
             });
         }
     }
