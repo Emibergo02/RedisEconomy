@@ -139,7 +139,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             return false;
         this.currenciesManager = new CurrenciesManager(redisManager, this);
         currenciesManager.loadDefaultCurrency(vault);
-        return true;
+        return false;
     }
 
 

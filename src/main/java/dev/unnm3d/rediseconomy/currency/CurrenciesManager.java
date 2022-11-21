@@ -84,12 +84,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 Bukkit.getLogger().info("§aMigration finished");
                 return defaultCurrency;
             }).thenAccept((vaultCurrency) -> {
-                plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
                 plugin.getConfig().set("migration-enabled", false);
                 plugin.saveConfig();
             });
-        } else
-            plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
+        }
     }
 
     @Override
