@@ -4,19 +4,18 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import lombok.AllArgsConstructor;
-import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 
 @AllArgsConstructor
-public class BalanceCommand implements CommandExecutor, TabCompleter {
+public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager economy;
 
     /**
@@ -43,7 +42,7 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
             Currency currency = economy.getCurrencyByName(args[1]);
             balancePlayer(sender, currency, args);
 
-        } else if (args.length == 4) {
+        } else if (args.length > 3) {
             if (!sender.hasPermission("rediseconomy.admin")) {
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
                 return true;
@@ -57,22 +56,15 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_AMOUNT);
                 return true;
             }
-
             if (args[2].equalsIgnoreCase("give")) {
-                EconomyResponse er = currency.depositPlayer(target, amount);
-                if (er.transactionSuccess())
-                    RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_SET.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
-                else sender.sendMessage(er.errorMessage);
+                givePlayer(sender, currency, amount, target);
             } else if (args[2].equalsIgnoreCase("take")) {
-                EconomyResponse er = currency.withdrawPlayer(target, amount);
-                if (er.transactionSuccess())
-                    RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_SET.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
-                else sender.sendMessage(er.errorMessage);
+                if (args.length > 4) {
+                    takePlayerWithCommand(sender, currency, amount, target, String.join(" ", Arrays.copyOfRange(args, 4, args.length)));
+                } else
+                    takePlayer(sender, currency, amount, target);
             } else if (args[2].equalsIgnoreCase("set")) {
-                EconomyResponse er = currency.setPlayerBalance(target, amount);
-                if (er.transactionSuccess())
-                    RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_SET.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
-                else sender.sendMessage(er.errorMessage);
+                setPlayer(sender, currency, amount, target);
             }
         }
         if (RedisEconomyPlugin.settings().DEBUG)
@@ -82,30 +74,27 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private void selfBalancePlayer(CommandSender sender, Currency currency) {
-        if (!(sender instanceof Player p)) {
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_CONSOLE);
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_CONSOLE);
-            return;
-        }
-        RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE.replace("%balance%", String.valueOf(currency.format(currency.getBalance(p)))));
-    }
+    protected abstract void selfBalancePlayer(CommandSender sender, Currency currency);
 
-    private void balancePlayer(CommandSender sender, Currency currency, String[] args) {
-        String target = args[0];
-        if (!currency.hasAccount(target)) {
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
-            return;
-        }
-        RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_OTHER.replace("%balance%", String.valueOf(currency.format(currency.getBalance(target)))).replace("%player%", target));
-    }
+    protected abstract void balancePlayer(CommandSender sender, Currency currency, String[] args);
+
+    protected abstract void takePlayer(CommandSender sender, Currency currency, double amount, String target);
+
+    protected abstract void takePlayerWithCommand(CommandSender sender, Currency currency, double amount, String target, String command);
+
+    protected abstract void givePlayer(CommandSender sender, Currency currency, double amount, String target);
+
+    protected abstract void setPlayer(CommandSender sender, Currency currency, double amount, String target);
+
 
     @Nullable
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length == 1)
+        if (args.length == 1) {
+            if (args[0].length() < 3)
+                return List.of();
             return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
-        else if (args.length == 2)
+        } else if (args.length == 2)
             return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1]) && sender.hasPermission("rediseconomy.balance." + args[1])).toList();
         else if (args.length == 3)
             return List.of("give", "take", "set");
@@ -113,4 +102,6 @@ public class BalanceCommand implements CommandExecutor, TabCompleter {
             return List.of("69");
         return List.of();
     }
+
+
 }

@@ -4,13 +4,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import org.bukkit.Bukkit;
 
-import java.util.List;
+import java.time.Duration;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static dev.unnm3d.rediseconomy.redis.RedisKeys.TRANSACTIONS;
 
 @AllArgsConstructor
 public class EconomyExchange {
@@ -18,36 +21,54 @@ public class EconomyExchange {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final CurrenciesManager currenciesManager;
 
-    public CompletableFuture<Transaction[]> getTransactions(String player) {
-        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> getTransactionsFromJson(jedis.hget("rediseco:transactions", player)));
+    public CompletableFuture<Transaction[]> getTransactions(UUID player) {
+        return currenciesManager.getRedisManager().getConnection(connection -> {
+            connection.setTimeout(Duration.ofMillis(1000));
+            return connection.async().hget(TRANSACTIONS.toString(), player.toString()).thenApply(this::getTransactionsFromJson).toCompletableFuture();
+        });
+
+
     }
 
-    public void saveTransaction(String sender, String target, String amount) {
-        currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> {
-
-            //Retrieve all serialized transactions from redis
-            List<String> lista = jedis.hmget("rediseco:transactions", sender, target);
+    public void saveTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount) {
+        client.hmget(TRANSACTIONS.toString(), sender.toString(), target.toString()).thenApply(lista -> {
+            if (RedisEconomyPlugin.settings().DEBUG) {
+                Bukkit.getLogger().info("03 Retrieve transactions from redis... next 02");
+            }
             //Deserialize
-            Transaction[] senderTransactions = getTransactionsFromJson(lista.get(0));
-            Transaction[] receiverTransactions = getTransactionsFromJson(lista.get(1));
+            Transaction[] senderTransactions = getTransactionsFromJson(lista.get(0).isEmpty() ? null : lista.get(0).getValue());
+            Transaction[] receiverTransactions = getTransactionsFromJson(lista.get(1).isEmpty() ? null : lista.get(1).getValue());
 
             //Add a space into arrays and delete the oldest transaction
             senderTransactions = updateArraySpace(senderTransactions);
             receiverTransactions = updateArraySpace(receiverTransactions);
 
             //Add the new transaction
-            senderTransactions[senderTransactions.length - 1] = new Transaction(sender, target, "<red>-" + amount + "</red>", System.currentTimeMillis());
-            receiverTransactions[receiverTransactions.length - 1] = new Transaction(sender, target, "<gold>+" + amount + "</gold>", System.currentTimeMillis());
+            senderTransactions[senderTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, -amount, "vault", "Payment");
+            receiverTransactions[receiverTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, amount, "vault", "Payment");
 
+            //Serialize transactions
             try {
-                //Serialize and save transactions
-                Map<String, String> map = Map.of(sender, objectMapper.writeValueAsString(senderTransactions), target, objectMapper.writeValueAsString(receiverTransactions));
-                jedis.hmset("rediseco:transactions", map);
+                return Map.of(sender.toString(), objectMapper.writeValueAsString(senderTransactions), target.toString(), objectMapper.writeValueAsString(receiverTransactions));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            return jedis;
+        }).exceptionally(throwable -> {
+            throwable.printStackTrace();
+            return null;
+        }).thenAccept(map -> { //Save transactions
+            currenciesManager.getRedisManager().getConnection(connection -> {
+                connection.sync().hmset(TRANSACTIONS.toString(), map);
+                if (RedisEconomyPlugin.settings().DEBUG) {
+                    Bukkit.getLogger().info("03b Transaction for " + sender + " saved!");
+                }
+                return null;
+            });
+        }).exceptionally(throwable -> {
+            throwable.printStackTrace();
+            return null;
         });
+
     }
 
     private Transaction[] updateArraySpace(Transaction[] transactions) {
@@ -73,13 +94,5 @@ public class EconomyExchange {
         }
     }
 
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Transaction {
-        public String sender = "";
-        public String target = "";
-        public String amount = "";
-        public long timestamp = 0;
-    }
 
 }

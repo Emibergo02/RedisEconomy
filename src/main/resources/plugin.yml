@@ -4,6 +4,9 @@ main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
 author: Unnm3d
 depend:
   - Vault
+libraries:
+  - io.lettuce:lettuce-core:6.2.1.RELEASE
+  - com.fasterxml.jackson.core:jackson-databind:2.14.0
 softdepend:
   - PlaceholderAPI
   - Essentials

@@ -1,8 +1,8 @@
 package dev.unnm3d.rediseconomy.currency;
 
-import dev.unnm3d.jedis.Pipeline;
-import dev.unnm3d.jedis.resps.Tuple;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import io.lettuce.core.ScoredValue;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
@@ -10,21 +10,25 @@ import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
-import java.io.Serializable;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
 @AllArgsConstructor
 public class Currency implements Economy {
 
     private final CurrenciesManager currenciesManager;
-    private boolean enabled;
     @Getter
     private final String currencyName;
+    private final ConcurrentHashMap<UUID, Double> accounts;
+    private boolean enabled;
     @Getter
     private String currencySingular;
     @Getter
@@ -33,7 +37,6 @@ public class Currency implements Economy {
     private double startingBalance;
     @Getter
     private double transactionTax;
-    private final ConcurrentHashMap<UUID, Double> accounts;
 
 
     /**
@@ -56,8 +59,11 @@ public class Currency implements Economy {
         this.startingBalance = startingBalance;
         this.transactionTax = transactionTax;
         this.accounts = new ConcurrentHashMap<>();
-        getOrderedAccounts().join().forEach(t -> accounts.put(UUID.fromString(t.getElement()), t.getScore()));
-        registerChannelListener();
+        getOrderedAccountsSync().forEach(t -> accounts.put(UUID.fromString(t.getValue()), t.getScore()));
+        if (RedisEconomyPlugin.settings().DEBUG && accounts.size() > 0) {
+            Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
+        }
+        registerUpdateListener();
     }
 
 
@@ -347,25 +353,66 @@ public class Currency implements Economy {
     private void updateAccount(UUID uuid, String playerName, double balance) {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
-        //Update cache in other servers directly
-        currenciesManager.getEzRedisMessenger().sendObjectPacket("rediseco_" + currencyName, new UpdateAccount(RedisEconomyPlugin.settings().SERVER_ID, uuid.toString(), playerName, balance));
     }
 
     private void updateAccountCloudCache(UUID uuid, String playerName, double balance, int tries) {
-        currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> {
-            Pipeline p = jedis.pipelined();
-            p.zadd("rediseco:balances_" + currencyName, balance, uuid.toString());
-            p.hset("rediseco:nameuuid", playerName, uuid.toString());
-            p.syncAndReturnAll();
-            return null;
-        }, 300).exceptionally(e -> {
-            if (tries > 4) {
+        try {
+            currenciesManager.getRedisManager().getConnection(connection -> {
+                connection.setTimeout(Duration.ofMillis(300));
+                RedisAsyncCommands<String, String> commands = connection.async();
+                connection.setAutoFlushCommands(false);
+                commands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
+                commands.hset(NAME_UUID.toString(), playerName, uuid.toString());
+                commands.publish(UPDATE_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.settings().SERVER_ID + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
+                    if (RedisEconomyPlugin.settings().DEBUG) {
+                        Bukkit.getLogger().info("01 Sent update account " + playerName + " to " + balance);
+                    }
+                });
+                connection.flushCommands();
+                return null;
+            });
+
+        } catch (Exception e) {
+            if (tries < 3) {
                 e.printStackTrace();
-                Bukkit.getLogger().severe("Failed to update account " + playerName + " after 5 tries");
+                Bukkit.getLogger().severe("Failed to update account " + playerName + " after 3 tries");
                 Bukkit.getLogger().severe("Player accounts are desyncronized");
-            } else updateAccountCloudCache(uuid, playerName, balance, tries + 1);
+                updateAccountCloudCache(uuid, playerName, balance, tries + 1);
+            } else {
+                e.printStackTrace();
+            }
+        }
+        //currenciesManager.getRedisClient().jedisResourceFuture(jedis -> {
+        //    long init=System.currentTimeMillis();
+        //    Pipeline p=jedis.pipelined();
+        //    p.zadd("rediseco:balances_" + currencyName, balance, uuid.toString());
+        //    p.hset("rediseco:nameuuid", playerName, uuid.toString());
+        //    p.publish("rediseco_" + currencyName, RedisEconomyPlugin.settings().SERVER_ID+";;"+uuid +";;"+playerName+";;"+balance);
+        //    p.sync();
+        //    System.out.println("Update account #"+tries+" took  "+(System.currentTimeMillis()-init)+"ms");
+        //    return null;
+        //}, 300).exceptionally(e -> {
+        //    e.printStackTrace();
+        //    if (tries > 4) {
+        //        e.printStackTrace();
+        //        Bukkit.getLogger().severe("Failed to update account " + playerName + " after 5 tries");
+        //        Bukkit.getLogger().severe("Player accounts are desyncronized");
+        //    } else updateAccountCloudCache(uuid, playerName, balance, tries + 1);
+        //    return null;
+        //});
+
+    }
+
+    void updateAccountsCloudCache(List<ScoredValue<String>> balances, Map<String, String> nameUUIDs) {
+        currenciesManager.getRedisManager().getConnection(connection -> {
+            RedisAsyncCommands<String, String> commands = connection.async();
+            connection.setAutoFlushCommands(false);
+            commands.zadd(BALANCE_PREFIX + currencyName, balances);
+            commands.hset(NAME_UUID.toString(), nameUUIDs);
+            connection.flushCommands();
             return null;
         });
+
 
     }
 
@@ -376,8 +423,12 @@ public class Currency implements Economy {
      *
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
-    public CompletableFuture<List<Tuple>> getOrderedAccounts() {
-        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zrevrangeWithScores("rediseco:balances_" + currencyName, 0, -1));
+    public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts() {
+        return CompletableFuture.supplyAsync(this::getOrderedAccountsSync);
+    }
+
+    private List<ScoredValue<String>> getOrderedAccountsSync() {
+        return currenciesManager.getRedisManager().getConnection(connection -> connection.sync().zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, -1));
     }
 
     /**
@@ -387,18 +438,36 @@ public class Currency implements Economy {
      * @return The balance associated with the UUID on Redis
      */
     public CompletableFuture<Double> getAccountRedis(UUID uuid) {
-        return currenciesManager.getEzRedisMessenger().jedisResourceFuture(jedis -> jedis.zscore("rediseco:balances_" + currencyName, uuid.toString()));
+        return currenciesManager.getRedisManager().getConnection(connection -> connection.async().zscore(BALANCE_PREFIX + currencyName, uuid.toString()).toCompletableFuture());
     }
 
-    private void registerChannelListener() {
-        currenciesManager.getEzRedisMessenger().registerChannelObjectListener("rediseco_" + currencyName, (packet) -> {
-            Currency.UpdateAccount ua = (Currency.UpdateAccount) packet;
+    private void registerUpdateListener() {
+        currenciesManager.getRedisManager().getPubSubConnection(connection -> {
+            connection.addListener(new RedisCurrencyListener() {
+                @Override
+                public void message(String channel, String message) {
+                    String[] split = message.split(";;");
+                    if (split.length != 4) {
+                        Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
+                        return;
+                    }
+                    if (split[0].equals(RedisEconomyPlugin.settings().SERVER_ID)) return;
+                    UUID uuid = UUID.fromString(split[1]);
+                    String playerName = split[2];
+                    double balance = Double.parseDouble(split[3]);
+                    updateAccountLocal(uuid, playerName, balance);
+                    if (RedisEconomyPlugin.settings().DEBUG) {
+                        Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
+                    }
+                }
+            });
+            connection.async().subscribe(UPDATE_CHANNEL_PREFIX + currencyName);
+            if (RedisEconomyPlugin.settings().DEBUG) {
+                Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_CHANNEL_PREFIX + currencyName);
+            }
+        });
 
-            if (ua.sender().equals(RedisEconomyPlugin.settings().SERVER_ID)) return;
 
-            updateAccountLocal(UUID.fromString(ua.uuid()), ua.playerName(), ua.balance());
-
-        }, Currency.UpdateAccount.class);
     }
 
     /**
@@ -409,8 +478,5 @@ public class Currency implements Economy {
     @SuppressWarnings("unused")
     public final Map<UUID, Double> getAccounts() {
         return Collections.unmodifiableMap(accounts);
-    }
-
-    public record UpdateAccount(String sender, String uuid, String playerName, double balance) implements Serializable {
     }
 }

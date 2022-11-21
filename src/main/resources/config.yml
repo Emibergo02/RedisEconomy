@@ -1,13 +1,7 @@
 transactions-retained: 200
 migration-enabled: false
 debug: false
-redis:
-  host: "localhost"
-  port: 6379
-  user: "redis"
-  password: "password"
-  database: 0
-  timeout: 0
+redis-url: "redis://localhost:6379/0?timeout=10s&clientName=RedisEconomy"
 lang:
   no-console: "<red>You must be in-game to use this command!</red>"
   no-permission: "<red>You do not have permission to use this command!</red>"
