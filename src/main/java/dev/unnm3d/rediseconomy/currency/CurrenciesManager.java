@@ -74,8 +74,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                         for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
                             double bal = reg.getProvider().getBalance(offlinePlayer);
                             balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
-                            nameUniqueIds.put(offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
-                            defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName(), bal);
+                            nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
+                            defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
                             Bukkit.getLogger().info("Migrated " + offlinePlayer.getName() + "'s balance of " + bal);
                         }
                         defaultCurrency.updateAccountsCloudCache(balances, nameUniqueIds);
