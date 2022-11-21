@@ -44,22 +44,6 @@
                                     <pattern>net.kyori.adventure</pattern>
                                     <shadedPattern>net.kyori.adventure.shaded</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>dev.unnm3d.jedis</pattern>
-                                    <shadedPattern>dev.unnm3d.rediseconomy.jedis</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>dev.unnm3d.ezredislib</pattern>
-                                    <shadedPattern>dev.unnm3d.rediseconomy.ezredislib</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>io.lettuce</pattern>
-                                    <shadedPattern>dev.unnm3d.rediseconomy.lettuce</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.fasterxml.jackson</pattern>
-                                    <shadedPattern>dev.unnm3d.rediseconomy.jackson</shadedPattern>
-                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
@@ -121,6 +105,7 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.14.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
@@ -142,6 +127,7 @@
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
             <version>6.2.1.RELEASE</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

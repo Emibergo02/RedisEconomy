@@ -30,7 +30,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
         if (args.length < 1) return true;
         String target = args[0];
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
-        if(targetUUID == null) {
+        if (targetUUID == null) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
             return true;
         }
@@ -57,9 +57,9 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
                     Currency currency = currenciesManager.getCurrencyByName(t.currencyName);
                     RedisEconomyPlugin.settings().send(sender,
                             RedisEconomyPlugin.settings().TRANSACTION_ITEM
-                                    .replace("%amount%", currency==null ? t.amount + "" : currency.format(t.amount))
-                                    .replace("%sender%", senderName==null?"Unknown":senderName)
-                                    .replace("%receiver%", receiverName==null?"Unknown":receiverName)
+                                    .replace("%amount%", currency == null ? t.amount + "" : currency.format(t.amount))
+                                    .replace("%sender%", senderName == null ? "Unknown" : senderName)
+                                    .replace("%receiver%", receiverName == null ? "Unknown" : receiverName)
                                     .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
                                     .replace("%reason%", t.reason)
                                     .replace("%afterbefore%", afterDateString + " " + beforeDateString)

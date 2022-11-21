@@ -4,7 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
-import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -15,8 +15,11 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
 
 @AllArgsConstructor
 public class PayCommand implements CommandExecutor, TabCompleter {
@@ -65,6 +68,8 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
             return;
         }
+        //If the player has an account uuid is not null
+        UUID targetUUID = Objects.requireNonNull(economy.getUUIDFromUsernameCache(target));
 
         if (!currency.withdrawPlayer(sender, amount).transactionSuccess()) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INSUFFICIENT_FUNDS);
@@ -85,16 +90,17 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                         .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
         );
         //Send msg to target
-        try(StatefulRedisConnection<String, String> connection = economy.getRedisClient().connect()) {
-            connection.async().publish("rediseco:paymsg",sender.getName() +";;"+target+";;"+ currency.format(amount));
-        }
-        if (RedisEconomyPlugin.settings().DEBUG) {
-            Bukkit.getLogger().info("Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
-        }
-        //Register transaction
-        exchange.saveTransaction(sender.getUniqueId(), economy.getUUIDFromUsernameCache(target), amount);
-        if (RedisEconomyPlugin.settings().DEBUG)
-            Bukkit.getLogger().info("Pay transaction took " + (System.currentTimeMillis() - init) + "ms");
+        economy.getRedisManager().getConnection(connection -> {
+            RedisAsyncCommands<String, String> commands = connection.async();
+            commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + target + ";;" + currency.format(amount));
+            if (RedisEconomyPlugin.settings().DEBUG) {
+                Bukkit.getLogger().info("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
+            }
+            //Register transaction
+            exchange.saveTransaction(commands, sender.getUniqueId(), targetUUID, amount);
+            return null;
+        });
+
     }
 
     @Nullable
@@ -113,6 +119,4 @@ public class PayCommand implements CommandExecutor, TabCompleter {
     }
 
 
-    public record PayMsg(String sender, String receiverName, String amount) implements Serializable {
-    }
 }

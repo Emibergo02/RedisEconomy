@@ -2,7 +2,7 @@ package dev.unnm3d.rediseconomy.currency;
 
 import io.lettuce.core.pubsub.RedisPubSubListener;
 
-public abstract class RedisCurrencyListener implements RedisPubSubListener<String,String> {
+public abstract class RedisCurrencyListener implements RedisPubSubListener<String, String> {
 
     @Override
     public abstract void message(String channel, String message);

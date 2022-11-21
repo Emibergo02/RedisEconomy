@@ -5,16 +5,12 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import dev.unnm3d.rediseconomy.command.*;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisFuture;
-import io.lettuce.core.pubsub.RedisPubSubListener;
-import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
-import io.lettuce.core.pubsub.api.async.RedisPubSubAsyncCommands;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -30,7 +26,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Getter
     private Settings settings;
     private CurrenciesManager currenciesManager;
-    private RedisClient lettuceRedisMessenger;
+    private RedisManager redisManager;
 
     public static Settings settings() {
         return instance.settings;
@@ -57,7 +53,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             return;
         }
 
-        if (!setupEconomy()) {
+        if (!setupEconomy()) { //creates currenciesManager
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
             return;
@@ -68,7 +64,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             new PlaceholderAPIHook(currenciesManager).register();
         }
 
-        registerRedisChannels();
 
         EconomyExchange exchange = new EconomyExchange(currenciesManager);
 
@@ -92,32 +87,13 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         //ezRedisMessenger.destroy();
-        lettuceRedisMessenger.shutdown();
+        redisManager.close();
         this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
         this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         this.getServer().getMessenger().unregisterIncomingPluginChannel(this);
+        getLogger().info("RedisEconomy disabled successfully!");
     }
 
-    private void registerRedisChannels() {
-        StatefulRedisPubSubConnection<String, String> connection = lettuceRedisMessenger.connectPubSub();
-        connection.addListener(new RedisChannelListener(this));
-
-        RedisPubSubAsyncCommands<String, String> async = connection.async();
-        async.subscribe("rediseco:paymsg");
-        //ezRedisMessenger.registerChannelObjectListener("rediseco:paymsg", (packet) -> {
-        //    PayCommand.PayMsg payMsgPacket = (PayCommand.PayMsg) packet;
-        //    Player online = getServer().getPlayer(payMsgPacket.receiverName());
-        //    if (online != null) {
-        //        if (online.isOnline()) {
-        //            settings.send(online, settings.PAY_RECEIVED.replace("%player%", payMsgPacket.sender()).replace("%amount%", payMsgPacket.amount()));
-//
-        //            if (RedisEconomyPlugin.settings().DEBUG) {
-        //                Bukkit.getLogger().info("Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
-        //            }
-        //        }
-        //    }
-        //}, PayCommand.PayMsg.class);
-    }
 
     private CompletableFuture<String> getServerId() {
         CompletableFuture<String> future = new CompletableFuture<>();
@@ -153,28 +129,15 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     private boolean setupRedis() {
-        //try {
-           //this.ezRedisMessenger = new EzRedisMessenger(
-           //        getConfig().getString("redis.host", "localhost"),
-           //        getConfig().getInt("redis.port", 6379),
-           //        getConfig().getString("redis.user", "").equals("") ? null : getConfig().getString("redis.user"),
-           //        getConfig().getString("redis.password", "").equals("") ? null : getConfig().getString("redis.password"),
-           //        getConfig().getInt("redis.timeout", 0),
-           //        getConfig().getInt("redis.database", 0),
-           //        "RedisEconomy");
-            this.lettuceRedisMessenger= RedisClient.create(getConfig().getString("redis.url", "redis://localhost:6379"));
-            return true;
-        //} catch (InstantiationException e) {
-        //    e.printStackTrace();
-        //    return false;
-        //}
+        this.redisManager = new RedisManager(RedisClient.create(getConfig().getString("redis-url", "redis://localhost:6379")));
+        return redisManager.isConnected();
     }
 
     private boolean setupEconomy() {
         Plugin vault = getServer().getPluginManager().getPlugin("Vault");
         if (vault == null)
             return false;
-        this.currenciesManager = new CurrenciesManager(lettuceRedisMessenger, this);
+        this.currenciesManager = new CurrenciesManager(redisManager, this);
         currenciesManager.loadDefaultCurrency(vault);
         return true;
     }
