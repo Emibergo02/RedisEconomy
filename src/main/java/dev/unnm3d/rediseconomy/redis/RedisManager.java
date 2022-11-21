@@ -4,20 +4,18 @@ import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import lombok.AllArgsConstructor;
 
-import java.util.concurrent.CompletableFuture;
+import java.time.Duration;
 
 @AllArgsConstructor
 public class RedisManager {
 
     private RedisClient lettuceRedisClient;
+    private int forcedTimeout;
 
     public <R> R getConnection(RedisCallBack<R> redisCallBack) {
         StatefulRedisConnection<String, String> connection = lettuceRedisClient.connect();
-        try {
-            return redisCallBack.useConnection(connection);
-        } finally {
-            CompletableFuture.delayedExecutor(3, java.util.concurrent.TimeUnit.SECONDS).execute(connection::closeAsync);
-        }
+        connection.setTimeout(Duration.ofMillis(forcedTimeout));
+        return redisCallBack.useConnection(connection);
     }
 
     //Get pubsub

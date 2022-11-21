@@ -2,6 +2,7 @@ transactions-retained: 200
 migration-enabled: false
 debug: false
 redis-url: "redis://localhost:6379/0?timeout=10s&clientName=RedisEconomy"
+redis-connection-timeout: 3000 #milliseconds
 lang:
   no-console: "<red>You must be in-game to use this command!</red>"
   no-permission: "<red>You do not have permission to use this command!</red>"

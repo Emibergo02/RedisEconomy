@@ -107,9 +107,9 @@ public class PayCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 3)
+            if (args[0].length() < 2)
                 return List.of();
-            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
+            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2)
             return List.of("69");
         else if (args.length == 3)
