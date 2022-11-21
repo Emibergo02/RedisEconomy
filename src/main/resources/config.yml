@@ -1,5 +1,5 @@
 transactions-retained: 200
-migration-enabled: false
+migration-enabled: true
 debug: false
 redis-url: "redis://localhost:6379/0?timeout=10s&clientName=RedisEconomy"
 redis-connection-timeout: 3000 #milliseconds
