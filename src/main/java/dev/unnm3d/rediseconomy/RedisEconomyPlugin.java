@@ -51,6 +51,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getLogger().severe("Disabled: redis server unreachable!");
             this.getServer().getPluginManager().disablePlugin(this);
             return;
+        } else {
+            this.getLogger().info("Redis server connected!");
         }
 
         if (!setupEconomy()) { //creates currenciesManager
@@ -60,6 +62,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         } else {
             this.getLogger().info("Hooked into Vault!");
         }
+
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new PlaceholderAPIHook(currenciesManager).register();
         }
@@ -129,7 +132,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     private boolean setupRedis() {
-        this.redisManager = new RedisManager(RedisClient.create(getConfig().getString("redis-url", "redis://localhost:6379")),getConfig().getInt("redis-connection-timeout", 3000));
+        this.redisManager = new RedisManager(RedisClient.create(getConfig().getString("redis-url", "redis://localhost:6379")), getConfig().getInt("redis-connection-timeout", 3000));
         return redisManager.isConnected();
     }
 

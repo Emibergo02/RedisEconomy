@@ -1,7 +1,5 @@
 package dev.unnm3d.rediseconomy.transaction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import io.lettuce.core.api.async.RedisAsyncCommands;
@@ -46,16 +44,15 @@ public class EconomyExchange {
             receiverTransactions[receiverTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, amount, "vault", "Payment");
 
             //Serialize transactions
-            return Map.of(sender.toString(), serializeTransactions(senderTransactions), target.toString(), serializeTransactions(receiverTransactions));
-        }).exceptionally(throwable -> {
-            throwable.printStackTrace();
-            return null;
-        }).thenAccept(map -> { //Save transactions
-            currenciesManager.getRedisManager().getConnection(connection -> {
-                connection.sync().hmset(TRANSACTIONS.toString(), map);
-                if (RedisEconomyPlugin.settings().DEBUG) {
-                    Bukkit.getLogger().info("03b Transaction for " + sender + " saved in "+(System.currentTimeMillis()-init)+" ms!");
-                }
+            Map<String, String> map = Map.of(sender.toString(), serializeTransactions(senderTransactions), target.toString(), serializeTransactions(receiverTransactions));
+
+            //Save transactions into redis
+            return currenciesManager.getRedisManager().getConnection(connection -> {
+                connection.async().hset(TRANSACTIONS.toString(), map).thenAccept(response -> {
+                    if (RedisEconomyPlugin.settings().DEBUG) {
+                        Bukkit.getLogger().info("03b Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with result " + response + " !");
+                    }
+                });
                 return null;
             });
         }).exceptionally(throwable -> {
@@ -93,6 +90,7 @@ public class EconomyExchange {
         return transactions;
 
     }
+
     public String serializeTransactions(Transaction[] transactions) {
         StringBuilder builder = new StringBuilder();
         for (Transaction transaction : transactions) {

@@ -60,10 +60,10 @@ public class PayCommand implements CommandExecutor, TabCompleter {
 
             return;
         }
-        //if (target.equalsIgnoreCase(sender.getName())) {
-        //    RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_SELF);
-        //    return;
-        //}
+        if (target.equalsIgnoreCase(sender.getName())) {
+            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PAY_SELF);
+            return;
+        }
         if (!currency.hasAccount(target)) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
             return;
