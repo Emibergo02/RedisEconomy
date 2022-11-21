@@ -91,9 +91,12 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 3)
+            if (args[0].length() < 2)
                 return List.of();
-            return economy.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
+            long init = System.currentTimeMillis();
+            List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+            System.out.println("Tab complete executed in " + (System.currentTimeMillis() - init) + "ms");
+            return players;
         } else if (args.length == 2)
             return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1]) && sender.hasPermission("rediseconomy.balance." + args[1])).toList();
         else if (args.length == 3)

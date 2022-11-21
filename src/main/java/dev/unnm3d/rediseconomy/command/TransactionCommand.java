@@ -105,9 +105,9 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 3)
+            if (args[0].length() < 2)
                 return List.of();
-            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
+            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
             if (args[1].trim().equals(""))
                 return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");

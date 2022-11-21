@@ -1,7 +1,5 @@
 package dev.unnm3d.rediseconomy.transaction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import io.lettuce.core.api.async.RedisAsyncCommands;
@@ -18,26 +16,24 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.TRANSACTIONS;
 @AllArgsConstructor
 public class EconomyExchange {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final CurrenciesManager currenciesManager;
 
     public CompletableFuture<Transaction[]> getTransactions(UUID player) {
         return currenciesManager.getRedisManager().getConnection(connection -> {
             connection.setTimeout(Duration.ofMillis(1000));
-            return connection.async().hget(TRANSACTIONS.toString(), player.toString()).thenApply(this::getTransactionsFromJson).toCompletableFuture();
+            return connection.async().hget(TRANSACTIONS.toString(), player.toString()).thenApply(this::getTransactionsFromSerialized).toCompletableFuture();
         });
-
-
     }
 
     public void saveTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount) {
+        long init = System.currentTimeMillis();
         client.hmget(TRANSACTIONS.toString(), sender.toString(), target.toString()).thenApply(lista -> {
             if (RedisEconomyPlugin.settings().DEBUG) {
                 Bukkit.getLogger().info("03 Retrieve transactions from redis... next 02");
             }
             //Deserialize
-            Transaction[] senderTransactions = getTransactionsFromJson(lista.get(0).isEmpty() ? null : lista.get(0).getValue());
-            Transaction[] receiverTransactions = getTransactionsFromJson(lista.get(1).isEmpty() ? null : lista.get(1).getValue());
+            Transaction[] senderTransactions = getTransactionsFromSerialized(lista.get(0).isEmpty() ? null : lista.get(0).getValue());
+            Transaction[] receiverTransactions = getTransactionsFromSerialized(lista.get(1).isEmpty() ? null : lista.get(1).getValue());
 
             //Add a space into arrays and delete the oldest transaction
             senderTransactions = updateArraySpace(senderTransactions);
@@ -48,20 +44,15 @@ public class EconomyExchange {
             receiverTransactions[receiverTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, amount, "vault", "Payment");
 
             //Serialize transactions
-            try {
-                return Map.of(sender.toString(), objectMapper.writeValueAsString(senderTransactions), target.toString(), objectMapper.writeValueAsString(receiverTransactions));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }).exceptionally(throwable -> {
-            throwable.printStackTrace();
-            return null;
-        }).thenAccept(map -> { //Save transactions
-            currenciesManager.getRedisManager().getConnection(connection -> {
-                connection.sync().hmset(TRANSACTIONS.toString(), map);
-                if (RedisEconomyPlugin.settings().DEBUG) {
-                    Bukkit.getLogger().info("03b Transaction for " + sender + " saved!");
-                }
+            Map<String, String> map = Map.of(sender.toString(), serializeTransactions(senderTransactions), target.toString(), serializeTransactions(receiverTransactions));
+
+            //Save transactions into redis
+            return currenciesManager.getRedisManager().getConnection(connection -> {
+                connection.async().hset(TRANSACTIONS.toString(), map).thenAccept(response -> {
+                    if (RedisEconomyPlugin.settings().DEBUG) {
+                        Bukkit.getLogger().info("03b Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with result " + response + " !");
+                    }
+                });
                 return null;
             });
         }).exceptionally(throwable -> {
@@ -84,14 +75,29 @@ public class EconomyExchange {
         return newTransactions;
     }
 
-    private Transaction[] getTransactionsFromJson(String serialized) {
+    private Transaction[] getTransactionsFromSerialized(String serialized) {
         if (serialized == null)
             return new Transaction[0];
-        try {
-            return objectMapper.readValue(serialized, Transaction[].class);
-        } catch (JsonProcessingException e) {
-            return new Transaction[0];
+        String[] split = serialized.split("/");
+        Transaction[] transactions = new Transaction[split.length];
+        for (int i = 0; i < split.length; i++) {
+            try {
+                transactions[i] = Transaction.fromString(split[i]);
+            } catch (Exception e) {
+                transactions[i] = null;
+            }
         }
+        return transactions;
+
+    }
+
+    public String serializeTransactions(Transaction[] transactions) {
+        StringBuilder builder = new StringBuilder();
+        for (Transaction transaction : transactions) {
+            builder.append(transaction.toString()).append("/");
+        }
+        builder.deleteCharAt(builder.length() - 1);
+        return builder.toString();
     }
 
 

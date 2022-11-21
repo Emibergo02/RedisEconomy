@@ -104,7 +104,9 @@ public class Currency implements Economy {
 
     @Override
     public boolean hasAccount(String playerName) {
-        return accounts.containsKey(currenciesManager.getUUIDFromUsernameCache(playerName));
+        UUID playerUniqueId = currenciesManager.getUUIDFromUsernameCache(playerName);
+        if (playerUniqueId == null) return false;
+        return accounts.containsKey(playerUniqueId);
     }
 
     @Override
@@ -126,7 +128,9 @@ public class Currency implements Economy {
 
     @Override
     public double getBalance(String playerName) {
-        return accounts.get(currenciesManager.getUUIDFromUsernameCache(playerName));
+        UUID playerUniqueId = currenciesManager.getUUIDFromUsernameCache(playerName);
+        if (playerUniqueId == null) return 0.0D;
+        return accounts.get(playerUniqueId);
     }
 
     @Override
@@ -175,8 +179,6 @@ public class Currency implements Economy {
         if (!has(playerName, amountToWithdraw))
             return new EconomyResponse(0, getBalance(playerName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
         updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, getBalance(playerName) - amountToWithdraw);
-
-
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -224,6 +226,8 @@ public class Currency implements Economy {
      * @return The result of the operation
      */
     public EconomyResponse setPlayerBalance(String playerName, double amount) {
+        if (!hasAccount(playerName))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, amount);
         return new EconomyResponse(amount, getBalance(playerName), EconomyResponse.ResponseType.SUCCESS, null);
     }
