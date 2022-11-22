@@ -10,6 +10,7 @@ import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
+import java.text.DecimalFormat;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -90,6 +91,18 @@ public class Currency implements Economy {
     @Override
     public String format(double amount) {
         return String.format("%.2f", amount) + (amount == 1 ? currencySingular : currencyPlural);
+    }
+
+    public String formatShorthand(double amount) {
+        String currencyPrefix[] = {"", "K", "M", "B", "T", "P", "E"};
+
+        int index = 0;
+        while ((amount / 1000) >= 1) {
+            amount = amount / 1000;
+            index++;
+        }
+        DecimalFormat decimalFormat = new DecimalFormat("#.##");
+        return String.format("%s%s", decimalFormat.format(amount), currencyPrefix[index]);
     }
 
     @Override

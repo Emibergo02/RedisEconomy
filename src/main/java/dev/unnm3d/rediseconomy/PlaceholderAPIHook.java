@@ -49,6 +49,18 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
                 }
                 return String.format("%.2f", currency.getBalance(player));
             }
+        }
+        if (params.startsWith("balanceformattedshort_")) {
+            String[] args = params.split("_");
+            if (args.length == 2) {
+                if (args[1].equals(""))
+                    return "Invalid currency";
+                Currency currency = currenciesManager.getCurrencyByName(args[1]);
+                if (currency == null) {
+                    return "Invalid currency";
+                }
+                return currency.formatShorthand(currency.getBalance(player));
+            }
         } else if (params.startsWith("balanceformatted_")) {
             String[] args = params.split("_");
             if (args.length == 2) {
