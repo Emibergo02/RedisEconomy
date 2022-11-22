@@ -49,8 +49,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
                 }
                 return String.format("%.2f", currency.getBalance(player));
             }
-        }
-        if (params.startsWith("balanceformattedshort_")) {
+        } else if (params.startsWith("balanceformattedshort_")) {
             String[] args = params.split("_");
             if (args.length == 2) {
                 if (args[1].equals(""))
