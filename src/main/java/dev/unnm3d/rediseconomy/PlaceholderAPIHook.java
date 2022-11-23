@@ -39,23 +39,38 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
     // %rediseco_balanceformattedshort_<currency>%
     @Override
     public String onRequest(OfflinePlayer player, String params) {
-
-        String[] args = params.split("_");
-        Currency currency = currenciesManager.getCurrencyByName(args[1]);
-
         if (params.startsWith("balance_")) {
-            if (args.length < 2 || currency == null) return "Invalid currency";
-            return String.format("%.2f", currency.getBalance(player));
-        } else {
-            switch (params) {
-                case "balanceformattedshort_" -> {
-                    if (args.length < 2 || currency == null) return "Invalid currency";
-                    return currency.formatShorthand(currency.getBalance(player));
+            String[] args = params.split("_");
+            if (args.length == 2) {
+                if (args[1].equals(""))
+                    return "Invalid currency";
+                Currency currency = currenciesManager.getCurrencyByName(args[1]);
+                if (currency == null) {
+                    return "Invalid currency";
                 }
-                case "balanceformatted_" -> {
-                    if (args.length < 2 || currency == null) return "Invalid currency";
-                    return currency.format(currency.getBalance(player));
+                return String.format("%.2f", currency.getBalance(player));
+            }
+        } else if (params.startsWith("balanceformattedshort_")) {
+            String[] args = params.split("_");
+            if (args.length == 2) {
+                if (args[1].equals(""))
+                    return "Invalid currency";
+                Currency currency = currenciesManager.getCurrencyByName(args[1]);
+                if (currency == null) {
+                    return "Invalid currency";
                 }
+                return currency.formatShorthand(currency.getBalance(player));
+            }
+        } else if (params.startsWith("balanceformatted_")) {
+            String[] args = params.split("_");
+            if (args.length == 2) {
+                if (args[1].equals(""))
+                    return "Invalid currency";
+                Currency currency = currenciesManager.getCurrencyByName(args[1]);
+                if (currency == null) {
+                    return "Invalid currency";
+                }
+                return currency.format(currency.getBalance(player));
             }
         }
 
