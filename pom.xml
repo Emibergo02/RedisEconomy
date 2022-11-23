@@ -44,6 +44,10 @@
                                     <pattern>net.kyori.adventure</pattern>
                                     <shadedPattern>net.kyori.adventure.shaded</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>io.lettuce</pattern>
+                                    <shadedPattern>dev.unnm3d.rediseconomy.libraries</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
@@ -65,8 +69,12 @@
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
         <repository>
-            <id>sonatype</id>
-            <url>https://oss.sonatype.org/content/groups/public/</url>
+            <id>sonatype-snapshots</id>
+            <name>Sonatype Snapshot Repository</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
         <repository>
             <id>jitpack.io</id>
@@ -126,8 +134,7 @@
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
-            <version>6.2.1.RELEASE</version>
-            <scope>provided</scope>
+            <version>6.2.2.BUILD-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
