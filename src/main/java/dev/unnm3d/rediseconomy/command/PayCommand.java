@@ -97,7 +97,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                 Bukkit.getLogger().info("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
             }
             //Register transaction
-            exchange.saveTransaction(commands, sender.getUniqueId(), targetUUID, amount);
+            exchange.savePaymentTransaction(commands, sender.getUniqueId(), targetUUID, amount);
             return null;
         });
 

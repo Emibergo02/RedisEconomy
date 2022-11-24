@@ -25,26 +25,25 @@ public class EconomyExchange {
         });
     }
 
-    public void saveTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount) {
+    public void savePaymentTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount) {
         long init = System.currentTimeMillis();
         client.hmget(TRANSACTIONS.toString(), sender.toString(), target.toString()).thenApply(lista -> {
             if (RedisEconomyPlugin.settings().DEBUG) {
                 Bukkit.getLogger().info("03 Retrieve transactions from redis... next 02");
             }
-            //Deserialize
-            Transaction[] senderTransactions = getTransactionsFromSerialized(lista.get(0).isEmpty() ? null : lista.get(0).getValue());
-            Transaction[] receiverTransactions = getTransactionsFromSerialized(lista.get(1).isEmpty() ? null : lista.get(1).getValue());
-
-            //Add a space into arrays and delete the oldest transaction
-            senderTransactions = updateArraySpace(senderTransactions);
-            receiverTransactions = updateArraySpace(receiverTransactions);
-
             //Add the new transaction
-            senderTransactions[senderTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, -amount, "vault", "Payment");
-            receiverTransactions[receiverTransactions.length - 1] = new Transaction(sender, System.currentTimeMillis(), target, amount, "vault", "Payment");
+            String senderTransactionsSerialized = updateTransactionFromSerialized(
+                    lista.get(0).isEmpty() ? null : lista.get(0).getValue(),
+                    sender, target, -amount,
+                    "vault",
+                    "Payment");
+            String receiverTransactionsSerialized = updateTransactionFromSerialized(
+                    lista.get(1).isEmpty() ? null : lista.get(1).getValue(),
+                    sender, target, amount,
+                    "vault",
+                    "Payment");
 
-            //Serialize transactions
-            Map<String, String> map = Map.of(sender.toString(), serializeTransactions(senderTransactions), target.toString(), serializeTransactions(receiverTransactions));
+            Map<String, String> map = Map.of(sender.toString(), senderTransactionsSerialized, target.toString(), receiverTransactionsSerialized);
 
             //Save transactions into redis
             return currenciesManager.getRedisManager().getConnection(connection -> {
@@ -59,9 +58,25 @@ public class EconomyExchange {
             throwable.printStackTrace();
             return null;
         });
+    }
+    public void saveTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount,String currencyName,String reason) {
 
     }
 
+    public String updateTransactionFromSerialized(String serializedTransactions,UUID account,UUID receiver,double amount,String currencyName,String reason){
+        Transaction[] spaceFreedTransactions=updateArraySpace(
+                getTransactionsFromSerialized(serializedTransactions)
+        );
+        //Add the new transaction
+        spaceFreedTransactions[spaceFreedTransactions.length - 1] = new Transaction(account, System.currentTimeMillis(), receiver, amount, currencyName, reason);
+        return serializeTransactions(spaceFreedTransactions);
+    }
+
+    /**
+     * Adds a space at the end of the array. If the array is full, the first element is removed.
+     * @param transactions The transactions to serialize
+     * @return The serialized transactions with an empty space at the end
+     */
     private Transaction[] updateArraySpace(Transaction[] transactions) {
         final int transactionMaxSize = RedisEconomyPlugin.settings().TRANSACTIONS_RETAINED;
         Transaction[] newTransactions;
@@ -75,6 +90,11 @@ public class EconomyExchange {
         return newTransactions;
     }
 
+    /**
+     * Deserializes a string into an array of transactions
+     * @param serialized The serialized transactions
+     * @return The deserialized transactions
+     */
     private Transaction[] getTransactionsFromSerialized(String serialized) {
         if (serialized == null)
             return new Transaction[0];
@@ -88,9 +108,13 @@ public class EconomyExchange {
             }
         }
         return transactions;
-
     }
 
+    /**
+     * Serializes an array of transactions into a string
+     * @param transactions The transactions to be serialized
+     * @return The serialized transactions
+     */
     public String serializeTransactions(Transaction[] transactions) {
         StringBuilder builder = new StringBuilder();
         for (Transaction transaction : transactions) {

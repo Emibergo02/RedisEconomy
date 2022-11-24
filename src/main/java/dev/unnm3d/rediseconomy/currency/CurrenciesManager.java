@@ -55,9 +55,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put("vault", new Currency(this, "vault", "€", "€", 0.0, 0.0));
         }
         registerPayMsgChannel();
-
     }
-
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = currencies.get("vault");
