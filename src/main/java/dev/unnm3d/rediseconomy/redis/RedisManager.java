@@ -21,6 +21,10 @@ public class RedisManager {
         }
     }
 
+    public StatefulRedisConnection<String, String> getUnclosedConnection() {
+        return lettuceRedisClient.connect();
+    }
+
     //Get pubsub
     public void getPubSubConnection(RedisCallBack.PubSub redisCallBack) {
         redisCallBack.useConnection(lettuceRedisClient.connectPubSub());

@@ -58,33 +58,11 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         if (!setupEconomy()) { //creates currenciesManager
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
-            return;
+
         } else {
             this.getLogger().info("Hooked into Vault!");
         }
 
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new PlaceholderAPIHook(currenciesManager).register();
-        }
-
-
-        EconomyExchange exchange = new EconomyExchange(currenciesManager);
-
-        getServer().getPluginManager().registerEvents(currenciesManager, this);
-        PayCommand payCommand = new PayCommand(currenciesManager, exchange);
-        getServer().getPluginCommand("pay").setExecutor(payCommand);
-        getServer().getPluginCommand("pay").setTabCompleter(payCommand);
-
-        BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
-        getServer().getPluginCommand("balance").setExecutor(balanceCommand);
-        getServer().getPluginCommand("balance").setTabCompleter(balanceCommand);
-        getServer().getPluginCommand("balancetop").setExecutor(new BalanceTopCommand(currenciesManager));
-
-        TransactionCommand transactionCommand = new TransactionCommand(currenciesManager, exchange);
-        getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
-        getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
-
-        new Metrics(this, 16802);
     }
 
     @Override
@@ -132,7 +110,10 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     private boolean setupRedis() {
-        this.redisManager = new RedisManager(RedisClient.create(getConfig().getString("redis-url", "redis://localhost:6379")), getConfig().getInt("redis-connection-timeout", 3000));
+        String uri=getConfig().getString("redis-url", "redis://localhost:6379");
+        int timeout=getConfig().getInt("redis-connection-timeout", 3000);
+        this.redisManager = new RedisManager(RedisClient.create(uri), timeout);
+        getLogger().info("Connecting to redis server "+uri+" with timeout "+timeout+"ms");
         return redisManager.isConnected();
     }
 
@@ -142,7 +123,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             return false;
         this.currenciesManager = new CurrenciesManager(redisManager, this);
         currenciesManager.loadDefaultCurrency(vault);
-        return false;
+        return true;
     }
 
 
