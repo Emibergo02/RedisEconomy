@@ -62,26 +62,28 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = currencies.get("vault");
         if (plugin.getConfig().getBoolean("migration-enabled", false)) {
-
-            @NotNull Collection<RegisteredServiceProvider<Economy>> existentProviders = plugin.getServer().getServicesManager().getRegistrations(Economy.class);
+            RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+            if (existentProvider == null) {
+                plugin.getLogger().severe("Vault economy provider not found!");
+                return;
+            }
             CompletableFuture.supplyAsync(() -> {
-                Bukkit.getLogger().info("§aStarting migration from " + existentProviders.size() + " providers...");
-                existentProviders.forEach(reg -> {
-                    Bukkit.getLogger().info("§aMigrating from " + reg.getProvider().getName() + "...");
-                    if (reg.getProvider() != defaultCurrency) {
-                        List<ScoredValue<String>> balances = new ArrayList<>();
-                        Map<String, String> nameUniqueIds = new HashMap<>();
-                        for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
-                            double bal = reg.getProvider().getBalance(offlinePlayer);
-                            balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
-                            nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
-                            defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
-                            Bukkit.getLogger().info("Migrated " + offlinePlayer.getName() + "'s balance of " + bal);
-                        }
-                        defaultCurrency.updateAccountsCloudCache(balances, nameUniqueIds);
-                    }
-                });
-                Bukkit.getLogger().info("§aMigration finished");
+                plugin.getLogger().info("§aMigrating from " + existentProvider.getProvider().getName() + "...");
+                if (existentProvider.getProvider() == defaultCurrency) {
+                    plugin.getLogger().info("There's no other provider apart RedisEconomy!");
+                    return defaultCurrency;
+                }
+
+                List<ScoredValue<String>> balances = new ArrayList<>();
+                Map<String, String> nameUniqueIds = new HashMap<>();
+                for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+                    double bal = existentProvider.getProvider().getBalance(offlinePlayer);
+                    balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
+                    nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
+                    defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
+                }
+
+                defaultCurrency.updateAccountsCloudCache(balances, nameUniqueIds);
                 return defaultCurrency;
             }).thenAccept((vaultCurrency) -> {
                 plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);

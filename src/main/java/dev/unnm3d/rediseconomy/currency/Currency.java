@@ -1,7 +1,9 @@
 package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import io.lettuce.core.RedisFuture;
 import io.lettuce.core.ScoredValue;
+import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,9 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
@@ -386,38 +386,27 @@ public class Currency implements Economy {
                 e.printStackTrace();
             }
         }
-        //currenciesManager.getRedisClient().jedisResourceFuture(jedis -> {
-        //    long init=System.currentTimeMillis();
-        //    Pipeline p=jedis.pipelined();
-        //    p.zadd("rediseco:balances_" + currencyName, balance, uuid.toString());
-        //    p.hset("rediseco:nameuuid", playerName, uuid.toString());
-        //    p.publish("rediseco_" + currencyName, RedisEconomyPlugin.settings().SERVER_ID+";;"+uuid +";;"+playerName+";;"+balance);
-        //    p.sync();
-        //    System.out.println("Update account #"+tries+" took  "+(System.currentTimeMillis()-init)+"ms");
-        //    return null;
-        //}, 300).exceptionally(e -> {
-        //    e.printStackTrace();
-        //    if (tries > 4) {
-        //        e.printStackTrace();
-        //        Bukkit.getLogger().severe("Failed to update account " + playerName + " after 5 tries");
-        //        Bukkit.getLogger().severe("Player accounts are desyncronized");
-        //    } else updateAccountCloudCache(uuid, playerName, balance, tries + 1);
-        //    return null;
-        //});
 
     }
 
     void updateAccountsCloudCache(List<ScoredValue<String>> balances, Map<String, String> nameUUIDs) {
-        currenciesManager.getRedisManager().getConnection(connection -> {
-            RedisAsyncCommands<String, String> commands = connection.async();
-            connection.setAutoFlushCommands(false);
-            commands.zadd(BALANCE_PREFIX + currencyName, balances);
-            commands.hset(NAME_UUID.toString(), nameUUIDs);
-            connection.flushCommands();
-            return null;
-        });
+        StatefulRedisConnection<String, String> connection = currenciesManager.getRedisManager().getUnclosedConnection();
+        RedisAsyncCommands<String, String> commands = connection.async();
+        connection.setAutoFlushCommands(false);
+        ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
+        balances.toArray(balancesArray);
 
+        RedisFuture<Long> zaddFuture = commands.zadd(BALANCE_PREFIX + currencyName, balancesArray);
+        RedisFuture<Long> hsetFuture = commands.hset(NAME_UUID.toString(), nameUUIDs);
 
+        connection.flushCommands();
+        try {
+            Bukkit.getLogger().info("migration01 updated balances into " + BALANCE_PREFIX + currencyName + " accounts. result " + zaddFuture.get(20, TimeUnit.SECONDS));
+            Bukkit.getLogger().info("migration02 updated nameuuids into " + NAME_UUID + " accounts. result " + hsetFuture.get(20, TimeUnit.SECONDS));
+            connection.close();
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

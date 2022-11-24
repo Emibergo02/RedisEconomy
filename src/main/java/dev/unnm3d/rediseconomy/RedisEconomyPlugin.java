@@ -132,7 +132,9 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     private boolean setupRedis() {
-        this.redisManager = new RedisManager(RedisClient.create(getConfig().getString("redis-url", "redis://localhost:6379")), getConfig().getInt("redis-connection-timeout", 3000));
+        String redisURI = getConfig().getString("redis-uri", "redis://localhost:6379");
+        this.redisManager = new RedisManager(RedisClient.create(), getConfig().getInt("redis-connection-timeout", 3000));
+        getLogger().info("Connecting to redis server "+redisURI);
         return redisManager.isConnected();
     }
 
