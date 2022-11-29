@@ -19,6 +19,7 @@ lang:
   pay-fail: "<red>Pay failed!</red>"
   pay-received: "<green>You received %amount% from %player%!</green>"
   transaction-item: "<aqua>%timestamp%</aqua> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> -> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%<green></click> %amount%!"
+  purge-user-success: "<green>Users matching %player% have been purged!</green>"
 currencies:
   vault:
     currency-single: "dollar"

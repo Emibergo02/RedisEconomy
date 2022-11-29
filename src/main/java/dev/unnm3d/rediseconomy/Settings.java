@@ -8,6 +8,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 public class Settings {
 
 
+
     private final BukkitAudiences audiences;
     public String SERVER_ID;
     public boolean DEBUG;
@@ -28,6 +29,7 @@ public class Settings {
     public String TRANSACTION_ITEM;
     public String INVALID_AMOUNT;
     public String INSUFFICIENT_FUNDS;
+    public String PURGE_USER_SUCCESS;
 
     public Settings(RedisEconomyPlugin plugin) {
         this.audiences = BukkitAudiences.create(plugin);
@@ -51,6 +53,7 @@ public class Settings {
         this.TRANSACTION_ITEM = config.getString("lang.transaction-item", "<aqua>%timestamp%</aqua> <dark_green>%sender%<dark_green> -> <green>%receiver%<green> <gold>%amount%</gold>!");
         this.INVALID_AMOUNT = config.getString("lang.invalid-amount", "<red>Invalid amount!");
         this.INSUFFICIENT_FUNDS = config.getString("lang.insufficient-funds", "<red>You don't have enough money!");
+        this.PURGE_USER_SUCCESS = config.getString("lang.purge-user-success", "<gold>User <white>%player% <gold>has been purged!");
     }
 
     public void send(CommandSender sender, String text) {

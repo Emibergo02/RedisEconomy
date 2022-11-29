@@ -35,6 +35,10 @@ commands:
     description: Show transactions
     usage: /transaction <player>
     permission: rediseconomy.admin
+  purge-balance:
+    description: Purge balances
+    usage: /purge-balance <player> [onlyNameUUID]
+    permission: rediseconomy.admin
 permissions:
     rediseconomy.pay:
         description: Allows to use /pay

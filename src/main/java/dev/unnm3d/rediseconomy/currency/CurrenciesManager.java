@@ -55,7 +55,9 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put("vault", new Currency(this, "vault", "€", "€", 0.0, 0.0));
         }
         registerPayMsgChannel();
+
     }
+
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = currencies.get("vault");
@@ -77,7 +79,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
                     double bal = existentProvider.getProvider().getBalance(offlinePlayer);
                     balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
-                    nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
+                    nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId() + "-Unknown" : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
                     defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
                 }
 
@@ -114,6 +116,20 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     void updateNameUniqueId(String name, UUID uuid) {
         nameUniqueIds.put(name, uuid);
+    }
+
+    public HashMap<String, UUID> removeNamePattern(String namePattern) {
+        HashMap<String, UUID> removed = new HashMap<>();
+        for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
+            if (entry.getKey().matches(namePattern)) {
+                removed.put(entry.getKey(), entry.getValue());
+            }
+        }
+        nameUniqueIds.entrySet().removeAll(removed.entrySet());
+        if (!removed.isEmpty()) {
+            removeRedisNameUniqueIds(removed);
+        }
+        return removed;
     }
 
     @Override
@@ -167,6 +183,22 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
             return nameUUIDs;
         });
+    }
+
+    private void removeRedisNameUniqueIds(Map<String, UUID> toRemove) {
+        String[] toRemoveArray = toRemove.keySet().toArray(new String[0]);
+        for (int i = 0; i < toRemoveArray.length; i++) {
+            System.out.println(toRemoveArray[i]);
+            if (toRemoveArray[i] == null) {
+                toRemoveArray[i] = "null";
+            }
+        }
+        redisManager.getConnection(connection ->
+                connection.async().hdel(NAME_UUID.toString(), toRemoveArray).thenAccept(integer -> {
+                    if (RedisEconomyPlugin.settings().DEBUG) {
+                        Bukkit.getLogger().info("purge0 Removed " + integer + " name-uuid pairs");
+                    }
+                }));
     }
 
     private void registerPayMsgChannel() {

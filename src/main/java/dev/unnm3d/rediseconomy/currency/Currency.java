@@ -11,6 +11,7 @@ import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -213,7 +214,7 @@ public class Currency implements Economy {
      * @param amount The amount to set the balance to
      * @return The result of the operation
      */
-    public EconomyResponse setPlayerBalance(OfflinePlayer player, double amount) {
+    public EconomyResponse setPlayerBalance(@NotNull OfflinePlayer player, double amount) {
         updateAccount(player.getUniqueId(), player.getName(), amount);
         return new EconomyResponse(amount, getBalance(player), EconomyResponse.ResponseType.SUCCESS, null);
     }
@@ -225,7 +226,7 @@ public class Currency implements Economy {
      * @param amount     The amount to set the balance to
      * @return The result of the operation
      */
-    public EconomyResponse setPlayerBalance(String playerName, double amount) {
+    public EconomyResponse setPlayerBalance(@NotNull String playerName, double amount) {
         if (!hasAccount(playerName))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         updateAccount(currenciesManager.getUUIDFromUsernameCache(playerName), playerName, amount);
@@ -389,6 +390,7 @@ public class Currency implements Economy {
 
     }
 
+    @SuppressWarnings("unchecked")
     void updateAccountsCloudCache(List<ScoredValue<String>> balances, Map<String, String> nameUUIDs) {
         StatefulRedisConnection<String, String> connection = currenciesManager.getRedisManager().getUnclosedConnection();
         RedisAsyncCommands<String, String> commands = connection.async();

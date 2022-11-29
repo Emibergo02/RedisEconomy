@@ -84,6 +84,10 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
         getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
 
+        PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager);
+        getServer().getPluginCommand("purge-balance").setExecutor(purgeUserCommand);
+        getServer().getPluginCommand("purge-balance").setTabCompleter(purgeUserCommand);
+
         new Metrics(this, 16802);
     }
 
@@ -133,8 +137,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     private boolean setupRedis() {
         String redisURI = getConfig().getString("redis-uri", "redis://localhost:6379");
-        this.redisManager = new RedisManager(RedisClient.create(), getConfig().getInt("redis-connection-timeout", 3000));
-        getLogger().info("Connecting to redis server "+redisURI);
+        this.redisManager = new RedisManager(RedisClient.create(redisURI), getConfig().getInt("redis-connection-timeout", 3000));
+        getLogger().info("Connecting to redis server " + redisURI);
         return redisManager.isConnected();
     }
 
