@@ -6,6 +6,7 @@ depend:
   - Vault
 libraries:
   - com.fasterxml.jackson.core:jackson-databind:2.14.0
+  - io.lettuce:lettuce-core:6.2.2.RELEASE
 softdepend:
   - PlaceholderAPI
   - Essentials

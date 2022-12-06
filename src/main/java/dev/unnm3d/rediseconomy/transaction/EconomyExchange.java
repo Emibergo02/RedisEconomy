@@ -29,7 +29,7 @@ public class EconomyExchange {
         long init = System.currentTimeMillis();
         client.hmget(TRANSACTIONS.toString(), sender.toString(), target.toString()).thenApply(lista -> {
             if (RedisEconomyPlugin.settings().DEBUG) {
-                Bukkit.getLogger().info("03 Retrieve transactions from redis... next 02");
+                Bukkit.getLogger().info("03 Retrieve transactions from redis... next 03b");
             }
             //Add the new transaction
             String senderTransactionsSerialized = updateTransactionFromSerialized(
@@ -59,8 +59,48 @@ public class EconomyExchange {
             return null;
         });
     }
-    public void saveTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount,String currencyName,String reason) {
 
+    /**
+     * Saves a transaction
+     * @param accountOwner The owner of the account
+     * @param target Who transferred the money to the account owner. If it is the server the uuid will be UUID.fromString("Server")
+     * @param amount The amount of money transferred
+     * @param currencyName The name of the currency
+     * @param reason The reason of the transaction
+     */
+    public void saveTransaction(UUID accountOwner, UUID target, double amount, String currencyName, String reason) {
+        long init = System.currentTimeMillis();
+        currenciesManager.getRedisManager().getConnection(connection -> {                                               //Get connection
+                    RedisAsyncCommands<String, String> commands = connection.async();
+                    return commands.hget(TRANSACTIONS.toString(), accountOwner.toString())                              //Get past transactions from redis
+                            .thenApply(serializedTransactions -> {
+                                if (RedisEconomyPlugin.settings().DEBUG) {
+                                    Bukkit.getLogger().info("03c Retrieve single player transactions from redis... next 03d");
+                                }
+                                UUID correctedTarget = target;
+                                if(target == null) {
+                                    correctedTarget = UUID.fromString("Server");                                  //If the target is null, it means that the money was given/taken by the server
+                                }
+                                //Add the new transaction
+                                String senderTransactionsSerialized = updateTransactionFromSerialized(                  //Update transactions adding the new one
+                                        serializedTransactions,
+                                        accountOwner, correctedTarget, amount,
+                                        currencyName,
+                                        reason);
+
+                                //Save transaction into redis
+                                return commands.hset(TRANSACTIONS.toString(), accountOwner.toString(), senderTransactionsSerialized) //Save transactions into redis
+                                        .thenAccept(response -> {
+                                    if (RedisEconomyPlugin.settings().DEBUG) {
+                                        Bukkit.getLogger().info("03d Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + "ms with result " + response + " !");
+                                    }
+                                });
+                            }).exceptionally(throwable -> {
+                                throwable.printStackTrace();
+                                return null;
+                            });
+                }
+        );
     }
 
     public String updateTransactionFromSerialized(String serializedTransactions,UUID account,UUID receiver,double amount,String currencyName,String reason){
