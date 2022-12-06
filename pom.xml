@@ -6,7 +6,7 @@
 
     <groupId>dev.unnm3d</groupId>
     <artifactId>RedisEconomy</artifactId>
-    <version>3.1-SNAPSHOT</version>
+    <version>3.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>RedisEconomy</name>
@@ -43,10 +43,6 @@
                                 <relocation>
                                     <pattern>net.kyori.adventure</pattern>
                                     <shadedPattern>net.kyori.adventure.shaded</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>io.lettuce</pattern>
-                                    <shadedPattern>dev.unnm3d.rediseconomy.libraries</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
