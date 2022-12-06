@@ -8,7 +8,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 public class Settings {
 
 
-
     private final BukkitAudiences audiences;
     public String SERVER_ID;
     public boolean DEBUG;
@@ -30,6 +29,7 @@ public class Settings {
     public String INVALID_AMOUNT;
     public String INSUFFICIENT_FUNDS;
     public String PURGE_USER_SUCCESS;
+    public UnitSymbols UNIT_SYMBOLS;
 
     public Settings(RedisEconomyPlugin plugin) {
         this.audiences = BukkitAudiences.create(plugin);
@@ -54,9 +54,17 @@ public class Settings {
         this.INVALID_AMOUNT = config.getString("lang.invalid-amount", "<red>Invalid amount!");
         this.INSUFFICIENT_FUNDS = config.getString("lang.insufficient-funds", "<red>You don't have enough money!");
         this.PURGE_USER_SUCCESS = config.getString("lang.purge-user-success", "<gold>User <white>%player% <gold>has been purged!");
+        this.UNIT_SYMBOLS = new UnitSymbols(
+                config.getString("lang.unit-symbols.thousands", "k"),
+                config.getString("lang.unit-symbols.millions", "m"),
+                config.getString("lang.unit-symbols.billions", "b"),
+                config.getString("lang.unit-symbols.trillions", "t"));
     }
 
     public void send(CommandSender sender, String text) {
         audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text));
+    }
+
+    public record UnitSymbols(String thousands, String millions, String billions, String trillions) {
     }
 }

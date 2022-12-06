@@ -60,13 +60,15 @@ public class EconomyExchange {
         });
     }
 
+    @SuppressWarnings("unused")
     /**
      * Saves a transaction
+     *
      * @param accountOwner The owner of the account
-     * @param target Who transferred the money to the account owner. If it is the server the uuid will be UUID.fromString("Server")
-     * @param amount The amount of money transferred
+     * @param target       Who transferred the money to the account owner. If it is the server the uuid will be UUID.fromString("Server")
+     * @param amount       The amount of money transferred
      * @param currencyName The name of the currency
-     * @param reason The reason of the transaction
+     * @param reason       The reason of the transaction
      */
     public void saveTransaction(UUID accountOwner, UUID target, double amount, String currencyName, String reason) {
         long init = System.currentTimeMillis();
@@ -78,7 +80,7 @@ public class EconomyExchange {
                                     Bukkit.getLogger().info("03c Retrieve single player transactions from redis... next 03d");
                                 }
                                 UUID correctedTarget = target;
-                                if(target == null) {
+                                if (target == null) {
                                     correctedTarget = UUID.fromString("Server");                                  //If the target is null, it means that the money was given/taken by the server
                                 }
                                 //Add the new transaction
@@ -91,10 +93,10 @@ public class EconomyExchange {
                                 //Save transaction into redis
                                 return commands.hset(TRANSACTIONS.toString(), accountOwner.toString(), senderTransactionsSerialized) //Save transactions into redis
                                         .thenAccept(response -> {
-                                    if (RedisEconomyPlugin.settings().DEBUG) {
-                                        Bukkit.getLogger().info("03d Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + "ms with result " + response + " !");
-                                    }
-                                });
+                                            if (RedisEconomyPlugin.settings().DEBUG) {
+                                                Bukkit.getLogger().info("03d Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + "ms with result " + response + " !");
+                                            }
+                                        });
                             }).exceptionally(throwable -> {
                                 throwable.printStackTrace();
                                 return null;
@@ -103,8 +105,8 @@ public class EconomyExchange {
         );
     }
 
-    public String updateTransactionFromSerialized(String serializedTransactions,UUID account,UUID receiver,double amount,String currencyName,String reason){
-        Transaction[] spaceFreedTransactions=updateArraySpace(
+    public String updateTransactionFromSerialized(String serializedTransactions, UUID account, UUID receiver, double amount, String currencyName, String reason) {
+        Transaction[] spaceFreedTransactions = updateArraySpace(
                 getTransactionsFromSerialized(serializedTransactions)
         );
         //Add the new transaction
@@ -114,6 +116,7 @@ public class EconomyExchange {
 
     /**
      * Adds a space at the end of the array. If the array is full, the first element is removed.
+     *
      * @param transactions The transactions to serialize
      * @return The serialized transactions with an empty space at the end
      */
@@ -132,6 +135,7 @@ public class EconomyExchange {
 
     /**
      * Deserializes a string into an array of transactions
+     *
      * @param serialized The serialized transactions
      * @return The deserialized transactions
      */
@@ -152,6 +156,7 @@ public class EconomyExchange {
 
     /**
      * Serializes an array of transactions into a string
+     *
      * @param transactions The transactions to be serialized
      * @return The serialized transactions
      */

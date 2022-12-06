@@ -64,7 +64,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new PlaceholderAPIHook(currenciesManager).register();
+            new PlaceholderAPIHook(currenciesManager, instance.settings).register();
         }
 
 
