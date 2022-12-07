@@ -29,16 +29,10 @@ public class PurgeUserCommand implements CommandExecutor, TabCompleter {
                 onlyNameUUID = true;
             }
         }
-        Map<String, UUID> nameUUIDs = currenciesManager.removeNamePattern(target);
+        Map<String, UUID> nameUUIDs = currenciesManager.removeNamePattern(target, !onlyNameUUID);
         if (nameUUIDs.size() == 0) {
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
             return true;
-        }
-        if (!onlyNameUUID) {
-            currenciesManager.getCurrencies().forEach(currency ->
-                    nameUUIDs.forEach(
-                            (playerName, uuid) -> currency.setPlayerBalance(playerName, 0)
-                    ));
         }
         RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PURGE_USER_SUCCESS.replace("%player%", target));
 

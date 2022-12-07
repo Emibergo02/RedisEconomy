@@ -7,7 +7,8 @@ lang:
   no-console: "<red>You must be in-game to use this command!</red>"
   no-permission: "<red>You do not have permission to use this command!</red>"
   player-not-found: "<red>Player not found!</red>"
-  invalid-amount: "<red>Invalid amount!<"
+  invalid-amount: "<red>Invalid amount!"
+  invalid-currency: "<red>Invalid currency!"
   insufficient-funds: "<red>You do not have enough money!</red>"
   balance: "<green>You have %balance%!</green>"
   balance-set: "<green>You set %player% account to %balance% !</green>"
@@ -18,7 +19,7 @@ lang:
   pay-success: "<green>You paid %player% %amount% with %tax_percentage% %tax_applied% of transaction fee!</green>"
   pay-fail: "<red>Pay failed!</red>"
   pay-received: "<green>You received %amount% from %player%!</green>"
-  transaction-item: "<aqua>%timestamp%</aqua> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> -> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%<green></click> %amount%!"
+  transaction-item: "<aqua>%timestamp%</aqua> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> -> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%</green></click> %amount%<br><yellow>Reason: </yellow>%reason%"
   purge-user-success: "<green>Users matching %player% have been purged!</green>"
   unit-symbols:
     thousands: "k"

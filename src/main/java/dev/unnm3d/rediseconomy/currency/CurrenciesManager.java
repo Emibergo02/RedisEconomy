@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.currency;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
+import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import io.lettuce.core.ScoredValue;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
@@ -31,6 +32,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final RedisEconomyPlugin plugin;
     @Getter
     private final RedisManager redisManager;
+    @Getter
+    private final EconomyExchange exchange;
     private final HashMap<String, Currency> currencies;
     @Getter
     private final ConcurrentHashMap<String, UUID> nameUniqueIds;
@@ -38,9 +41,11 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public CurrenciesManager(RedisManager redisManager, RedisEconomyPlugin plugin) {
         INSTANCE = this;
         this.redisManager = redisManager;
+        this.exchange = new EconomyExchange(this);
         this.plugin = plugin;
         this.currencies = new HashMap<>();
         this.nameUniqueIds = loadRedisNameUniqueIds();
+
         ConfigurationSection configurationSection = plugin.getConfig().getConfigurationSection("currencies");
         if (configurationSection != null)
             for (String key : configurationSection.getKeys(false)) {
@@ -118,7 +123,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         nameUniqueIds.put(name, uuid);
     }
 
-    public HashMap<String, UUID> removeNamePattern(String namePattern) {
+    public HashMap<String, UUID> removeNamePattern(String namePattern, boolean resetBalance) {
         HashMap<String, UUID> removed = new HashMap<>();
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
             if (entry.getKey().matches(namePattern)) {
@@ -128,6 +133,11 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         nameUniqueIds.entrySet().removeAll(removed.entrySet());
         if (!removed.isEmpty()) {
             removeRedisNameUniqueIds(removed);
+            if (resetBalance) {
+                for (Currency currency : currencies.values()) {
+                    removed.forEach((name, uuid) -> currency.setPlayerBalance(uuid, name, 0.0));
+                }
+            }
         }
         return removed;
     }

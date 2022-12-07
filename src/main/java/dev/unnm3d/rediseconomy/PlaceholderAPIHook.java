@@ -2,19 +2,40 @@ package dev.unnm3d.rediseconomy;
 
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
-import lombok.AllArgsConstructor;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-@AllArgsConstructor
+
 public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     private final CurrenciesManager currenciesManager;
     private final Settings settings;
+    private final HashMap<Currency, Double> totalSupplyCache;
+    private long lastUpdateTimestamp;
 
+    public PlaceholderAPIHook(CurrenciesManager currenciesManager, Settings settings) {
+        this.currenciesManager = currenciesManager;
+        this.settings = settings;
+        this.totalSupplyCache = new HashMap<>();
+        updateTotalSupplyCache();
+    }
+
+    private void updateTotalSupplyCache() {
+        for (Currency currency : currenciesManager.getCurrencies()) {
+            double totalSupply = 0;
+            for (Map.Entry<UUID, Double> uuidDoubleEntry : currency.getAccounts().entrySet()) {
+                totalSupply += uuidDoubleEntry.getValue();
+            }
+            totalSupplyCache.put(currency, totalSupply);
+        }
+        lastUpdateTimestamp = System.currentTimeMillis();
+    }
 
     @Override
     public @NotNull String getAuthor() {
@@ -43,27 +64,41 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, String params) {
         List<String> splitted = List.of(params.split("_"));
         if (splitted.size() < 2) return null;
-        if (!splitted.get(0).equals("balance")) return null;
-
         Currency currency = currenciesManager.getCurrencyByName(splitted.get(splitted.size() - 1));
         if (currency == null) return "Invalid currency";
 
-        double balance = currency.getBalance(player);
-        String formattedNumber = String.format("%.2f", balance);
+        if (splitted.get(0).equals("bal")) {
+            double balance = currency.getBalance(player);
+            return parseParams(balance, splitted, currency);
 
-        if (splitted.contains("shorthand")) {
-            if (balance >= 1000000000000.0) {
-                formattedNumber = String.format("%.2f", balance / 1000000000000.0) + settings.UNIT_SYMBOLS.trillions();
-            } else if (balance >= 1000000000.0) {
-                formattedNumber = String.format("%.2f", balance / 1000000000.0) + settings.UNIT_SYMBOLS.billions();
-            } else if (balance >= 1000000.0) {
-                formattedNumber = String.format("%.2f", balance / 1000000.0) + settings.UNIT_SYMBOLS.millions();
-            } else if (balance >= 1000.0) {
-                formattedNumber = String.format("%.2f", balance / 1000.0) + settings.UNIT_SYMBOLS.thousands();
+        } else if (splitted.get(0).equals("totsupply")) {
+            if (!totalSupplyCache.containsKey(currency))
+                return "Invalid currency";
+            if (lastUpdateTimestamp < System.currentTimeMillis() - 1000 * 60) {
+                updateTotalSupplyCache();
+            }
+            return parseParams(totalSupplyCache.get(currency), splitted, currency);
+        }
+        return null;
+    }
+
+    private String parseParams(double amount, List<String> splitted, Currency currency) {
+
+        String formattedNumber = String.format("%.2f", amount);
+
+        if (splitted.contains("short")) {
+            if (amount >= 1000000000000.0) {
+                formattedNumber = String.format("%.2f", amount / 1000000000000.0) + settings.UNIT_SYMBOLS.trillions();
+            } else if (amount >= 1000000000.0) {
+                formattedNumber = String.format("%.2f", amount / 1000000000.0) + settings.UNIT_SYMBOLS.billions();
+            } else if (amount >= 1000000.0) {
+                formattedNumber = String.format("%.2f", amount / 1000000.0) + settings.UNIT_SYMBOLS.millions();
+            } else if (amount >= 1000.0) {
+                formattedNumber = String.format("%.2f", amount / 1000.0) + settings.UNIT_SYMBOLS.thousands();
             }
         }
         if (splitted.contains("formatted")) {
-            if (balance == 1)
+            if (amount == 1)
                 formattedNumber += currency.getCurrencySingular();
             else
                 formattedNumber += currency.getCurrencyPlural();

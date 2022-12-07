@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.currency.Currency;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
@@ -25,7 +26,7 @@ public class EconomyExchange {
         });
     }
 
-    public void savePaymentTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount) {
+    public void savePaymentTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount, Currency currency, String reason) {
         long init = System.currentTimeMillis();
         client.hmget(TRANSACTIONS.toString(), sender.toString(), target.toString()).thenApply(lista -> {
             if (RedisEconomyPlugin.settings().DEBUG) {
@@ -35,13 +36,13 @@ public class EconomyExchange {
             String senderTransactionsSerialized = updateTransactionFromSerialized(
                     lista.get(0).isEmpty() ? null : lista.get(0).getValue(),
                     sender, target, -amount,
-                    "vault",
-                    "Payment");
+                    currency.getCurrencyName(),
+                    reason);
             String receiverTransactionsSerialized = updateTransactionFromSerialized(
                     lista.get(1).isEmpty() ? null : lista.get(1).getValue(),
                     sender, target, amount,
-                    "vault",
-                    "Payment");
+                    currency.getCurrencyName(),
+                    reason);
 
             Map<String, String> map = Map.of(sender.toString(), senderTransactionsSerialized, target.toString(), receiverTransactionsSerialized);
 
@@ -60,12 +61,11 @@ public class EconomyExchange {
         });
     }
 
-    @SuppressWarnings("unused")
     /**
      * Saves a transaction
      *
      * @param accountOwner The owner of the account
-     * @param target       Who transferred the money to the account owner. If it is the server the uuid will be UUID.fromString("Server")
+     * @param target       Who transferred the money to the account owner. If it is the server the uuid will be UUID.fromString("00000000-0000-0000-0000-000000000000")
      * @param amount       The amount of money transferred
      * @param currencyName The name of the currency
      * @param reason       The reason of the transaction
@@ -81,7 +81,7 @@ public class EconomyExchange {
                                 }
                                 UUID correctedTarget = target;
                                 if (target == null) {
-                                    correctedTarget = UUID.fromString("Server");                                  //If the target is null, it means that the money was given/taken by the server
+                                    correctedTarget = UUID.fromString("00000000-0000-0000-0000-000000000000");    //If the target is null, it means that the money was given/taken by the server
                                 }
                                 //Add the new transaction
                                 String senderTransactionsSerialized = updateTransactionFromSerialized(                  //Update transactions adding the new one

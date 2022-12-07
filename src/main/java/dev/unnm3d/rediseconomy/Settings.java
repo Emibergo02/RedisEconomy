@@ -27,6 +27,7 @@ public class Settings {
     public String PAY_RECEIVED;
     public String TRANSACTION_ITEM;
     public String INVALID_AMOUNT;
+    public String INVALID_CURRENCY;
     public String INSUFFICIENT_FUNDS;
     public String PURGE_USER_SUCCESS;
     public UnitSymbols UNIT_SYMBOLS;
@@ -52,6 +53,7 @@ public class Settings {
         this.PAY_RECEIVED = config.getString("lang.pay-received", "<gold>You received <white>%amount% <gold>coins from <white>%player%");
         this.TRANSACTION_ITEM = config.getString("lang.transaction-item", "<aqua>%timestamp%</aqua> <dark_green>%sender%<dark_green> -> <green>%receiver%<green> <gold>%amount%</gold>!");
         this.INVALID_AMOUNT = config.getString("lang.invalid-amount", "<red>Invalid amount!");
+        this.INVALID_CURRENCY = config.getString("lang.invalid-currency", "<red>Invalid currency!");
         this.INSUFFICIENT_FUNDS = config.getString("lang.insufficient-funds", "<red>You don't have enough money!");
         this.PURGE_USER_SUCCESS = config.getString("lang.purge-user-success", "<gold>User <white>%player% <gold>has been purged!");
         this.UNIT_SYMBOLS = new UnitSymbols(

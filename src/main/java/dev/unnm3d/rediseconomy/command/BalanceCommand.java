@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import lombok.AllArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -40,6 +41,10 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             Currency currency = economy.getCurrencyByName(args[1]);
+            if (currency == null) {
+                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_CURRENCY);
+                return true;
+            }
             balancePlayer(sender, currency, args);
 
         } else if (args.length > 3) {
@@ -49,6 +54,10 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
             }
             String target = args[0];
             Currency currency = economy.getCurrencyByName(args[1]);
+            if(currency == null) {
+                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_CURRENCY);
+                return true;
+            }
             double amount;
             try {
                 amount = Double.parseDouble(args[3]);
@@ -56,13 +65,18 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_AMOUNT);
                 return true;
             }
+            String reasonOrCommand = null;
+            if (args.length > 4) {
+                reasonOrCommand = String.join(" ", Arrays.copyOfRange(args, 4, args.length));
+            }
             if (args[2].equalsIgnoreCase("give")) {
-                givePlayer(sender, currency, amount, target);
+                givePlayer(sender, currency, amount, target, reasonOrCommand);
             } else if (args[2].equalsIgnoreCase("take")) {
-                if (args.length > 4) {
-                    takePlayerWithCommand(sender, currency, amount, target, String.join(" ", Arrays.copyOfRange(args, 4, args.length)));
-                } else
-                    takePlayer(sender, currency, amount, target);
+                if (reasonOrCommand != null)
+                    if (reasonOrCommand.startsWith("/")) {
+                        takePlayerWithCommand(sender, currency, amount, target, reasonOrCommand);
+                    }
+                takePlayer(sender, currency, amount, target, reasonOrCommand);
             } else if (args[2].equalsIgnoreCase("set")) {
                 setPlayer(sender, currency, amount, target);
             }
@@ -78,11 +92,11 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
 
     protected abstract void balancePlayer(CommandSender sender, Currency currency, String[] args);
 
-    protected abstract void takePlayer(CommandSender sender, Currency currency, double amount, String target);
+    protected abstract void takePlayer(CommandSender sender, Currency currency, double amount, String target, String reasonOrCommand);
 
     protected abstract void takePlayerWithCommand(CommandSender sender, Currency currency, double amount, String target, String command);
 
-    protected abstract void givePlayer(CommandSender sender, Currency currency, double amount, String target);
+    protected abstract void givePlayer(CommandSender sender, Currency currency, double amount, String target, String reason);
 
     protected abstract void setPlayer(CommandSender sender, Currency currency, double amount, String target);
 
@@ -95,7 +109,8 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 return List.of();
             long init = System.currentTimeMillis();
             List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
-            System.out.println("Tab complete executed in " + (System.currentTimeMillis() - init) + "ms");
+            if (RedisEconomyPlugin.settings().DEBUG)
+                Bukkit.getLogger().info("Tab complete executed in " + (System.currentTimeMillis() - init) + "ms");
             return players;
         } else if (args.length == 2)
             return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1]) && sender.hasPermission("rediseconomy.balance." + args[1])).toList();

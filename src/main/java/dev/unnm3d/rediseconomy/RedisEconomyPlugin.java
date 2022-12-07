@@ -6,7 +6,6 @@ import com.google.common.io.ByteStreams;
 import dev.unnm3d.rediseconomy.command.*;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
-import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import io.lettuce.core.RedisClient;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
@@ -55,7 +54,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getLogger().info("Redis server connected!");
         }
 
-        if (!setupEconomy()) { //creates currenciesManager
+        if (!setupEconomy()) { //creates currenciesManager and exchange
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
             return;
@@ -68,10 +67,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
 
 
-        EconomyExchange exchange = new EconomyExchange(currenciesManager);
-
         getServer().getPluginManager().registerEvents(currenciesManager, this);
-        PayCommand payCommand = new PayCommand(currenciesManager, exchange);
+        PayCommand payCommand = new PayCommand(currenciesManager);
         getServer().getPluginCommand("pay").setExecutor(payCommand);
         getServer().getPluginCommand("pay").setTabCompleter(payCommand);
 
@@ -80,7 +77,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         getServer().getPluginCommand("balance").setTabCompleter(balanceCommand);
         getServer().getPluginCommand("balancetop").setExecutor(new BalanceTopCommand(currenciesManager));
 
-        TransactionCommand transactionCommand = new TransactionCommand(currenciesManager, exchange);
+        TransactionCommand transactionCommand = new TransactionCommand(currenciesManager);
         getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
         getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
 
