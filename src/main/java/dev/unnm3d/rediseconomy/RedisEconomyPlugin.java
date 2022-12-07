@@ -10,11 +10,15 @@ import io.lettuce.core.RedisClient;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -84,6 +88,18 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager);
         getServer().getPluginCommand("purge-balance").setExecutor(purgeUserCommand);
         getServer().getPluginCommand("purge-balance").setTabCompleter(purgeUserCommand);
+        getServer().getPluginCommand("rediseconomy").setExecutor((sender, command, label, args) -> {
+            if(sender.hasPermission("rediseconomy.admin")) {
+                if(args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+                    reloadConfig();
+                    String serverId = settings.SERVER_ID;
+                    settings=new Settings(this);
+                    settings.SERVER_ID = serverId;
+                    sender.sendMessage("§aReloaded successfully "+serverId+"!");
+                }
+            }
+            return true;
+        });
 
         new Metrics(this, 16802);
     }

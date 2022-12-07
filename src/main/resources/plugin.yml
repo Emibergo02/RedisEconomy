@@ -40,6 +40,11 @@ commands:
     description: Purge balances
     usage: /purge-balance <player> [onlyNameUUID]
     permission: rediseconomy.admin
+  rediseconomy:
+    description: RedisEconomy commands
+    usage: /rediseconomy <reload>
+    aliases: [rediseco]
+    permission: rediseconomy.admin
 permissions:
     rediseconomy.pay:
         description: Allows to use /pay

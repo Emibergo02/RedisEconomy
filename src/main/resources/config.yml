@@ -1,4 +1,4 @@
-transactions-retained: 200
+transactions-retained: 2000
 migration-enabled: false
 debug: false
 redis-uri: "redis://localhost:6379/0?timeout=20s&clientName=RedisEconomy"

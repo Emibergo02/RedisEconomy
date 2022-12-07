@@ -198,7 +198,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private void removeRedisNameUniqueIds(Map<String, UUID> toRemove) {
         String[] toRemoveArray = toRemove.keySet().toArray(new String[0]);
         for (int i = 0; i < toRemoveArray.length; i++) {
-            System.out.println(toRemoveArray[i]);
             if (toRemoveArray[i] == null) {
                 toRemoveArray[i] = "null";
             }
