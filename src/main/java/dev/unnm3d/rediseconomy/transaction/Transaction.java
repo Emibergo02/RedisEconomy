@@ -15,4 +15,20 @@ public class Transaction {
     public String currencyName = "";
     public String reason = "Unknown";
 
+    public static Transaction fromString(String s) {
+        String[] parts = s.split(";");
+        if (parts.length != 6) return null;
+        return new Transaction(
+                UUID.fromString(parts[0]),
+                Long.parseLong(parts[1]),
+                UUID.fromString(parts[2]),
+                Double.parseDouble(parts[3]),
+                parts[4],
+                parts[5]);
+    }
+
+    @Override
+    public String toString() {
+        return sender + ";" + timestamp + ";" + receiver + ";" + amount + ";" + currencyName + ";" + reason;
+    }
 }

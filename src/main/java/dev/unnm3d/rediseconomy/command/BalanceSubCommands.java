@@ -36,8 +36,8 @@ public class BalanceSubCommands extends BalanceCommand {
     }
 
     @Override
-    protected void takePlayer(CommandSender sender, Currency currency, double amount, String target) {
-        EconomyResponse er = currency.withdrawPlayer(target, amount);
+    protected void takePlayer(CommandSender sender, Currency currency, double amount, String target, String reasonOrCommand) {
+        EconomyResponse er = currency.withdrawPlayer(target, amount, reasonOrCommand);
         if (er.transactionSuccess())
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_SET.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         else sender.sendMessage(er.errorMessage);
@@ -45,16 +45,16 @@ public class BalanceSubCommands extends BalanceCommand {
 
     @Override
     protected void takePlayerWithCommand(CommandSender sender, Currency currency, double amount, String target, String command) {
-        EconomyResponse er = currency.withdrawPlayer(target, amount);
+        EconomyResponse er = currency.withdrawPlayer(target, amount, command);
         if (er.transactionSuccess()) {
-            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command.replace("%player%", target).replace("%amount%", String.format("%.2f", amount)));
+            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command.replace("%player%", target).replace("%amount%", String.format("%.2f", amount)).substring(1));
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_SET.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         } else sender.sendMessage(er.errorMessage);
     }
 
     @Override
-    protected void givePlayer(CommandSender sender, Currency currency, double amount, String target) {
-        EconomyResponse er = currency.depositPlayer(target, amount);
+    protected void givePlayer(CommandSender sender, Currency currency, double amount, String target, String reason) {
+        EconomyResponse er = currency.depositPlayer(target, amount, reason);
         if (er.transactionSuccess())
             RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().BALANCE_SET.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         else sender.sendMessage(er.errorMessage);

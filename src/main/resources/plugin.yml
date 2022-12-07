@@ -5,8 +5,8 @@ author: Unnm3d
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.2.1.RELEASE
   - com.fasterxml.jackson.core:jackson-databind:2.14.0
+  - io.lettuce:lettuce-core:6.2.2.RELEASE
 softdepend:
   - PlaceholderAPI
   - Essentials
@@ -35,6 +35,10 @@ commands:
   transaction:
     description: Show transactions
     usage: /transaction <player>
+    permission: rediseconomy.admin
+  purge-balance:
+    description: Purge balances
+    usage: /purge-balance <player> [onlyNameUUID]
     permission: rediseconomy.admin
 permissions:
     rediseconomy.pay:

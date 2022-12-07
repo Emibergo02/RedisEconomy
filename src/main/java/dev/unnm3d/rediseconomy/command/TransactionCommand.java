@@ -3,7 +3,6 @@ package dev.unnm3d.rediseconomy.command;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
-import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
@@ -23,7 +22,6 @@ import java.util.UUID;
 public class TransactionCommand implements CommandExecutor, TabCompleter {
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
     private final CurrenciesManager currenciesManager;
-    private final EconomyExchange exchange;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -35,7 +33,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        exchange.getTransactions(targetUUID).thenAccept(transactions -> {
+        currenciesManager.getExchange().getTransactions(targetUUID).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
             if (transactions.length == 0) {
                 sender.sendMessage("§cNo transactions found for player " + target);
@@ -53,7 +51,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
 
                 if (isAfter(t.timestamp, afterDateString) && isBefore(t.timestamp, beforeDateString)) {
                     String senderName = currenciesManager.getUsernameFromUUIDCache(t.sender);
-                    String receiverName = currenciesManager.getUsernameFromUUIDCache(t.receiver);
+                    String receiverName = t.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(t.receiver);
                     Currency currency = currenciesManager.getCurrencyByName(t.currencyName);
                     RedisEconomyPlugin.settings().send(sender,
                             RedisEconomyPlugin.settings().TRANSACTION_ITEM
@@ -66,7 +64,8 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
                     );
 
                 }
-                sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
+                if (RedisEconomyPlugin.settings().DEBUG)
+                    sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
             sender.sendMessage("§3End transactions of player " + target + " in " + (System.currentTimeMillis() - init) + "ms");
         });
@@ -105,9 +104,9 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 3)
+            if (args[0].length() < 2)
                 return List.of();
-            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.startsWith(args[0])).toList();
+            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
             if (args[1].trim().equals(""))
                 return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
