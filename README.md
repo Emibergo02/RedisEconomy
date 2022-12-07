@@ -15,7 +15,7 @@ Add the dependency and replace `<version>...</version>` with the latest release 
 <dependency>
   <groupId>com.github.Emibergo02</groupId>
   <artifactId>RedisEconomy</artifactId>
-  <version>2.2-SNAPSHOT</version>
+  <version>3.2-SNAPSHOT</version>
   <scope>provided</scope>
 </dependency>
 ```
