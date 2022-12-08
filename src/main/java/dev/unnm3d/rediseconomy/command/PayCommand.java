@@ -96,7 +96,6 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             }
             //Register transaction
             String reason = "Payment";
-            System.out.println(args.length + " " + Arrays.toString(args));
             if (args.length >= 4) {
                 reason = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
             }

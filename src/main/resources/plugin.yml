@@ -35,11 +35,20 @@ commands:
   transaction:
     description: Show transactions
     usage: /transaction <player>
-    permission: rediseconomy.admin
+    permission: rediseconomy.admin.transaction
   purge-balance:
     description: Purge balances
     usage: /purge-balance <player> [onlyNameUUID]
+    permission: rediseconomy.admin.purge-balance
+  rediseconomy:
+    description: RedisEconomy commands
+    usage: /rediseconomy <reload>
+    aliases: [rediseco]
     permission: rediseconomy.admin
+  switch-currency:
+    description: Switch currency with another currency
+    usage: /switch-currency <currency> <switch-currency>
+    permission: rediseconomy.admin.switch-currency
 permissions:
     rediseconomy.pay:
         description: Allows to use /pay
@@ -59,3 +68,10 @@ permissions:
     rediseconomy.balance.*:
       description: Allows to use /balance with other currencies
       default: op
+    rediseconomy.admin.*:
+      description: Allows to use all admin commands
+      default: op
+      children:
+        rediseconomy.admin.transaction: true
+        rediseconomy.admin.purge-balance: true
+        rediseconomy.admin.switch-currency: true

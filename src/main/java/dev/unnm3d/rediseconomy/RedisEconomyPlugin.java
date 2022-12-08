@@ -10,12 +10,16 @@ import io.lettuce.core.RedisClient;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
+import org.bukkit.command.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
@@ -31,6 +35,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         return instance.settings;
     }
 
+    @SuppressWarnings("unused")
     public static RedisEconomyPlugin getInstance() {
         return instance;
     }
@@ -66,24 +71,36 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             new PlaceholderAPIHook(currenciesManager, instance.settings).register();
         }
 
-
         getServer().getPluginManager().registerEvents(currenciesManager, this);
+        //Commands
         PayCommand payCommand = new PayCommand(currenciesManager);
-        getServer().getPluginCommand("pay").setExecutor(payCommand);
-        getServer().getPluginCommand("pay").setTabCompleter(payCommand);
-
+        loadCommand("pay", payCommand,payCommand);
         BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
-        getServer().getPluginCommand("balance").setExecutor(balanceCommand);
-        getServer().getPluginCommand("balance").setTabCompleter(balanceCommand);
-        getServer().getPluginCommand("balancetop").setExecutor(new BalanceTopCommand(currenciesManager));
-
+        loadCommand("balance", balanceCommand, balanceCommand);
+        Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager));
         TransactionCommand transactionCommand = new TransactionCommand(currenciesManager);
-        getServer().getPluginCommand("transaction").setExecutor(transactionCommand);
-        getServer().getPluginCommand("transaction").setTabCompleter(transactionCommand);
-
+        loadCommand("transaction", transactionCommand, transactionCommand);
         PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager);
-        getServer().getPluginCommand("purge-balance").setExecutor(purgeUserCommand);
-        getServer().getPluginCommand("purge-balance").setTabCompleter(purgeUserCommand);
+        loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);
+        SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager);
+        loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
+        loadCommand("rediseconomy", (sender, command, label, args) -> {
+            if (sender.hasPermission("rediseconomy.admin")) {
+                if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+                    reloadConfig();
+                    String serverId = settings.SERVER_ID;
+                    settings = new Settings(this);
+                    settings.SERVER_ID = serverId;
+                    sender.sendMessage("§aReloaded successfully " + serverId + "!");
+                }
+            }
+            return true;
+        }, (sender, command, alias, args) -> {
+            if(args.length == 1) {
+                return List.of("reload");
+            }
+            return null;
+        });
 
         new Metrics(this, 16802);
     }
@@ -101,8 +118,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     private CompletableFuture<String> getServerId() {
         CompletableFuture<String> future = new CompletableFuture<>();
-        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
-        this.getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord", (channel, player, message) -> {
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord", (channel, player, message) -> {
             if (future.isDone()) return;
             ByteArrayDataInput in = ByteStreams.newDataInput(message);
             String subchannel = in.readUTF();
@@ -116,20 +133,29 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                 if (future.isDone()) {
                     return;
                 }
-                ByteArrayDataOutput out = ByteStreams.newDataOutput();
-                out.writeUTF("GetServer");
-                event.getPlayer().sendPluginMessage(instance, "BungeeCord", out.toByteArray());//Request server name
+                Bukkit.getScheduler().runTaskLater(instance, () -> {
+                    sendServerIdRequest(event.getPlayer());
+                }, 20L);
+
             }
         };
-        getServer().getPluginManager().registerEvents(listener, this);//Register listener on player join
-
+        if (getServer().getOnlinePlayers().size() > 0) {
+            sendServerIdRequest(getServer().getOnlinePlayers().iterator().next());
+        } else {
+            getServer().getPluginManager().registerEvents(listener, this);
+        }
         return future.thenApply(s -> {
             //Remove listener and channel listeners
             HandlerList.unregisterAll(listener);
-            this.getServer().getMessenger().unregisterIncomingPluginChannel(this, "BungeeCord");
-            this.getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
+            getServer().getMessenger().unregisterIncomingPluginChannel(this, "BungeeCord");
+            getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
             return s;
         });
+    }
+    private void sendServerIdRequest(Player p) {
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF("GetServer");
+        p.sendPluginMessage(this, "BungeeCord", out.toByteArray());//Request server name
     }
 
     private boolean setupRedis() {
@@ -147,6 +173,14 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         currenciesManager.loadDefaultCurrency(vault);
         return true;
     }
-
+    private void loadCommand(String cmdName, CommandExecutor executor, TabCompleter tabCompleter) {
+        PluginCommand cmd = getServer().getPluginCommand(cmdName);
+        if (cmd != null) {
+            cmd.setExecutor(executor);
+            cmd.setTabCompleter(tabCompleter);
+        }else{
+            getLogger().warning("Command " + cmdName + " not found!");
+        }
+    }
 
 }

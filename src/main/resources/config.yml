@@ -1,4 +1,4 @@
-transactions-retained: 200
+transactions-retained: 2000
 migration-enabled: false
 debug: false
 redis-uri: "redis://localhost:6379/0?timeout=20s&clientName=RedisEconomy"
@@ -21,6 +21,7 @@ lang:
   pay-received: "<green>You received %amount% from %player%!</green>"
   transaction-item: "<aqua>%timestamp%</aqua> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> -> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%</green></click> %amount%<br><yellow>Reason: </yellow>%reason%"
   purge-user-success: "<green>Users matching %player% have been purged!</green>"
+  switch-currency-success: "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>"
   unit-symbols:
     thousands: "k"
     millions: "m"

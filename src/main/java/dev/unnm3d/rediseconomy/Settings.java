@@ -30,6 +30,7 @@ public class Settings {
     public String INVALID_CURRENCY;
     public String INSUFFICIENT_FUNDS;
     public String PURGE_USER_SUCCESS;
+    public String SWITCH_SUCCESS;
     public UnitSymbols UNIT_SYMBOLS;
 
     public Settings(RedisEconomyPlugin plugin) {
@@ -61,6 +62,7 @@ public class Settings {
                 config.getString("lang.unit-symbols.millions", "m"),
                 config.getString("lang.unit-symbols.billions", "b"),
                 config.getString("lang.unit-symbols.trillions", "t"));
+        this.SWITCH_SUCCESS= config.getString("lang.switch-currency-success", "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>");
     }
 
     public void send(CommandSender sender, String text) {
