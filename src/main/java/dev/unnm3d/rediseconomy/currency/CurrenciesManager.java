@@ -2,9 +2,11 @@ package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
+import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import io.lettuce.core.ScoredValue;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
@@ -236,5 +238,29 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
         });
 
+    }
+
+    public void switchCurrency(Currency currency, Currency newCurrency) {
+        redisManager.getConnection(connection -> {
+            RedisAsyncCommands<String,String> asyncCommands=connection.async();
+            connection.setAutoFlushCommands(false);
+            asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup").thenAccept(success -> {
+                if (RedisEconomyPlugin.settings().DEBUG) {
+                    Bukkit.getLogger().info("Switch0 - Backup currency accounts: "+ success);
+                }
+            });
+            asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success -> {
+                if (RedisEconomyPlugin.settings().DEBUG) {
+                    Bukkit.getLogger().info("Switch1 - Overwrite new currency key with the old one: "+success);
+                }
+            });
+            asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup", RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success -> {
+                if (RedisEconomyPlugin.settings().DEBUG) {
+                    Bukkit.getLogger().info("Switch2 - Write the backup on the new currency key: "+success);
+                }
+            });
+            connection.flushCommands();
+            return null;
+        });
     }
 }

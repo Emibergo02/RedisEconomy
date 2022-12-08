@@ -11,6 +11,7 @@ import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -81,6 +82,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("transaction", transactionCommand, transactionCommand);
         PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager);
         loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);
+        SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager);
+        loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
         loadCommand("rediseconomy", (sender, command, label, args) -> {
             if (sender.hasPermission("rediseconomy.admin")) {
                 if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
@@ -115,12 +118,12 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     private CompletableFuture<String> getServerId() {
         CompletableFuture<String> future = new CompletableFuture<>();
-        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
-        this.getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord", (channel, player, message) -> {
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord", (channel, player, message) -> {
             if (future.isDone()) return;
             ByteArrayDataInput in = ByteStreams.newDataInput(message);
-            String subChannel = in.readUTF();
-            if (subChannel.equals("GetServer")) {
+            String subchannel = in.readUTF();
+            if (subchannel.equals("GetServer")) {
                 future.complete(in.readUTF());//Receive server name
             }
         });
@@ -130,20 +133,29 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                 if (future.isDone()) {
                     return;
                 }
-                ByteArrayDataOutput out = ByteStreams.newDataOutput();
-                out.writeUTF("GetServer");
-                event.getPlayer().sendPluginMessage(instance, "BungeeCord", out.toByteArray());//Request server name
+                Bukkit.getScheduler().runTaskLater(instance, () -> {
+                    sendServerIdRequest(event.getPlayer());
+                }, 20L);
+
             }
         };
-        getServer().getPluginManager().registerEvents(listener, this);//Register listener on player join
-
+        if (getServer().getOnlinePlayers().size() > 0) {
+            sendServerIdRequest(getServer().getOnlinePlayers().iterator().next());
+        } else {
+            getServer().getPluginManager().registerEvents(listener, this);
+        }
         return future.thenApply(s -> {
             //Remove listener and channel listeners
             HandlerList.unregisterAll(listener);
-            this.getServer().getMessenger().unregisterIncomingPluginChannel(this, "BungeeCord");
-            this.getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
+            getServer().getMessenger().unregisterIncomingPluginChannel(this, "BungeeCord");
+            getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
             return s;
         });
+    }
+    private void sendServerIdRequest(Player p) {
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF("GetServer");
+        p.sendPluginMessage(this, "BungeeCord", out.toByteArray());//Request server name
     }
 
     private boolean setupRedis() {
