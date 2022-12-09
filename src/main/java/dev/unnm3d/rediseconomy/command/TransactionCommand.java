@@ -53,15 +53,25 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
                     String senderName = currenciesManager.getUsernameFromUUIDCache(t.sender);
                     String receiverName = t.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(t.receiver);
                     Currency currency = currenciesManager.getCurrencyByName(t.currencyName);
-                    RedisEconomyPlugin.settings().send(sender,
-                            RedisEconomyPlugin.settings().TRANSACTION_ITEM
-                                    .replace("%amount%", currency == null ? t.amount + "" : currency.format(t.amount))
-                                    .replace("%sender%", senderName == null ? "Unknown" : senderName)
-                                    .replace("%receiver%", receiverName == null ? "Unknown" : receiverName)
-                                    .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
-                                    .replace("%reason%", t.reason)
-                                    .replace("%afterbefore%", afterDateString + " " + beforeDateString)
-                    );
+                    if(t.amount>0){
+                        RedisEconomyPlugin.settings().send(sender,
+                                RedisEconomyPlugin.settings().TRANSACTION_ITEM.incoming()
+                                        .replace("%amount%", currency == null ? t.amount + "" : currency.format(t.amount))
+                                        .replace("%sender%", senderName == null ? "Unknown" : senderName)
+                                        .replace("%receiver%", receiverName == null ? "Unknown" : receiverName)
+                                        .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
+                                        .replace("%reason%", t.reason)
+                                        .replace("%afterbefore%", afterDateString + " " + beforeDateString));
+                    } else if (t.amount<0) {
+                        RedisEconomyPlugin.settings().send(sender,
+                                RedisEconomyPlugin.settings().TRANSACTION_ITEM.outgoing()
+                                        .replace("%amount%", currency == null ? t.amount + "" : currency.format(t.amount))
+                                        .replace("%sender%", senderName == null ? "Unknown" : senderName)
+                                        .replace("%receiver%", receiverName == null ? "Unknown" : receiverName)
+                                        .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
+                                        .replace("%reason%", t.reason)
+                                        .replace("%afterbefore%", afterDateString + " " + beforeDateString));
+                    }
 
                 }
                 if (RedisEconomyPlugin.settings().DEBUG)
