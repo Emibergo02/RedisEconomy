@@ -72,11 +72,14 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
             if (args[2].equalsIgnoreCase("give")) {
                 givePlayer(sender, currency, amount, target, reasonOrCommand);
             } else if (args[2].equalsIgnoreCase("take")) {
-                if (reasonOrCommand != null)
-                    if (reasonOrCommand.startsWith("/")) {
+                if (reasonOrCommand == null)
+                    takePlayer(sender, currency, amount, target, null);
+                else if (reasonOrCommand.startsWith("/")) {
                         takePlayerWithCommand(sender, currency, amount, target, reasonOrCommand);
+                    } else {
+                        takePlayer(sender, currency, amount, target, reasonOrCommand);
                     }
-                takePlayer(sender, currency, amount, target, reasonOrCommand);
+
             } else if (args[2].equalsIgnoreCase("set")) {
                 setPlayer(sender, currency, amount, target);
             }
