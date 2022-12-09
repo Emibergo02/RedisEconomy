@@ -25,7 +25,7 @@ public class Settings {
     public String PAY_SELF;
     public String PAY_FAIL;
     public String PAY_RECEIVED;
-    public String TRANSACTION_ITEM;
+    public TransactionItem TRANSACTION_ITEM;
     public String INVALID_AMOUNT;
     public String INVALID_CURRENCY;
     public String INSUFFICIENT_FUNDS;
@@ -52,17 +52,22 @@ public class Settings {
         this.PAY_SELF = config.getString("lang.pay-self", "<red>You can't pay yourself!");
         this.PAY_FAIL = config.getString("lang.pay-fail", "<red>You don't have enough money to pay <white>%amount% <gold>coins to <white>%player%");
         this.PAY_RECEIVED = config.getString("lang.pay-received", "<gold>You received <white>%amount% <gold>coins from <white>%player%");
-        this.TRANSACTION_ITEM = config.getString("lang.transaction-item", "<aqua>%timestamp%</aqua> <dark_green>%sender%<dark_green> -> <green>%receiver%<green> <gold>%amount%</gold>!");
         this.INVALID_AMOUNT = config.getString("lang.invalid-amount", "<red>Invalid amount!");
         this.INVALID_CURRENCY = config.getString("lang.invalid-currency", "<red>Invalid currency!");
         this.INSUFFICIENT_FUNDS = config.getString("lang.insufficient-funds", "<red>You don't have enough money!");
         this.PURGE_USER_SUCCESS = config.getString("lang.purge-user-success", "<gold>User <white>%player% <gold>has been purged!");
+        this.SWITCH_SUCCESS= config.getString("lang.switch-currency-success", "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>");
         this.UNIT_SYMBOLS = new UnitSymbols(
                 config.getString("lang.unit-symbols.thousands", "k"),
                 config.getString("lang.unit-symbols.millions", "m"),
                 config.getString("lang.unit-symbols.billions", "b"),
                 config.getString("lang.unit-symbols.trillions", "t"));
-        this.SWITCH_SUCCESS= config.getString("lang.switch-currency-success", "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>");
+        this.TRANSACTION_ITEM = new TransactionItem(
+                config.getString("lang.transaction-item.outgoing-funds", "<aqua>%timestamp%</aqua> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> -> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> %amount%<br><yellow>Reason: </yellow>%reason%"),
+                config.getString("lang.transaction-item.incoming-funds", "<aqua>%timestamp%</aqua> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> -> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> %amount%<br><yellow>Reason: </yellow>%reason%"));
+    }
+
+    public record TransactionItem(String outgoing, String incoming) {
     }
 
     public void send(CommandSender sender, String text) {
