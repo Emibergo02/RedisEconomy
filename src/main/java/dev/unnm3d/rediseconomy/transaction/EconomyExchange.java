@@ -6,6 +6,8 @@ import dev.unnm3d.rediseconomy.currency.Currency;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.Map;
@@ -22,7 +24,11 @@ public class EconomyExchange {
     public CompletableFuture<Transaction[]> getTransactions(UUID player) {
         return currenciesManager.getRedisManager().getConnection(connection -> {
             connection.setTimeout(Duration.ofMillis(1000));
-            return connection.async().hget(TRANSACTIONS.toString(), player.toString()).thenApply(this::getTransactionsFromSerialized).toCompletableFuture();
+            return connection.async().hget(TRANSACTIONS.toString(), player.toString()).thenApply(this::getTransactionsFromSerialized).exceptionally(exc->{
+
+                exc.printStackTrace();
+                return null;
+            }).toCompletableFuture();
         });
     }
 
@@ -105,7 +111,7 @@ public class EconomyExchange {
         );
     }
 
-    public String updateTransactionFromSerialized(String serializedTransactions, UUID account, UUID receiver, double amount, String currencyName, String reason) {
+    public @NotNull String updateTransactionFromSerialized(@Nullable String serializedTransactions, @NotNull UUID account, UUID receiver, double amount, String currencyName, String reason) {
         Transaction[] spaceFreedTransactions = updateArraySpace(
                 getTransactionsFromSerialized(serializedTransactions)
         );
@@ -120,7 +126,7 @@ public class EconomyExchange {
      * @param transactions The transactions to serialize
      * @return The serialized transactions with an empty space at the end
      */
-    private Transaction[] updateArraySpace(Transaction[] transactions) {
+    private @NotNull Transaction[] updateArraySpace(@NotNull Transaction[] transactions) {
         final int transactionMaxSize = RedisEconomyPlugin.settings().TRANSACTIONS_RETAINED;
         Transaction[] newTransactions;
         if (transactions.length > transactionMaxSize - 1) {
@@ -139,10 +145,10 @@ public class EconomyExchange {
      * @param serialized The serialized transactions
      * @return The deserialized transactions
      */
-    private Transaction[] getTransactionsFromSerialized(String serialized) {
+    private @NotNull Transaction[] getTransactionsFromSerialized(@Nullable String serialized) {
         if (serialized == null)
             return new Transaction[0];
-        String[] split = serialized.split("/");
+        String[] split = serialized.split("§§");
         Transaction[] transactions = new Transaction[split.length];
         for (int i = 0; i < split.length; i++) {
             try {
@@ -160,13 +166,12 @@ public class EconomyExchange {
      * @param transactions The transactions to be serialized
      * @return The serialized transactions
      */
-    public String serializeTransactions(Transaction[] transactions) {
+    public @NotNull String serializeTransactions(@NotNull Transaction[] transactions) {
         StringBuilder builder = new StringBuilder();
         for (Transaction transaction : transactions) {
-            builder.append(transaction.toString()).append("/");
+            builder.append(transaction).append("§§");
         }
-        builder.deleteCharAt(builder.length() - 1);
-        return builder.toString();
+        return builder.substring(0, builder.length() - 2);
     }
 
 

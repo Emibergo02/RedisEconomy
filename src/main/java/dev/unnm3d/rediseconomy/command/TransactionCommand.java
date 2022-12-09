@@ -50,34 +50,35 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
             for (Transaction t : transactions) {
 
                 if (isAfter(t.timestamp, afterDateString) && isBefore(t.timestamp, beforeDateString)) {
-                    String senderName = currenciesManager.getUsernameFromUUIDCache(t.sender);
-                    String receiverName = t.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(t.receiver);
+                    String accountOwnerName = currenciesManager.getUsernameFromUUIDCache(t.sender);
+                    String otherAccount = t.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(t.receiver);
                     Currency currency = currenciesManager.getCurrencyByName(t.currencyName);
                     if(t.amount>0){
                         RedisEconomyPlugin.settings().send(sender,
                                 RedisEconomyPlugin.settings().TRANSACTION_ITEM.incoming()
-                                        .replace("%amount%", currency == null ? t.amount + "" : currency.format(t.amount))
-                                        .replace("%sender%", senderName == null ? "Unknown" : senderName)
-                                        .replace("%receiver%", receiverName == null ? "Unknown" : receiverName)
+                                        .replace("%amount%", String.valueOf(t.amount))
+                                        .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
+                                        .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
+                                        .replace("%other-account%", otherAccount == null ? "Unknown" : otherAccount)
                                         .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
                                         .replace("%reason%", t.reason)
                                         .replace("%afterbefore%", afterDateString + " " + beforeDateString));
                     } else if (t.amount<0) {
                         RedisEconomyPlugin.settings().send(sender,
                                 RedisEconomyPlugin.settings().TRANSACTION_ITEM.outgoing()
-                                        .replace("%amount%", currency == null ? t.amount + "" : currency.format(t.amount))
-                                        .replace("%sender%", senderName == null ? "Unknown" : senderName)
-                                        .replace("%receiver%", receiverName == null ? "Unknown" : receiverName)
+                                        .replace("%amount%", String.valueOf(t.amount))
+                                        .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
+                                        .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
+                                        .replace("%other-account%", otherAccount == null ? "Unknown" : otherAccount)
                                         .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
                                         .replace("%reason%", t.reason)
                                         .replace("%afterbefore%", afterDateString + " " + beforeDateString));
                     }
-
                 }
                 if (RedisEconomyPlugin.settings().DEBUG)
                     sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
-            sender.sendMessage("§3End transactions of player " + target + " in " + (System.currentTimeMillis() - init) + "ms");
+            sender.sendMessage("§3End of" + target + " transactions in " + (System.currentTimeMillis() - init) + "ms");
         });
 
         return true;

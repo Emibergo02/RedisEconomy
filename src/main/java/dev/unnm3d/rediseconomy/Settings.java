@@ -63,8 +63,8 @@ public class Settings {
                 config.getString("lang.unit-symbols.billions", "b"),
                 config.getString("lang.unit-symbols.trillions", "t"));
         this.TRANSACTION_ITEM = new TransactionItem(
-                config.getString("lang.transaction-item.outgoing-funds", "<aqua>%timestamp%</aqua> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%</green></click> -> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> %amount%<br><yellow>Reason: </yellow>%reason%"),
-                config.getString("lang.transaction-item.incoming-funds", "<aqua>%timestamp%</aqua> <click:run_command:/transaction %sender% %afterbefore%><dark_green>%sender%</dark_green></click> -> <click:run_command:/transaction %receiver% %afterbefore%><green>%receiver%</green></click> %amount%<br><yellow>Reason: </yellow>%reason%"));
+                config.getString("lang.transaction-item.outgoing-funds", "<aqua>%timestamp%</aqua> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> -> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> %amount%<br><yellow>Reason: </yellow>%reason%"),
+                config.getString("lang.transaction-item.incoming-funds", "<aqua>%timestamp%</aqua> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> -> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> %amount%<br><yellow>Reason: </yellow>%reason%"));
     }
 
     public record TransactionItem(String outgoing, String incoming) {
