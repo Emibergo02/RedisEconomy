@@ -160,7 +160,7 @@ public class Currency implements Economy {
     }
 
     public double getBalance(@NotNull UUID playerUUID) {
-        return accounts.get(playerUUID);
+        return accounts.getOrDefault(playerUUID, 0.0D);
     }
 
     @Override
@@ -404,6 +404,7 @@ public class Currency implements Economy {
      * @param amount The amount to set the balance to
      * @return The result of the operation
      */
+    @SuppressWarnings("unused")
     public EconomyResponse setPlayerBalance(@NotNull OfflinePlayer player, double amount) {
         return setPlayerBalance(player.getUniqueId(), player.getName() == null ? player.getUniqueId() + "-Unknown" : player.getName(), amount);
     }
