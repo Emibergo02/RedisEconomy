@@ -62,7 +62,7 @@ public class Currency implements Economy {
         this.transactionTax = transactionTax;
         this.accounts = new ConcurrentHashMap<>();
         getOrderedAccountsSync().forEach(t -> accounts.put(UUID.fromString(t.getValue()), t.getScore()));
-        if (RedisEconomyPlugin.settings().DEBUG && accounts.size() > 0) {
+        if (RedisEconomyPlugin.settings().debug && accounts.size() > 0) {
             Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
         }
         registerUpdateListener();
@@ -79,18 +79,18 @@ public class Currency implements Economy {
                         Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
                         return;
                     }
-                    if (split[0].equals(RedisEconomyPlugin.settings().SERVER_ID)) return;
+                    if (split[0].equals(RedisEconomyPlugin.settings().serverId)) return;
                     UUID uuid = UUID.fromString(split[1]);
                     String playerName = split[2];
                     double balance = Double.parseDouble(split[3]);
                     updateAccountLocal(uuid, playerName, balance);
-                    if (RedisEconomyPlugin.settings().DEBUG) {
+                    if (RedisEconomyPlugin.settings().debug) {
                         Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
                     }
                 }
             });
             connection.async().subscribe(UPDATE_CHANNEL_PREFIX + currencyName);
-            if (RedisEconomyPlugin.settings().DEBUG) {
+            if (RedisEconomyPlugin.settings().debug) {
                 Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_CHANNEL_PREFIX + currencyName);
             }
         });
@@ -470,8 +470,8 @@ public class Currency implements Economy {
                 connection.setAutoFlushCommands(false);
                 commands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
                 commands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                commands.publish(UPDATE_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.settings().SERVER_ID + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
-                    if (RedisEconomyPlugin.settings().DEBUG) {
+                commands.publish(UPDATE_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
+                    if (RedisEconomyPlugin.settings().debug) {
                         Bukkit.getLogger().info("01 Sent update account " + playerName + " to " + balance);
                     }
                 });

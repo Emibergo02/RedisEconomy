@@ -24,7 +24,7 @@ public class EconomyExchange {
     public CompletableFuture<Transaction[]> getTransactions(UUID player) {
         return currenciesManager.getRedisManager().getConnection(connection -> {
             connection.setTimeout(Duration.ofMillis(1000));
-            return connection.async().hget(TRANSACTIONS.toString(), player.toString()).thenApply(this::getTransactionsFromSerialized).exceptionally(exc->{
+            return connection.async().hget(TRANSACTIONS.toString(), player.toString()).thenApply(this::getTransactionsFromSerialized).exceptionally(exc -> {
 
                 exc.printStackTrace();
                 return null;
@@ -35,7 +35,7 @@ public class EconomyExchange {
     public void savePaymentTransaction(RedisAsyncCommands<String, String> client, UUID sender, UUID target, double amount, Currency currency, String reason) {
         long init = System.currentTimeMillis();
         client.hmget(TRANSACTIONS.toString(), sender.toString(), target.toString()).thenApply(lista -> {
-            if (RedisEconomyPlugin.settings().DEBUG) {
+            if (RedisEconomyPlugin.settings().debug) {
                 Bukkit.getLogger().info("03 Retrieve transactions from redis... next 03b");
             }
             //Add the new transaction
@@ -55,7 +55,7 @@ public class EconomyExchange {
             //Save transactions into redis
             return currenciesManager.getRedisManager().getConnection(connection -> {
                 connection.async().hset(TRANSACTIONS.toString(), map).thenAccept(response -> {
-                    if (RedisEconomyPlugin.settings().DEBUG) {
+                    if (RedisEconomyPlugin.settings().debug) {
                         Bukkit.getLogger().info("03b Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with result " + response + " !");
                     }
                 });
@@ -82,7 +82,7 @@ public class EconomyExchange {
                     RedisAsyncCommands<String, String> commands = connection.async();
                     return commands.hget(TRANSACTIONS.toString(), accountOwner.toString())                              //Get past transactions from redis
                             .thenApply(serializedTransactions -> {
-                                if (RedisEconomyPlugin.settings().DEBUG) {
+                                if (RedisEconomyPlugin.settings().debug) {
                                     Bukkit.getLogger().info("03c Retrieve single player transactions from redis... next 03d");
                                 }
                                 UUID correctedTarget = target;
@@ -99,7 +99,7 @@ public class EconomyExchange {
                                 //Save transaction into redis
                                 return commands.hset(TRANSACTIONS.toString(), accountOwner.toString(), senderTransactionsSerialized) //Save transactions into redis
                                         .thenAccept(response -> {
-                                            if (RedisEconomyPlugin.settings().DEBUG) {
+                                            if (RedisEconomyPlugin.settings().debug) {
                                                 Bukkit.getLogger().info("03d Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + "ms with result " + response + " !");
                                             }
                                         });
@@ -127,7 +127,7 @@ public class EconomyExchange {
      * @return The serialized transactions with an empty space at the end
      */
     private @NotNull Transaction[] updateArraySpace(@NotNull Transaction[] transactions) {
-        final int transactionMaxSize = RedisEconomyPlugin.settings().TRANSACTIONS_RETAINED;
+        final int transactionMaxSize = RedisEconomyPlugin.settings().transactionsRetained;
         Transaction[] newTransactions;
         if (transactions.length > transactionMaxSize - 1) {
             newTransactions = new Transaction[transactionMaxSize];

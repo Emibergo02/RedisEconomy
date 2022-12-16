@@ -1,0 +1,34 @@
+noConsole: <red>Devi essere in gioco per poter usare questo comando!</red>
+noPermission: <red>No hai il permesso di usare questo comando!</red>
+playerNotFound: <red>Giocatore non trovato!</red>
+invalidAmount: <red>Il valore immesso è invalido!</red>
+invalidCurrency: <red>Valuta invalida!</red>
+insufficientFunds: <red>Non hai abbastanza soldi!</red>
+balance: <green>Tu hai %balance%!</green>
+balanceSet: <green>Hai messo %balance% all'account %player% !</green>
+balanceOther: <green>%player% ha %balance% !</green>
+balanceTop: <green>Giocatori più ricchi:</green><br>%prevpage%      %page%      %nextpage%
+balanceTopFormat: <aqua>%pos% - %player% %balance%</aqua>
+paySelf: <red>Non puoi pagare te stesso!</red>
+paySuccess: <green>Hai pagato a %player% %amount% con %tax_percentage% %tax_applied%
+  di commissioni!</green>
+payFail: <red>Pagamento fallito!</red>
+payReceived: <green>Hai ricevuto %amount% da %player%!</green>
+purgeUserSuccess: <green>L'utente che corrisponde a %player% è stato ripulito!</green>
+switchCurrencySuccess: <green>Sostituita %currency% a %switch-currency%.<br>Per favore
+  riavviare ogni istanza<br>di RedisEconomy in modo da evitare sovrapposizioni!</green>
+transactionItem:
+  outgoingFunds: '<aqua>%timestamp%</aqua> <click:run_command:/transaction %account-owner%
+    %afterbefore%><dark_green>%account-owner%</dark_green></click> -> <click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click> Somma: %amount%%symbol%<br><yellow>Ragione:
+    </yellow>%reason%'
+  incomingFunds: '<aqua>%timestamp%</aqua> <click:run_command:/transaction %other-account%
+    %afterbefore%><green>%other-account%</green></click> -> <click:run_command:/transaction
+    %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
+    Somma: %amount%%symbol%<br><yellow>Ragione: </yellow>%reason%'
+unitSymbols:
+  thousand: k
+  million: m
+  billion: b
+  trillion: t
+  quadrillion: q

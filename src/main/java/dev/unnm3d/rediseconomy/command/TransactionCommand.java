@@ -29,7 +29,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
         String target = args[0];
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
         if (targetUUID == null) {
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().PLAYER_NOT_FOUND);
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
             return true;
         }
 
@@ -53,9 +53,9 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
                     String accountOwnerName = currenciesManager.getUsernameFromUUIDCache(t.sender);
                     String otherAccount = t.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(t.receiver);
                     Currency currency = currenciesManager.getCurrencyByName(t.currencyName);
-                    if(t.amount>0){
-                        RedisEconomyPlugin.settings().send(sender,
-                                RedisEconomyPlugin.settings().TRANSACTION_ITEM.incoming()
+                    if (t.amount > 0) {
+                        RedisEconomyPlugin.langs().send(sender,
+                                RedisEconomyPlugin.langs().transactionItem.incomingFunds()
                                         .replace("%amount%", String.valueOf(t.amount))
                                         .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
                                         .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
@@ -63,9 +63,9 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
                                         .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
                                         .replace("%reason%", t.reason)
                                         .replace("%afterbefore%", afterDateString + " " + beforeDateString));
-                    } else if (t.amount<0) {
-                        RedisEconomyPlugin.settings().send(sender,
-                                RedisEconomyPlugin.settings().TRANSACTION_ITEM.outgoing()
+                    } else if (t.amount < 0) {
+                        RedisEconomyPlugin.langs().send(sender,
+                                RedisEconomyPlugin.langs().transactionItem.outgoingFunds()
                                         .replace("%amount%", String.valueOf(t.amount))
                                         .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
                                         .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
@@ -75,7 +75,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
                                         .replace("%afterbefore%", afterDateString + " " + beforeDateString));
                     }
                 }
-                if (RedisEconomyPlugin.settings().DEBUG)
+                if (RedisEconomyPlugin.settings().debug)
                     sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
             sender.sendMessage("§3End of" + target + " transactions in " + (System.currentTimeMillis() - init) + "ms");
