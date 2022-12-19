@@ -75,6 +75,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager));
         TransactionCommand transactionCommand = new TransactionCommand(currenciesManager);
         loadCommand("transaction", transactionCommand, transactionCommand);
+        BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(currenciesManager);
+        loadCommand("browse-transactions", browseTransactionsCommand, browseTransactionsCommand);
         PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager);
         loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);
         SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager);

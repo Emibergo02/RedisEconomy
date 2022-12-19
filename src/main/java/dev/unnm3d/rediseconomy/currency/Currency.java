@@ -1,6 +1,7 @@
 package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.api.StatefulRedisConnection;
@@ -421,6 +422,23 @@ public class Currency implements Economy {
         updateAccount(playerUUID, playerName, amount);
         currenciesManager.getExchange().saveTransaction(playerUUID, null, amount, currencyName, "Set balance");
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
+    }
+
+    /**
+     * Reverse a transaction
+     *
+     * @param transactionId The transaction id
+     * @param transaction   The transaction to revert
+     * @return The transaction id that reverted the initial transaction
+     */
+    public CompletableFuture<Integer> revertTransaction(int transactionId, @NotNull Transaction transaction) {
+        String playerName = currenciesManager.getUsernameFromUUIDCache(transaction.sender);
+        playerName = playerName == null ? transaction.sender + "-Unknown" : playerName;
+        updateAccount(transaction.sender, playerName, getBalance(transaction.sender) - transaction.amount);
+        if (RedisEconomyPlugin.settings().debug) {
+            Bukkit.getLogger().info("revert01a reverted on account " + transaction.sender + " amount " + transaction.amount);
+        }
+        return currenciesManager.getExchange().saveTransaction(transaction.sender, transaction.receiver, -transaction.amount, currencyName, "Revert #" + transactionId + ": " + transaction.reason).toCompletableFuture();
     }
 
     /**

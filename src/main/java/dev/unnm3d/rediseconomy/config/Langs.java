@@ -21,14 +21,18 @@ public final class Langs {
     public String balanceTop = "<green>Top richest players:</green><br>%prevpage%      %page%      %nextpage%";
     public String balanceTopFormat = "<aqua>%pos% - %player% %balance%</aqua>";
     public String paySelf = "<red>You cannot pay yourself!</red>";
-    public String paySuccess = "<green>You paid %player% %amount% with %tax_percentage% %tax_applied% of transaction fee!</green>";
+    public String paySuccess = "<green>You paid %player% %amount% with %tax_percentage% (%tax_applied%) of transaction fee!</green>";
     public String payFail = "<red>Payment failed!</red>";
     public String payReceived = "<green>You received %amount% from %player%!</green>";
     public String purgeUserSuccess = "<green>Users matching %player% have been purged!</green>";
     public String switchCurrencySuccess = "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>";
     public TransactionItem transactionItem = new TransactionItem(
-            "<aqua>%timestamp%</aqua> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> -> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> Change: %amount%%symbol%<br><yellow>Reason: </yellow>%reason%",
-            "<aqua>%timestamp%</aqua> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> -> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> Change: %amount%%symbol%<br><yellow>Reason: </yellow>%reason%");
+            "<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:\"<blue>Click to copy:</blue><br><aqua>%timestamp%</aqua>\"><gold>[Timestamp⌛]</hover></click> <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:\"Click to revert transaction\"><red>[←Revert]</hover></click><br>" +
+                    "<click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click><br>" +
+                    "<yellow>Ragione: </yellow>%reason%",
+            "<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:\"<blue>Click to copy:</blue><br><aqua>%timestamp%</aqua>\"><gold>[Timestamp⌛]</hover></click> <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:\"Click to revert transaction\"><red>[←Revert]</hover></click><br>" +
+                    "<click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br>" +
+                    "<yellow>Ragione: </yellow>%reason%");
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
 
     public record TransactionItem(

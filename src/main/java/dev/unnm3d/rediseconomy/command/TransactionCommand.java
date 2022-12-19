@@ -2,9 +2,8 @@ package dev.unnm3d.rediseconomy.command;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
-import dev.unnm3d.rediseconomy.currency.Currency;
-import dev.unnm3d.rediseconomy.transaction.Transaction;
 import lombok.AllArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -12,104 +11,46 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.UUID;
 
 @AllArgsConstructor
 public class TransactionCommand implements CommandExecutor, TabCompleter {
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
     private final CurrenciesManager currenciesManager;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length < 1) return true;
+        if (args.length < 2) return true;
         String target = args[0];
+        int transactionId = Integer.parseInt(args[1]);
+        boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
         if (targetUUID == null) {
             RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
             return true;
         }
+        if (revertTransaction) {
+            //debug
+            if (RedisEconomyPlugin.settings().debug)
+                Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
+            currenciesManager.getExchange().revertTransaction(targetUUID, transactionId).thenAccept(newId ->
+                    sender.sendMessage("§3Transaction reverted with #" + newId));
+            return false;
+        }
 
-        currenciesManager.getExchange().getTransactions(targetUUID).thenAccept(transactions -> {
+        currenciesManager.getExchange().getTransaction(targetUUID, transactionId).thenAccept(transaction -> {
             long init = System.currentTimeMillis();
-            if (transactions.length == 0) {
+            if (transaction == null) {
                 sender.sendMessage("§cNo transactions found for player " + target);
                 return;
             }
-            String afterDateString = "anytime";
-            String beforeDateString = "anytime";
-            if (args.length == 3) {
-                afterDateString = args[1];
-                beforeDateString = args[2];
-            }
 
             sender.sendMessage("§3Transactions of player " + target + ":");
-            for (Transaction t : transactions) {
-
-                if (isAfter(t.timestamp, afterDateString) && isBefore(t.timestamp, beforeDateString)) {
-                    String accountOwnerName = currenciesManager.getUsernameFromUUIDCache(t.sender);
-                    String otherAccount = t.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(t.receiver);
-                    Currency currency = currenciesManager.getCurrencyByName(t.currencyName);
-                    if (t.amount > 0) {
-                        RedisEconomyPlugin.langs().send(sender,
-                                RedisEconomyPlugin.langs().transactionItem.incomingFunds()
-                                        .replace("%amount%", String.valueOf(t.amount))
-                                        .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
-                                        .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
-                                        .replace("%other-account%", otherAccount == null ? "Unknown" : otherAccount)
-                                        .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
-                                        .replace("%reason%", t.reason)
-                                        .replace("%afterbefore%", afterDateString + " " + beforeDateString));
-                    } else if (t.amount < 0) {
-                        RedisEconomyPlugin.langs().send(sender,
-                                RedisEconomyPlugin.langs().transactionItem.outgoingFunds()
-                                        .replace("%amount%", String.valueOf(t.amount))
-                                        .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
-                                        .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
-                                        .replace("%other-account%", otherAccount == null ? "Unknown" : otherAccount)
-                                        .replace("%timestamp%", convertTimeWithLocalTimeZome(t.timestamp))
-                                        .replace("%reason%", t.reason)
-                                        .replace("%afterbefore%", afterDateString + " " + beforeDateString));
-                    }
-                }
-                if (RedisEconomyPlugin.settings().debug)
-                    sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
-            }
+            currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
             sender.sendMessage("§3End of" + target + " transactions in " + (System.currentTimeMillis() - init) + "ms");
         });
 
-        return true;
-    }
-
-    public String convertTimeWithLocalTimeZome(long time) {
-        Date date = new Date(time);
-        dateFormat.setTimeZone(TimeZone.getDefault());
-        return dateFormat.format(date);
-    }
-
-    private boolean isAfter(long timestamp, String toParse) {
-        if (toParse.equals("anytime")) return true;
-        try {
-            Date parsedDate = dateFormat.parse(toParse);
-            return new Date(timestamp).after(parsedDate);
-        } catch (Exception e) { //this generic but you can control another types of exception
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    private boolean isBefore(long timestamp, String toParse) {
-        if (toParse.equals("anytime")) return true;
-        try {
-            Date parsedDate = dateFormat.parse(toParse);
-            return new Date(timestamp).before(parsedDate);
-        } catch (Exception e) { //this generic but you can control another types of exception
-            e.printStackTrace();
-            return false;
-        }
+        return false;
     }
 
     @Override
@@ -120,10 +61,10 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
             return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
             if (args[1].trim().equals(""))
-                return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
+                return List.of("numeric_id");
+        } else if (args.length == 3) {
+            return List.of("revert");
         }
-
-
         return List.of();
     }
 

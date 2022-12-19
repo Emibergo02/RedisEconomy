@@ -75,10 +75,10 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         UUID targetUUID = Objects.requireNonNull(currenciesManager.getUUIDFromUsernameCache(target));
 
         EconomyResponse response = currency.payPlayer(sender.getName(), target, amount);
-        if(!response.transactionSuccess()){
-            if(response.errorMessage.equals("Insufficient funds")){
+        if (!response.transactionSuccess()) {
+            if (response.errorMessage.equals("Insufficient funds")) {
                 RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().insufficientFunds);
-            }else {
+            } else {
                 RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().payFail);
             }
             return;

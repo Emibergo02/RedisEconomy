@@ -10,7 +10,7 @@ balanceOther: <green>%player% ha %balance% !</green>
 balanceTop: <green>Giocatori più ricchi:</green><br>%prevpage%      %page%      %nextpage%
 balanceTopFormat: <aqua>%pos% - %player% %balance%</aqua>
 paySelf: <red>Non puoi pagare te stesso!</red>
-paySuccess: <green>Hai pagato a %player% %amount% con %tax_percentage% %tax_applied%
+paySuccess: <green>Hai pagato a %player% %amount% con %tax_percentage% (%tax_applied%)
   di commissioni!</green>
 payFail: <red>Pagamento fallito!</red>
 payReceived: <green>Hai ricevuto %amount% da %player%!</green>

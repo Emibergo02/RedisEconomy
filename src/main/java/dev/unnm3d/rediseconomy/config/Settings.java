@@ -9,15 +9,13 @@ import java.util.List;
 @Configuration
 public class Settings {
     @Comment({"This is automatically generated on server startup",
-    "Change it only if you have disabled plugin messages on the proxy"})
+            "Change it only if you have disabled plugin messages on the proxy"})
     public String serverId = System.currentTimeMillis() + "";
     @Comment("Language file")
     public String lang = "default-lang";
 
     @Comment("Activate this before reporting an issue")
     public boolean debug = false;
-    @Comment("How many transactions to retain in the database")
-    public int transactionsRetained = 2000;
     @Comment({"if true, migrates the bukkit offline uuids accounts to the new system",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
