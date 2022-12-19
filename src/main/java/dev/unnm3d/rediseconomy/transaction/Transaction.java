@@ -14,21 +14,22 @@ public class Transaction {
     public double amount = 0;
     public String currencyName = "";
     public String reason = "Unknown";
+    public String revertedWith = null;
 
     public static Transaction fromString(String s) {
         String[] parts = s.split(";");
-        if (parts.length != 6) return null;
         return new Transaction(
                 UUID.fromString(parts[0]),
                 Long.parseLong(parts[1]),
                 UUID.fromString(parts[2]),
                 Double.parseDouble(parts[3]),
                 parts[4],
-                parts[5]);
+                parts[5],
+                parts.length == 7 ? parts[6] : null);
     }
 
     @Override
     public String toString() {
-        return sender + ";" + timestamp + ";" + receiver + ";" + amount + ";" + currencyName + ";" + reason;
+        return sender + ";" + timestamp + ";" + receiver + ";" + amount + ";" + currencyName + ";" + reason + (revertedWith == null ? "" : ";" + revertedWith);
     }
 }

@@ -1,6 +1,7 @@
 package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.api.StatefulRedisConnection;
@@ -62,7 +63,7 @@ public class Currency implements Economy {
         this.transactionTax = transactionTax;
         this.accounts = new ConcurrentHashMap<>();
         getOrderedAccountsSync().forEach(t -> accounts.put(UUID.fromString(t.getValue()), t.getScore()));
-        if (RedisEconomyPlugin.settings().DEBUG && accounts.size() > 0) {
+        if (RedisEconomyPlugin.settings().debug && accounts.size() > 0) {
             Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
         }
         registerUpdateListener();
@@ -79,18 +80,18 @@ public class Currency implements Economy {
                         Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
                         return;
                     }
-                    if (split[0].equals(RedisEconomyPlugin.settings().SERVER_ID)) return;
+                    if (split[0].equals(RedisEconomyPlugin.settings().serverId)) return;
                     UUID uuid = UUID.fromString(split[1]);
                     String playerName = split[2];
                     double balance = Double.parseDouble(split[3]);
                     updateAccountLocal(uuid, playerName, balance);
-                    if (RedisEconomyPlugin.settings().DEBUG) {
+                    if (RedisEconomyPlugin.settings().debug) {
                         Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
                     }
                 }
             });
             connection.async().subscribe(UPDATE_CHANNEL_PREFIX + currencyName);
-            if (RedisEconomyPlugin.settings().DEBUG) {
+            if (RedisEconomyPlugin.settings().debug) {
                 Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_CHANNEL_PREFIX + currencyName);
             }
         });
@@ -160,7 +161,7 @@ public class Currency implements Economy {
     }
 
     public double getBalance(@NotNull UUID playerUUID) {
-        return accounts.get(playerUUID);
+        return accounts.getOrDefault(playerUUID, 0.0D);
     }
 
     @Override
@@ -404,6 +405,7 @@ public class Currency implements Economy {
      * @param amount The amount to set the balance to
      * @return The result of the operation
      */
+    @SuppressWarnings("unused")
     public EconomyResponse setPlayerBalance(@NotNull OfflinePlayer player, double amount) {
         return setPlayerBalance(player.getUniqueId(), player.getName() == null ? player.getUniqueId() + "-Unknown" : player.getName(), amount);
     }
@@ -420,6 +422,23 @@ public class Currency implements Economy {
         updateAccount(playerUUID, playerName, amount);
         currenciesManager.getExchange().saveTransaction(playerUUID, null, amount, currencyName, "Set balance");
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
+    }
+
+    /**
+     * Reverse a transaction
+     *
+     * @param transactionId The transaction id
+     * @param transaction   The transaction to revert
+     * @return The transaction id that reverted the initial transaction
+     */
+    public CompletableFuture<Integer> revertTransaction(int transactionId, @NotNull Transaction transaction) {
+        String playerName = currenciesManager.getUsernameFromUUIDCache(transaction.sender);
+        playerName = playerName == null ? transaction.sender + "-Unknown" : playerName;
+        updateAccount(transaction.sender, playerName, getBalance(transaction.sender) - transaction.amount);
+        if (RedisEconomyPlugin.settings().debug) {
+            Bukkit.getLogger().info("revert01a reverted on account " + transaction.sender + " amount " + transaction.amount);
+        }
+        return currenciesManager.getExchange().saveTransaction(transaction.sender, transaction.receiver, -transaction.amount, currencyName, "Revert #" + transactionId + ": " + transaction.reason).toCompletableFuture();
     }
 
     /**
@@ -469,8 +488,8 @@ public class Currency implements Economy {
                 connection.setAutoFlushCommands(false);
                 commands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
                 commands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                commands.publish(UPDATE_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.settings().SERVER_ID + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
-                    if (RedisEconomyPlugin.settings().DEBUG) {
+                commands.publish(UPDATE_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
+                    if (RedisEconomyPlugin.settings().debug) {
                         Bukkit.getLogger().info("01 Sent update account " + playerName + " to " + balance);
                     }
                 });

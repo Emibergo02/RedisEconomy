@@ -6,7 +6,7 @@ public enum RedisKeys {
     BALANCE_PREFIX("rediseco:balances_"),
     UPDATE_CHANNEL_PREFIX("rediseco:update_"),
     MSG_CHANNEL("rediseco:paymsg"),
-    TRANSACTIONS("rediseco:transactions"),
+    NEW_TRANSACTIONS("rediseco:transactions:"),
     ;
 
     private final String keyName;

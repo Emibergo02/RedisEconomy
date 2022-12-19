@@ -20,28 +20,28 @@ public class SwitchCurrencyCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length != 2) {
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_CURRENCY);
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
             return true;
         }
         Currency currency = currenciesManager.getCurrencyByName(args[0]);
         if (currency == null) {
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_CURRENCY);
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
             return true;
         }
         Currency newCurrency = currenciesManager.getCurrencyByName(args[1]);
         if (newCurrency == null) {
-            RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_CURRENCY);
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
             return true;
         }
         currenciesManager.switchCurrency(currency, newCurrency);
-        RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().SWITCH_SUCCESS.replace("%currency%", currency.getCurrencyName()).replace("%switch-currency%", newCurrency.getCurrencyName()));
+        RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().switchCurrencySuccess.replace("%currency%", currency.getCurrencyName()).replace("%switch-currency%", newCurrency.getCurrencyName()));
         return true;
     }
 
     @Nullable
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        if(args.length > 0&&args.length < 3) {
+        if (args.length > 0 && args.length < 3) {
             return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).toList();
         }
         return null;

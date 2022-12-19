@@ -33,9 +33,13 @@ commands:
     aliases: [moneytop,baltop]
     permission: rediseconomy.balancetop
   transaction:
-    description: Show transactions
-    usage: /transaction <player>
+    description: Show transaction info
+    usage: /transaction <player> <id>
     permission: rediseconomy.admin.transaction
+  browse-transactions:
+    description: Show transactions
+    usage: /browse-transactions <player> [timestamp]
+    permission: rediseconomy.admin.browse-transactions
   purge-balance:
     description: Purge balances
     usage: /purge-balance <player> [onlyNameUUID]

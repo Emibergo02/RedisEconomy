@@ -37,32 +37,32 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
             balancePlayer(sender, defaultCurrency, args);
         } else if (args.length == 2) {
             if (!sender.hasPermission("rediseconomy.balance." + args[1])) {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
+                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noPermission);
                 return true;
             }
             Currency currency = economy.getCurrencyByName(args[1]);
             if (currency == null) {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_CURRENCY);
+                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
                 return true;
             }
             balancePlayer(sender, currency, args);
 
         } else if (args.length > 3) {
             if (!sender.hasPermission("rediseconomy.admin")) {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().NO_PERMISSION);
+                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noPermission);
                 return true;
             }
             String target = args[0];
             Currency currency = economy.getCurrencyByName(args[1]);
-            if(currency == null) {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_CURRENCY);
+            if (currency == null) {
+                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
                 return true;
             }
             double amount;
             try {
                 amount = Double.parseDouble(args[3]);
             } catch (NumberFormatException e) {
-                RedisEconomyPlugin.settings().send(sender, RedisEconomyPlugin.settings().INVALID_AMOUNT);
+                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidAmount);
                 return true;
             }
             String reasonOrCommand = null;
@@ -75,17 +75,17 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 if (reasonOrCommand == null)
                     takePlayer(sender, currency, amount, target, null);
                 else if (reasonOrCommand.startsWith("/")) {
-                        takePlayerWithCommand(sender, currency, amount, target, reasonOrCommand);
-                    } else {
-                        takePlayer(sender, currency, amount, target, reasonOrCommand);
-                    }
+                    takePlayerWithCommand(sender, currency, amount, target, reasonOrCommand);
+                } else {
+                    takePlayer(sender, currency, amount, target, reasonOrCommand);
+                }
 
             } else if (args[2].equalsIgnoreCase("set")) {
                 setPlayer(sender, currency, amount, target);
             }
         }
-        if (RedisEconomyPlugin.settings().DEBUG)
-            RedisEconomyPlugin.settings().send(sender, "Command executed in " + (System.currentTimeMillis() - init) + "ms");
+        if (RedisEconomyPlugin.settings().debug)
+            RedisEconomyPlugin.langs().send(sender, "Command executed in " + (System.currentTimeMillis() - init) + "ms");
 
 
         return true;
@@ -112,7 +112,7 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 return List.of();
             long init = System.currentTimeMillis();
             List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
-            if (RedisEconomyPlugin.settings().DEBUG)
+            if (RedisEconomyPlugin.settings().debug)
                 Bukkit.getLogger().info("Tab complete executed in " + (System.currentTimeMillis() - init) + "ms");
             return players;
         } else if (args.length == 2)

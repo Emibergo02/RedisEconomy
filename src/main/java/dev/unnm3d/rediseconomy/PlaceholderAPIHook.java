@@ -1,5 +1,6 @@
 package dev.unnm3d.rediseconomy;
 
+import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -15,13 +16,13 @@ import java.util.UUID;
 public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     private final CurrenciesManager currenciesManager;
-    private final Settings settings;
+    private final Langs langs;
     private final HashMap<Currency, Double> totalSupplyCache;
     private long lastUpdateTimestamp;
 
-    public PlaceholderAPIHook(CurrenciesManager currenciesManager, Settings settings) {
+    public PlaceholderAPIHook(CurrenciesManager currenciesManager, Langs langs) {
         this.currenciesManager = currenciesManager;
-        this.settings = settings;
+        this.langs = langs;
         this.totalSupplyCache = new HashMap<>();
         updateTotalSupplyCache();
     }
@@ -88,13 +89,13 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
         if (splitted.contains("short")) {
             if (amount >= 1000000000000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000000000000.0) + settings.UNIT_SYMBOLS.trillions();
+                formattedNumber = String.format("%.2f", amount / 1000000000000.0) + langs.unitSymbols.trillion();
             } else if (amount >= 1000000000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000000000.0) + settings.UNIT_SYMBOLS.billions();
+                formattedNumber = String.format("%.2f", amount / 1000000000.0) + langs.unitSymbols.billion();
             } else if (amount >= 1000000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000000.0) + settings.UNIT_SYMBOLS.millions();
+                formattedNumber = String.format("%.2f", amount / 1000000.0) + langs.unitSymbols.million();
             } else if (amount >= 1000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000.0) + settings.UNIT_SYMBOLS.thousands();
+                formattedNumber = String.format("%.2f", amount / 1000.0) + langs.unitSymbols.thousand();
             }
         }
         if (splitted.contains("formatted")) {
