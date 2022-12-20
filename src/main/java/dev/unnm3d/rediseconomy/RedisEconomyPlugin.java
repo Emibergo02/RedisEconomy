@@ -6,6 +6,8 @@ import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
+import dev.unnm3d.rediseconomy.utils.Metrics;
+import dev.unnm3d.rediseconomy.utils.PlaceholderAPIHook;
 import io.lettuce.core.RedisClient;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;

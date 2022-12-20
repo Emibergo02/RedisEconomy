@@ -52,9 +52,9 @@ public final class AdventureWebuiEditorAPI {
     public AdventureWebuiEditorAPI(final @NotNull URI root) {
         this(root, HttpClient.newHttpClient());
     }
+
     /**
      * Creates a new instance of the editor API.
-     *
      */
     public AdventureWebuiEditorAPI() {
         this(URI.create("https://webui.adventure.kyori.net"), HttpClient.newHttpClient());
@@ -63,7 +63,7 @@ public final class AdventureWebuiEditorAPI {
     /**
      * Creates a new instance of the editor API with the given root URI and a client.
      *
-     * @param root the root URI
+     * @param root   the root URI
      * @param client the client
      */
     public AdventureWebuiEditorAPI(final @NotNull URI root, final @NotNull HttpClient client) {
@@ -74,8 +74,8 @@ public final class AdventureWebuiEditorAPI {
     /**
      * Starts a session, returning the token.
      *
-     * @param input the input
-     * @param command the command
+     * @param input       the input
+     * @param command     the command
      * @param application the application name
      * @return a completable future that will provide the token
      */
@@ -142,6 +142,7 @@ public final class AdventureWebuiEditorAPI {
     private @NotNull String constructBody(final @NotNull String input, final @NotNull String command, final @NotNull String application) {
         return String.format("{\"input\":\"%s\",\"command\":\"%s\",\"application\":\"%s\"}", input, command, application);
     }
+
     public static void main(String[] args) {
         AdventureWebuiEditorAPI api = new AdventureWebuiEditorAPI();
         api.startSession("Hello World", "/sjm applyedits {token}", "RedisEconomy").exceptionally(throwable -> {

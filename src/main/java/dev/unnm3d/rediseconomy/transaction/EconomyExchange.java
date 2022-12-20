@@ -218,6 +218,7 @@ public class EconomyExchange {
         dateFormat.setTimeZone(TimeZone.getDefault());
         return dateFormat.format(date);
     }
+
     public Date formatDate(String fromString) throws ParseException {
         return dateFormat.parse(fromString);
     }
