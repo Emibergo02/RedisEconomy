@@ -34,7 +34,7 @@ commands:
     permission: rediseconomy.balancetop
   transaction:
     description: Show transaction info
-    usage: /transaction <player> <id>
+    usage: /transaction <player> <id> [revert]
     permission: rediseconomy.admin.transaction
   browse-transactions:
     description: Show transactions

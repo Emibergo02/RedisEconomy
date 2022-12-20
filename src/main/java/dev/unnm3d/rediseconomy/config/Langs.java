@@ -26,6 +26,9 @@ public final class Langs {
     public String payReceived = "<green>You received %amount% from %player%!</green>";
     public String purgeUserSuccess = "<green>Users matching %player% have been purged!</green>";
     public String switchCurrencySuccess = "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>";
+    public String noTransactionFound = "<red>No transaction found for %player%!</red>";
+    public String transactionsStart = "<dark_aqua>Transactions of player %player% from %after% to %before%!</dark_aqua>";
+    public String transactionsEnd = "<dark_aqua>End of %player% transactions in %time% ms</dark_aqua>";
     public TransactionItem transactionItem = new TransactionItem(
             "<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:\"<blue>Click to copy:</blue><br><aqua>%timestamp%</aqua>\"><gold>[Timestamp⌛]</hover></click> <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:\"Click to revert transaction\"><red>[←Revert]</hover></click><br>" +
                     "<click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click><br>" +
