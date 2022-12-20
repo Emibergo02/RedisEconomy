@@ -27,10 +27,9 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
         if (targetUUID == null) {
             RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
-            return true;
+            return false;
         }
         if (revertTransaction) {
-            //debug
             if (RedisEconomyPlugin.settings().debug)
                 Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
             currenciesManager.getExchange().revertTransaction(targetUUID, transactionId).thenAccept(newId ->
@@ -39,15 +38,11 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
         }
 
         currenciesManager.getExchange().getTransaction(targetUUID, transactionId).thenAccept(transaction -> {
-            long init = System.currentTimeMillis();
             if (transaction == null) {
-                sender.sendMessage("§cNo transactions found for player " + target);
+                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noTransactionFound.replace("%player%", target));
                 return;
             }
-
-            sender.sendMessage("§3Transactions of player " + target + ":");
             currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
-            sender.sendMessage("§3End of" + target + " transactions in " + (System.currentTimeMillis() - init) + "ms");
         });
 
         return false;

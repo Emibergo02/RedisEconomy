@@ -1,4 +1,4 @@
-package dev.unnm3d.rediseconomy;
+package dev.unnm3d.rediseconomy.utils;
 
 import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;

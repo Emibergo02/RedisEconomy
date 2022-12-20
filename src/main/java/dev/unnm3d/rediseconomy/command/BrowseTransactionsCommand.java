@@ -10,14 +10,12 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 @AllArgsConstructor
 public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter {
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
     private final CurrenciesManager currenciesManager;
 
     @Override
@@ -33,7 +31,7 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
         currenciesManager.getExchange().getTransactions(targetUUID).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
             if (transactions.size() == 0) {
-                sender.sendMessage("§cNo transactions found for player " + target);
+                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noTransactionFound.replace("%player%", target));
                 return;
             }
             String afterDateString = "anytime";
@@ -43,7 +41,7 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
                 beforeDateString = args[2];
             }
 
-            sender.sendMessage("§3Transactions of player " + target + ":");
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().transactionsStart.replace("%player%", target).replace("%after%", afterDateString).replace("%before%", beforeDateString));
             for (int i = 0; i < transactions.size(); i++) {
                 if (isAfter(transactions.get(i).timestamp, afterDateString) && isBefore(transactions.get(i).timestamp, beforeDateString)) {
                     currenciesManager.getExchange().sendTransaction(sender, i, transactions.get(i), afterDateString + " " + beforeDateString);
@@ -52,7 +50,7 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
                     sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
 
-            sender.sendMessage("§3End of" + target + " transactions in " + (System.currentTimeMillis() - init) + "ms");
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().transactionsEnd.replace("%player%", target).replace("%time%", String.valueOf(System.currentTimeMillis() - init)));
         });
 
         return true;
@@ -61,7 +59,7 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
     private boolean isAfter(long timestamp, String toParse) {
         if (toParse.equals("anytime")) return true;
         try {
-            Date parsedDate = dateFormat.parse(toParse);
+            Date parsedDate = currenciesManager.getExchange().formatDate(toParse);
             return new Date(timestamp).after(parsedDate);
         } catch (Exception e) { //this generic but you can control another types of exception
             e.printStackTrace();
@@ -72,7 +70,7 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
     private boolean isBefore(long timestamp, String toParse) {
         if (toParse.equals("anytime")) return true;
         try {
-            Date parsedDate = dateFormat.parse(toParse);
+            Date parsedDate = currenciesManager.getExchange().formatDate(toParse);
             return new Date(timestamp).before(parsedDate);
         } catch (Exception e) { //this generic but you can control another types of exception
             e.printStackTrace();

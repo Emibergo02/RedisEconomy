@@ -12,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
@@ -22,7 +23,7 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
 
 @AllArgsConstructor
 public class EconomyExchange {
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
     private final CurrenciesManager currenciesManager;
 
     public CompletableFuture<Map<Integer, Transaction>> getTransactions(UUID player) {
@@ -216,6 +217,10 @@ public class EconomyExchange {
         Date date = new Date(time);
         dateFormat.setTimeZone(TimeZone.getDefault());
         return dateFormat.format(date);
+    }
+
+    public Date formatDate(String fromString) throws ParseException {
+        return dateFormat.parse(fromString);
     }
 
 
