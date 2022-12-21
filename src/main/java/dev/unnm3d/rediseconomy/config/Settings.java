@@ -12,7 +12,7 @@ public class Settings {
             "Change it only if you have disabled plugin messages on the proxy"})
     public String serverId = System.currentTimeMillis() + "";
     @Comment("Language file")
-    public String lang = "default-lang";
+    public String lang = "en-US";
 
     @Comment("Activate this before reporting an issue")
     public boolean debug = false;

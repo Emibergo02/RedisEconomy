@@ -1,11 +1,20 @@
 package dev.unnm3d.rediseconomy;
 
-import dev.unnm3d.rediseconomy.command.*;
+import dev.unnm3d.rediseconomy.command.MainCommand;
+import dev.unnm3d.rediseconomy.command.PayCommand;
+import dev.unnm3d.rediseconomy.command.PurgeUserCommand;
+import dev.unnm3d.rediseconomy.command.SwitchCurrencyCommand;
+import dev.unnm3d.rediseconomy.command.balance.BalanceCommand;
+import dev.unnm3d.rediseconomy.command.balance.BalanceSubCommands;
+import dev.unnm3d.rediseconomy.command.balance.BalanceTopCommand;
+import dev.unnm3d.rediseconomy.command.transaction.BrowseTransactionsCommand;
+import dev.unnm3d.rediseconomy.command.transaction.TransactionCommand;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
+import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
 import dev.unnm3d.rediseconomy.utils.Metrics;
 import dev.unnm3d.rediseconomy.utils.PlaceholderAPIHook;
 import io.lettuce.core.RedisClient;
@@ -83,7 +92,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);
         SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager);
         loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
-        MainCommand mainCommand = new MainCommand(configManager);
+        MainCommand mainCommand = new MainCommand(configManager, new AdventureWebuiEditorAPI());
         loadCommand("rediseconomy", mainCommand, mainCommand);
 
         new Metrics(this, 16802);

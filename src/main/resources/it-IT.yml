@@ -1,5 +1,6 @@
 noConsole: <red>Devi essere in gioco per poter usare questo comando!</red>
 noPermission: <red>No hai il permesso di usare questo comando!</red>
+missingArguments: <red>Mancano dei parametri al comando!</red>
 playerNotFound: <red>Giocatore non trovato!</red>
 invalidAmount: <red>Il valore immesso è invalido!</red>
 invalidCurrency: <red>Valuta invalida!</red>
@@ -17,18 +18,31 @@ payReceived: <green>Hai ricevuto %amount% da %player%!</green>
 purgeUserSuccess: <green>L'utente che corrisponde a %player% è stato ripulito!</green>
 switchCurrencySuccess: <green>Sostituita %currency% a %switch-currency%.<br>Per favore
   riavviare ogni istanza<br>di RedisEconomy in modo da evitare sovrapposizioni!</green>
+noTransactionFound: <red>Nessuna transazione trovata per %player%!</red>
+transactionsStart: <dark_aqua>Transazioni di %player% da %after% a %before%!</dark_aqua>
+transactionsEnd: <dark_aqua>Fine delle transazioni di %player% in %time% ms</dark_aqua>
+editMessageError: <red>Questo campo della configurazione non esiste o non è una stringa!
+editMessageClickHere: <click:open_url:%url%>Clicca qui per modificare %field%!</click>
+editMessageSuccess: <green>%field% salvato con successo!
 transactionItem:
-  outgoingFunds: '<aqua>%timestamp%</aqua> <click:run_command:/transaction %account-owner%
-    %afterbefore%><dark_green>%account-owner%</dark_green></click> -> <click:run_command:/transaction
-    %other-account% %afterbefore%><green>%other-account%</green></click> Somma: %amount%%symbol%<br><yellow>Ragione:
-    </yellow>%reason%'
-  incomingFunds: '<aqua>%timestamp%</aqua> <click:run_command:/transaction %other-account%
-    %afterbefore%><green>%other-account%</green></click> -> <click:run_command:/transaction
+  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Click
+    to copy:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Click
+    to revert transaction"><red>[←Riavvolgi]</hover></click><br><click:run_command:/transaction
     %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
-    Somma: %amount%%symbol%<br><yellow>Ragione: </yellow>%reason%'
+    <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>Ragione:
+    </yellow>%reason%'
+  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Click
+    to copy:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Click
+    to revert transaction"><red>[←Riavvolgi]</hover></click><br><click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%
+    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Ragione:
+    </yellow>%reason%'
 unitSymbols:
   thousand: k
   million: m
-  billion: b
-  trillion: t
-  quadrillion: q
+  billion: M
+  trillion: T
+  quadrillion: Q

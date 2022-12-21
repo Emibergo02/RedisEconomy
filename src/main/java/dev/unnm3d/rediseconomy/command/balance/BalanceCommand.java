@@ -1,4 +1,4 @@
-package dev.unnm3d.rediseconomy.command;
+package dev.unnm3d.rediseconomy.command.balance;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;

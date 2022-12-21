@@ -1,4 +1,4 @@
-package dev.unnm3d.rediseconomy.command;
+package dev.unnm3d.rediseconomy.command.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
@@ -20,7 +20,10 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length < 1) return true;
+        if (args.length < 1) {
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            return true;
+        }
         String target = args[0];
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
         if (targetUUID == null) {
