@@ -67,6 +67,7 @@ public class ConfigManager {
 
     public void saveConfigs() {
         YamlConfigurations.save(new File(plugin.getDataFolder(), "config.yml").toPath(), Settings.class, settings);
+        YamlConfigurations.save(new File(plugin.getDataFolder(), settings.lang + ".yml").toPath(), Langs.class, langs);
     }
 
     private CompletableFuture<String> getServerId() {

@@ -46,7 +46,7 @@ commands:
     permission: rediseconomy.admin.purge-balance
   rediseconomy:
     description: RedisEconomy commands
-    usage: /rediseconomy <reload>
+    usage: /rediseconomy <reload/editmessage/savemessage> [messageField] [token]
     aliases: [rediseco]
     permission: rediseconomy.admin
   switch-currency:
@@ -79,3 +79,5 @@ permissions:
         rediseconomy.admin.transaction: true
         rediseconomy.admin.purge-balance: true
         rediseconomy.admin.switch-currency: true
+        rediseconomy.admin.browse-transactions: true
+        rediseconomy.admin.editmessage: true

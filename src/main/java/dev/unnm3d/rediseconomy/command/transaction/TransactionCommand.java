@@ -1,4 +1,4 @@
-package dev.unnm3d.rediseconomy.command;
+package dev.unnm3d.rediseconomy.command.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
@@ -20,32 +20,35 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length < 2) return true;
+        if (args.length < 2) {
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            return true;
+        }
         String target = args[0];
         int transactionId = Integer.parseInt(args[1]);
         boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
         if (targetUUID == null) {
             RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
-            return false;
+            return true;
         }
         if (revertTransaction) {
             if (RedisEconomyPlugin.settings().debug)
                 Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
             currenciesManager.getExchange().revertTransaction(targetUUID, transactionId).thenAccept(newId ->
                     sender.sendMessage("§3Transaction reverted with #" + newId));
-            return false;
+            return true;
         }
-
         currenciesManager.getExchange().getTransaction(targetUUID, transactionId).thenAccept(transaction -> {
             if (transaction == null) {
                 RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noTransactionFound.replace("%player%", target));
-                return;
+
+            } else {
+                currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
             }
-            currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
         });
 
-        return false;
+        return true;
     }
 
     @Override
