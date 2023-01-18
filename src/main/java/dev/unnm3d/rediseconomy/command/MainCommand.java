@@ -1,5 +1,6 @@
 package dev.unnm3d.rediseconomy.command;
 
+import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
 import lombok.AllArgsConstructor;
@@ -22,6 +23,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (args.length == 0) {
+            configManager.getLangs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            return true;
+        }
         if (args.length == 1) {
             if (!args[0].equalsIgnoreCase("reload")) return true;
             if (!sender.hasPermission("rediseconomy.admin")) return false;

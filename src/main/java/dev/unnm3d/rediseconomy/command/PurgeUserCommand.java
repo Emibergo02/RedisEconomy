@@ -16,12 +16,14 @@ import java.util.UUID;
 
 @AllArgsConstructor
 public class PurgeUserCommand implements CommandExecutor, TabCompleter {
-
     private final CurrenciesManager currenciesManager;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length == 0) return true;
+        if (args.length == 0) {
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            return true;
+        }
         String target = args[0];
         boolean onlyNameUUID = false;
         if (args.length == 2) {

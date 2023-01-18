@@ -20,7 +20,7 @@ public class SwitchCurrencyCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length != 2) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
             return true;
         }
         Currency currency = currenciesManager.getCurrencyByName(args[0]);

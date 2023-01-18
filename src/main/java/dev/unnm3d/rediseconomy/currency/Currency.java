@@ -510,8 +510,15 @@ public class Currency implements Economy {
 
     }
 
+    /**
+     * Update the balances of all players and their nameuuids
+     * Do not use this method unless you know what you are doing
+     *
+     * @param balances  The balances to update
+     * @param nameUUIDs The name-uuids to update
+     */
     @SuppressWarnings("unchecked")
-    void updateAccountsCloudCache(List<ScoredValue<String>> balances, Map<String, String> nameUUIDs) {
+    public void updateBulkAccountsCloudCache(@NotNull List<ScoredValue<String>> balances, @NotNull Map<String, String> nameUUIDs) {
         StatefulRedisConnection<String, String> connection = currenciesManager.getRedisManager().getUnclosedConnection();
         RedisAsyncCommands<String, String> commands = connection.async();
         connection.setAutoFlushCommands(false);

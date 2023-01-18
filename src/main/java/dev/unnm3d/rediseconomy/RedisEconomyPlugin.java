@@ -1,9 +1,6 @@
 package dev.unnm3d.rediseconomy;
 
-import dev.unnm3d.rediseconomy.command.MainCommand;
-import dev.unnm3d.rediseconomy.command.PayCommand;
-import dev.unnm3d.rediseconomy.command.PurgeUserCommand;
-import dev.unnm3d.rediseconomy.command.SwitchCurrencyCommand;
+import dev.unnm3d.rediseconomy.command.*;
 import dev.unnm3d.rediseconomy.command.balance.BalanceCommand;
 import dev.unnm3d.rediseconomy.command.balance.BalanceSubCommands;
 import dev.unnm3d.rediseconomy.command.balance.BalanceTopCommand;
@@ -92,6 +89,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);
         SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager);
         loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
+        BackupRestoreCommand backupRestoreCommand = new BackupRestoreCommand(currenciesManager, this);
+        loadCommand("backup-economy", backupRestoreCommand, backupRestoreCommand);
         MainCommand mainCommand = new MainCommand(configManager, new AdventureWebuiEditorAPI());
         loadCommand("rediseconomy", mainCommand, mainCommand);
 
