@@ -53,6 +53,15 @@ public class BalanceSubCommands extends BalanceCommand {
 
     @Override
     protected void givePlayer(CommandSender sender, Currency currency, double amount, String target, String reason) {
+        if (target.equals("*") && sender.hasPermission("rediseconomy.admin.giveall")) {
+            for (Player p : plugin.getServer().getOnlinePlayers()) {
+                EconomyResponse er = currency.depositPlayer(p.getUniqueId(), p.getName(), amount, reason);
+                if (er.transactionSuccess())
+                    RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", p.getName()));
+                else sender.sendMessage(er.errorMessage);
+            }
+            return;
+        }
         EconomyResponse er = currency.depositPlayer(target, amount, reason);
         if (er.transactionSuccess())
             RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));

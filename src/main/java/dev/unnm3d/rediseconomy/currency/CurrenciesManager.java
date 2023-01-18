@@ -87,7 +87,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                     defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
                 }
 
-                defaultCurrency.updateAccountsCloudCache(balances, nameUniqueIds);
+                defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
                 return defaultCurrency;
             }).thenAccept((vaultCurrency) -> {
                 plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);

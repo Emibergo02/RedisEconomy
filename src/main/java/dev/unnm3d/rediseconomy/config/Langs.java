@@ -44,6 +44,7 @@ public final class Langs {
                     "<click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br>" +
                     "<yellow>Reason: </yellow>%reason%");
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
+    public String backupRestoreFinished = "<green>Backup/restore file %file% finished!</green>";
 
     public record TransactionItem(
             String outgoingFunds,

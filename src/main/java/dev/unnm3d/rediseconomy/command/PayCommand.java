@@ -32,9 +32,13 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noConsole);
             return true;
         }
+        if (args.length < 2) {
+            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            return true;
+        }
         if (args.length == 2) {
             payDefaultCurrency(p, currenciesManager.getDefaultCurrency(), args);
-        } else if (args.length >= 3) {
+        } else {
             if (!sender.hasPermission("rediseconomy.pay." + args[2]))
                 RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noPermission);
             Currency currency = currenciesManager.getCurrencyByName(args[2]);

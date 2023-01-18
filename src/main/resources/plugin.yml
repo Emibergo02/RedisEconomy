@@ -53,6 +53,11 @@ commands:
     description: Switch currency with another currency
     usage: /switch-currency <currency> <switch-currency>
     permission: rediseconomy.admin.switch-currency
+  backup-economy:
+    description: Backups and restores economy data to a file
+    aliases: [restore-economy]
+    usage: /backup-economy <file>
+    permission: rediseconomy.admin.backup-restore
 permissions:
     rediseconomy.pay:
         description: Allows to use /pay
@@ -81,3 +86,4 @@ permissions:
         rediseconomy.admin.switch-currency: true
         rediseconomy.admin.browse-transactions: true
         rediseconomy.admin.editmessage: true
+        rediseconomy.admin.backup-restore: true
