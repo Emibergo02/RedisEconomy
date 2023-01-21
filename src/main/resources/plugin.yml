@@ -23,7 +23,7 @@ commands:
     permission: rediseconomy.pay
   balance:
     description: Show balances
-    usage: /balance [player]
+    usage: /balance <player>
     aliases: [money,bal]
     permission: rediseconomy.balance
   balancetop:

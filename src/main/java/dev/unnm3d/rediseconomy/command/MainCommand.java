@@ -9,7 +9,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -70,14 +69,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    @Nullable
+
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
             return List.of("reload", "editmessage");
         } else if (args.length == 2 && sender.hasPermission("rediseconomy.admin.editmessage")) {
             return Arrays.stream(configManager.getLangs().getClass().getFields()).filter(field -> field.getType().equals(String.class)).map(Field::getName).toList();
         }
-        return null;
+        return List.of();
     }
 }
