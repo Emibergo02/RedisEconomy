@@ -55,7 +55,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         configManager = new ConfigManager(this);
 
         if (!setupRedis()) {
-            this.getLogger().severe("Disabled: redis server unreachable!");
+            this.getLogger().severe("Disabling: redis server unreachable!");
+            this.getLogger().severe("Please setup a redis server before running this plugin!");
             this.getServer().getPluginManager().disablePlugin(this);
             return;
         } else {
@@ -99,18 +100,22 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        //ezRedisMessenger.destroy();
         redisManager.close();
-        this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
+        if(currenciesManager != null)
+            this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
         this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         this.getServer().getMessenger().unregisterIncomingPluginChannel(this);
         getLogger().info("RedisEconomy disabled successfully!");
     }
 
     private boolean setupRedis() {
-        this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri), configManager.getSettings().redisConnectionTimeout);
-        getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
-        return redisManager.isConnected();
+        try {
+            this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri), configManager.getSettings().redisConnectionTimeout);
+            getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
+            return redisManager.isConnected();
+        }catch (Exception e){
+            return false;
+        }
     }
 
     private boolean setupEconomy() {
