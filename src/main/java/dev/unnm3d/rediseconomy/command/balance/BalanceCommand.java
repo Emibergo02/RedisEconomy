@@ -17,6 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager economy;
+    protected final RedisEconomyPlugin plugin;
 
     /**
      * Format /balance [player] [currencyName] set/give/take [amount]
@@ -36,32 +37,30 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
             balancePlayer(sender, defaultCurrency, args);
         } else if (args.length == 2) {
             if (!sender.hasPermission("rediseconomy.balance." + args[1])) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noPermission);
+                plugin.langs().send(sender, plugin.langs().noPermission);
                 return true;
             }
             Currency currency = economy.getCurrencyByName(args[1]);
             if (currency == null) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+                plugin.langs().send(sender, plugin.langs().invalidCurrency);
                 return true;
             }
             balancePlayer(sender, currency, args);
 
         } else if (args.length > 3) {
             if (!sender.hasPermission("rediseconomy.admin")) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noPermission);
+                plugin.langs().send(sender, plugin.langs().noPermission);
                 return true;
             }
             String target = args[0];
             Currency currency = economy.getCurrencyByName(args[1]);
             if (currency == null) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+                plugin.langs().send(sender, plugin.langs().invalidCurrency);
                 return true;
             }
-            double amount;
-            try {
-                amount = Double.parseDouble(args[3]);
-            } catch (NumberFormatException e) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidAmount);
+            double amount = plugin.langs().formatAmountString(args[3]);
+            if (amount <= 0) {
+                plugin.langs().send(sender, plugin.langs().invalidAmount);
                 return true;
             }
             String reasonOrCommand = null;
@@ -83,8 +82,8 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 setPlayer(sender, currency, amount, target);
             }
         }
-        if (RedisEconomyPlugin.settings().debug)
-            RedisEconomyPlugin.langs().send(sender, "Command executed in " + (System.currentTimeMillis() - init) + "ms");
+        if (plugin.settings().debug)
+            plugin.langs().send(sender, "Command executed in " + (System.currentTimeMillis() - init) + "ms");
 
 
         return true;
@@ -109,7 +108,7 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 return List.of();
             long init = System.currentTimeMillis();
             List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
-            if (RedisEconomyPlugin.settings().debug)
+            if (plugin.settings().debug)
                 Bukkit.getLogger().info("Tab complete executed in " + (System.currentTimeMillis() - init) + "ms");
             return players;
         } else if (args.length == 2)

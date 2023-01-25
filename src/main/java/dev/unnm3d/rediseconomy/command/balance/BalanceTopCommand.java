@@ -17,6 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class BalanceTopCommand implements CommandExecutor {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -35,7 +36,7 @@ public class BalanceTopCommand implements CommandExecutor {
                 pageBalances = balances.subList((page - 1) * 10, page * 10);
             } else pageBalances = balances.subList((page - 1) * 10, balances.size());
             //Page formatting: clickable arrows to go to next/previous page
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceTop.replace("%page%", String.valueOf(page))
+            plugin.langs().send(sender, plugin.langs().balanceTop.replace("%page%", String.valueOf(page))
                     .replace("%nextpage%", "<click:run_command:/balancetop " + (balances.size() <= page * 10 ? 1 : page + 1) + ">-></click>")
                     .replace("%prevpage%", "<click:run_command:/balancetop " + (page == 1 ? (balances.size() % 10) + 1 : page - 1) + "><-</click>"));
 
@@ -45,7 +46,7 @@ public class BalanceTopCommand implements CommandExecutor {
             int i = 1;
             for (ScoredValue<String> tuple : pageData.pageBalances) {
                 String username = currenciesManager.getUsernameFromUUIDCache(UUID.fromString(tuple.getValue()));
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceTopFormat
+                plugin.langs().send(sender, plugin.langs().balanceTopFormat
                         .replace("%pos%", String.valueOf((pageData.pageNumber - 1) * 10 + i))
                         .replace("%player%", username == null ? "Unknown" : username)
                         .replace("%balance%", currenciesManager.getDefaultCurrency().format(tuple.getScore())));

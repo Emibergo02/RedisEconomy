@@ -24,25 +24,26 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
 @AllArgsConstructor
 public class PayCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player p)) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noConsole);
+            plugin.langs().send(sender, plugin.langs().noConsole);
             return true;
         }
         if (args.length < 2) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         if (args.length == 2) {
             payDefaultCurrency(p, currenciesManager.getDefaultCurrency(), args);
         } else {
             if (!sender.hasPermission("rediseconomy.pay." + args[2]))
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noPermission);
+                plugin.langs().send(sender, plugin.langs().noPermission);
             Currency currency = currenciesManager.getCurrencyByName(args[2]);
             if (currency == null) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+                plugin.langs().send(sender, plugin.langs().invalidCurrency);
                 return true;
             }
             payDefaultCurrency(p, currency, args);
@@ -54,24 +55,22 @@ public class PayCommand implements CommandExecutor, TabCompleter {
 
     private void payDefaultCurrency(Player sender, Currency currency, String[] args) {
         if (!sender.hasPermission("rediseconomy.pay")) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noPermission);
+            plugin.langs().send(sender, plugin.langs().noPermission);
             return;
         }
         long init = System.currentTimeMillis();
         String target = args[0];
-        double amount;
-        try {
-            amount = Double.parseDouble(args[1]);
-        } catch (NumberFormatException e) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidAmount);
+        double amount = plugin.langs().formatAmountString(args[1]);
+        if (amount <= 0) {
+            plugin.langs().send(sender, plugin.langs().invalidAmount);
             return;
         }
         if (target.equalsIgnoreCase(sender.getName())) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().paySelf);
+            plugin.langs().send(sender, plugin.langs().paySelf);
             return;
         }
         if (!currency.hasAccount(target)) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
+            plugin.langs().send(sender, plugin.langs().playerNotFound);
             return;
         }
         //If the player has an account uuid is not null
@@ -80,15 +79,15 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         EconomyResponse response = currency.payPlayer(sender.getName(), target, amount);
         if (!response.transactionSuccess()) {
             if (response.errorMessage.equals("Insufficient funds")) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().insufficientFunds);
+                plugin.langs().send(sender, plugin.langs().insufficientFunds);
             } else {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().payFail);
+                plugin.langs().send(sender, plugin.langs().payFail);
             }
             return;
         }
         //Send msg to sender
-        RedisEconomyPlugin.langs().send(sender,
-                RedisEconomyPlugin.langs().paySuccess
+        plugin.langs().send(sender,
+                plugin.langs().paySuccess
                         .replace("%amount%", currency.format(amount))
                         .replace("%player%", target)
                         .replace("%tax_percentage%", (currency.getTransactionTax() * 100) + "%")
@@ -98,7 +97,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         currenciesManager.getRedisManager().getConnection(connection -> {
             RedisAsyncCommands<String, String> commands = connection.async();
             commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + target + ";;" + currency.format(amount));
-            if (RedisEconomyPlugin.settings().debug) {
+            if (plugin.settings().debug) {
                 Bukkit.getLogger().info("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
             }
             //Register transaction

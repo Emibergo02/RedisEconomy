@@ -23,7 +23,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            configManager.getLangs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            configManager.getLangs().send(sender, RedisEconomyPlugin.getInstance().langs().missingArguments);
             return true;
         }
         if (args.length == 1) {

@@ -6,7 +6,7 @@
 
     <groupId>dev.unnm3d</groupId>
     <artifactId>RedisEconomy</artifactId>
-    <version>3.4.3b</version>
+    <version>3.4.4</version>
     <packaging>jar</packaging>
 
     <name>RedisEconomy</name>

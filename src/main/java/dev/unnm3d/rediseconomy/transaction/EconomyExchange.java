@@ -90,7 +90,7 @@ public class EconomyExchange {
                 transactionSender.toString(),
                 transactionReceiver.toString());
         return evalResult.thenApply(response -> {
-            if (RedisEconomyPlugin.settings().debug) {
+            if (RedisEconomyPlugin.getInstance().settings().debug) {
                 Bukkit.getLogger().info("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
                 Bukkit.getLogger().info("03payment Transaction for " + target + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(1) + " !");
             }
@@ -127,7 +127,7 @@ public class EconomyExchange {
                             ScriptOutputType.INTEGER,
                             new String[]{NEW_TRANSACTIONS + accountOwner.toString()}, //Key rediseco:transactions:playerUUID
                             transaction.toString()).thenApply(response -> {
-                        if (RedisEconomyPlugin.settings().debug) {
+                        if (RedisEconomyPlugin.getInstance().settings().debug) {
                             Bukkit.getLogger().info("03 Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response + " !");
                         }
                         return ((Long) response).intValue();
@@ -148,7 +148,7 @@ public class EconomyExchange {
             }
             if (transaction.revertedWith != null) {
                 //already cancelled
-                if (RedisEconomyPlugin.settings().debug) {
+                if (RedisEconomyPlugin.getInstance().settings().debug) {
                     Bukkit.getLogger().info("revert01b Transaction " + transactionId + " already reverted with " + transaction.revertedWith);
                 }
                 return Integer.valueOf(transaction.revertedWith);
@@ -163,7 +163,7 @@ public class EconomyExchange {
                                     NEW_TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID
                                     String.valueOf(transactionId), //Previous transaction id
                                     transaction.toString())); //New replaced transaction
-                    if (RedisEconomyPlugin.settings().debug) {
+                    if (RedisEconomyPlugin.getInstance().settings().debug) {
                         Bukkit.getLogger().info("revert02 Replace transaction " + transactionId + " with a new revertedWith id on Redis: " + result);
                     }
                 }
@@ -192,9 +192,9 @@ public class EconomyExchange {
         String otherAccount = transaction.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(transaction.receiver);
         Currency currency = currenciesManager.getCurrencyByName(transaction.currencyName);
 
-        String transactionMessage = RedisEconomyPlugin.langs().transactionItem.incomingFunds();
+        String transactionMessage = RedisEconomyPlugin.getInstance().langs().transactionItem.incomingFunds();
         if (transaction.amount < 0) {
-            transactionMessage = RedisEconomyPlugin.langs().transactionItem.outgoingFunds();
+            transactionMessage = RedisEconomyPlugin.getInstance().langs().transactionItem.outgoingFunds();
         }
         transactionMessage = transactionMessage
                 .replace("%id%", transactionId + "")
@@ -206,7 +206,7 @@ public class EconomyExchange {
                 .replace("%reason%", transaction.reason);
         if (timestampArgument != null)
             transactionMessage = transactionMessage.replace("%afterbefore%", timestampArgument);
-        RedisEconomyPlugin.langs().send(sender, transactionMessage);
+        RedisEconomyPlugin.getInstance().langs().send(sender, transactionMessage);
     }
 
     public void sendTransaction(CommandSender sender, int transactionId, Transaction transaction) {

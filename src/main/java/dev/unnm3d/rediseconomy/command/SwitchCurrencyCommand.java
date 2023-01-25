@@ -15,25 +15,26 @@ import java.util.List;
 @AllArgsConstructor
 public class SwitchCurrencyCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length != 2) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         Currency currency = currenciesManager.getCurrencyByName(args[0]);
         if (currency == null) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+            plugin.langs().send(sender, plugin.langs().invalidCurrency);
             return true;
         }
         Currency newCurrency = currenciesManager.getCurrencyByName(args[1]);
         if (newCurrency == null) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+            plugin.langs().send(sender, plugin.langs().invalidCurrency);
             return true;
         }
         currenciesManager.switchCurrency(currency, newCurrency);
-        RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().switchCurrencySuccess.replace("%currency%", currency.getCurrencyName()).replace("%switch-currency%", newCurrency.getCurrencyName()));
+        plugin.langs().send(sender, plugin.langs().switchCurrencySuccess.replace("%currency%", currency.getCurrencyName()).replace("%switch-currency%", newCurrency.getCurrencyName()));
         return true;
     }
 

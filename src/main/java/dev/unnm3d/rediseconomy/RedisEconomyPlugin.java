@@ -31,16 +31,16 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private static RedisEconomyPlugin instance;
     //private EzRedisMessenger ezRedisMessenger;
     @Getter
-    private static ConfigManager configManager;
+    private ConfigManager configManager;
     private CurrenciesManager currenciesManager;
     private RedisManager redisManager;
 
 
-    public static Settings settings() {
+    public Settings settings() {
         return configManager.getSettings();
     }
 
-    public static Langs langs() {
+    public Langs langs() {
         return configManager.getLangs();
     }
 
@@ -77,18 +77,18 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(currenciesManager, this);
         //Commands
-        PayCommand payCommand = new PayCommand(currenciesManager);
+        PayCommand payCommand = new PayCommand(currenciesManager, this);
         loadCommand("pay", payCommand, payCommand);
         BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
         loadCommand("balance", balanceCommand, balanceCommand);
-        Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager));
-        TransactionCommand transactionCommand = new TransactionCommand(currenciesManager);
+        Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager, this));
+        TransactionCommand transactionCommand = new TransactionCommand(currenciesManager, this);
         loadCommand("transaction", transactionCommand, transactionCommand);
-        BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(currenciesManager);
+        BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(currenciesManager, this);
         loadCommand("browse-transactions", browseTransactionsCommand, browseTransactionsCommand);
-        PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager);
+        PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager, this);
         loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);
-        SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager);
+        SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager, this);
         loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
         BackupRestoreCommand backupRestoreCommand = new BackupRestoreCommand(currenciesManager, this);
         loadCommand("backup-economy", backupRestoreCommand, backupRestoreCommand);
@@ -101,7 +101,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         redisManager.close();
-        if(currenciesManager != null)
+        if (currenciesManager != null)
             this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
         this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         this.getServer().getMessenger().unregisterIncomingPluginChannel(this);
@@ -113,7 +113,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri), configManager.getSettings().redisConnectionTimeout);
             getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
             return redisManager.isConnected();
-        }catch (Exception e){
+        } catch (Exception e) {
             return false;
         }
     }

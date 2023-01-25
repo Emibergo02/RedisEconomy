@@ -16,11 +16,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class TransactionCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length < 2) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         String target = args[0];
@@ -28,11 +29,11 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
         boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
         if (targetUUID == null) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
+            plugin.langs().send(sender, plugin.langs().playerNotFound);
             return true;
         }
         if (revertTransaction) {
-            if (RedisEconomyPlugin.settings().debug)
+            if (plugin.settings().debug)
                 Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
             currenciesManager.getExchange().revertTransaction(targetUUID, transactionId).thenAccept(newId ->
                     sender.sendMessage("§3Transaction reverted with #" + newId));
@@ -40,7 +41,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
         }
         currenciesManager.getExchange().getTransaction(targetUUID, transactionId).thenAccept(transaction -> {
             if (transaction == null) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noTransactionFound.replace("%player%", target));
+                plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
 
             } else {
                 currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);

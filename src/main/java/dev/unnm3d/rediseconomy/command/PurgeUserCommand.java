@@ -16,11 +16,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PurgeUserCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         String target = args[0];
@@ -32,10 +33,10 @@ public class PurgeUserCommand implements CommandExecutor, TabCompleter {
         }
         Map<String, UUID> nameUUIDs = currenciesManager.removeNamePattern(target, !onlyNameUUID);
         if (nameUUIDs.size() == 0) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
+            plugin.langs().send(sender, plugin.langs().playerNotFound);
             return true;
         }
-        RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().purgeUserSuccess.replace("%player%", target));
+        plugin.langs().send(sender, plugin.langs().purgeUserSuccess.replace("%player%", target));
 
 
         return true;

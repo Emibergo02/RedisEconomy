@@ -16,24 +16,25 @@ import java.util.UUID;
 @AllArgsConstructor
 public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length < 1) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         String target = args[0];
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
         if (targetUUID == null) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
+            plugin.langs().send(sender, plugin.langs().playerNotFound);
             return true;
         }
 
         currenciesManager.getExchange().getTransactions(targetUUID).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
             if (transactions.size() == 0) {
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noTransactionFound.replace("%player%", target));
+                plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
                 return;
             }
             String afterDateString = "anytime";
@@ -43,16 +44,16 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
                 beforeDateString = args[2];
             }
 
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().transactionsStart.replace("%player%", target).replace("%after%", afterDateString).replace("%before%", beforeDateString));
+            plugin.langs().send(sender, plugin.langs().transactionsStart.replace("%player%", target).replace("%after%", afterDateString).replace("%before%", beforeDateString));
             for (int i = 0; i < transactions.size(); i++) {
                 if (isAfter(transactions.get(i).timestamp, afterDateString) && isBefore(transactions.get(i).timestamp, beforeDateString)) {
                     currenciesManager.getExchange().sendTransaction(sender, i, transactions.get(i), afterDateString + " " + beforeDateString);
                 }
-                if (RedisEconomyPlugin.settings().debug)
+                if (plugin.settings().debug)
                     sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
 
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().transactionsEnd.replace("%player%", target).replace("%time%", String.valueOf(System.currentTimeMillis() - init)));
+            plugin.langs().send(sender, plugin.langs().transactionsEnd.replace("%player%", target).replace("%time%", String.valueOf(System.currentTimeMillis() - init)));
         });
 
         return true;

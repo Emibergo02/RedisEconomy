@@ -25,7 +25,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         CompletableFuture.runAsync(() -> {
@@ -88,7 +88,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
             throwable.printStackTrace();
             return null;
         }).thenAccept(aVoid ->
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().backupRestoreFinished.replace("%file%", args[0]))
+                plugin.langs().send(sender, plugin.langs().backupRestoreFinished.replace("%file%", args[0]))
         );
 
         return true;
