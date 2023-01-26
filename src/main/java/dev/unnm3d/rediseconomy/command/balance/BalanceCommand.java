@@ -104,7 +104,7 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 2)
+            if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
             long init = System.currentTimeMillis();
             List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();

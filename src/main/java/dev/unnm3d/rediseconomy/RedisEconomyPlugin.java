@@ -44,7 +44,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         return configManager.getLangs();
     }
 
-    @SuppressWarnings("unused")
     public static RedisEconomyPlugin getInstance() {
         return instance;
     }

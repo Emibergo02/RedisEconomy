@@ -25,36 +25,40 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         String target = args[0];
-        int transactionId = Integer.parseInt(args[1]);
-        boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
-        UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
-        if (targetUUID == null) {
-            plugin.langs().send(sender, plugin.langs().playerNotFound);
-            return true;
-        }
-        if (revertTransaction) {
-            if (plugin.settings().debug)
-                Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
-            currenciesManager.getExchange().revertTransaction(targetUUID, transactionId).thenAccept(newId ->
-                    sender.sendMessage("§3Transaction reverted with #" + newId));
-            return true;
-        }
-        currenciesManager.getExchange().getTransaction(targetUUID, transactionId).thenAccept(transaction -> {
-            if (transaction == null) {
-                plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
+        try {
+            int transactionId = Integer.parseInt(args[1]);
 
-            } else {
-                currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
+            boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
+            UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
+            if (targetUUID == null) {
+                plugin.langs().send(sender, plugin.langs().playerNotFound);
+                return true;
             }
-        });
+            if (revertTransaction) {
+                if (plugin.settings().debug)
+                    Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
+                currenciesManager.getExchange().revertTransaction(targetUUID, transactionId).thenAccept(newId ->
+                        sender.sendMessage("§3Transaction reverted with #" + newId));
+                return true;
+            }
+            currenciesManager.getExchange().getTransaction(targetUUID, transactionId).thenAccept(transaction -> {
+                if (transaction == null) {
+                    plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
 
+                } else {
+                    currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
+                }
+            });
+        } catch (NumberFormatException e) {
+            plugin.langs().send(sender, plugin.langs().missingArguments);
+        }
         return true;
     }
 
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 2)
+            if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
             return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {

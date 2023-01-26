@@ -65,6 +65,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = currencies.get("vault");
+
         if (configManager.getSettings().migrationEnabled) {
             RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
             if (existentProvider == null) {
@@ -91,11 +92,14 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 return defaultCurrency;
             }).thenAccept((vaultCurrency) -> {
                 plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
+
                 configManager.getSettings().migrationEnabled = false;
                 configManager.saveConfigs();
             });
-        } else
+        } else{
             plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
+        }
+
     }
 
     @Override

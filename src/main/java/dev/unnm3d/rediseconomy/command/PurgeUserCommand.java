@@ -45,7 +45,7 @@ public class PurgeUserCommand implements CommandExecutor, TabCompleter {
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 2)
+            if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
             return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {

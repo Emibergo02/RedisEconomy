@@ -28,15 +28,16 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 1) {
             if (!args[0].equalsIgnoreCase("reload")) return true;
-            if (!sender.hasPermission("rediseconomy.admin")) return false;
+            if (!sender.hasPermission("rediseconomy.admin")) return true;
             String serverId = configManager.getSettings().serverId;
             configManager.loadConfigs();
             configManager.getSettings().serverId = serverId;
             sender.sendMessage("§aReloaded successfully " + configManager.getSettings().serverId + "!");
+            return true;
         }
         String langField = args[1];
 
-        if (!sender.hasPermission("rediseconomy.admin.editmessage")) return false;
+        if (!sender.hasPermission("rediseconomy.admin.editmessage")) return true;
 
 
         if (args[0].equalsIgnoreCase("savemessage")) {
@@ -58,7 +59,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 String fieldString = configManager.getLangs().getStringFromField(langField);
                 if (fieldString == null) {
                     configManager.getLangs().send(sender, configManager.getLangs().editMessageError);
-                    return false;
+                    return true;
                 }
                 adventureWebuiEditorAPI.startSession(fieldString, "/rediseconomy savemessage " + langField + " {token}", "RedisEconomy")
                         .thenAccept(token -> configManager.getLangs().send(sender, configManager.getLangs().editMessageClickHere.replace("%field%", langField).replace("%url%", adventureWebuiEditorAPI.getEditorUrl(token))));
