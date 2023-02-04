@@ -7,10 +7,14 @@ import lombok.AllArgsConstructor;
 import java.util.concurrent.CompletableFuture;
 
 @AllArgsConstructor
-public class RedisManager {
+public class RedisManager extends RedisAbstract{
 
     private final RedisClient lettuceRedisClient;
     private final int forcedTimeout;
+
+    public RedisManager(RedisClient lettuceRedisClient) {
+        super(lettuceRedisClient);
+    }
 
     public <R> R getConnection(RedisCallBack<R> redisCallBack) {
         StatefulRedisConnection<String, String> connection = lettuceRedisClient.connect();

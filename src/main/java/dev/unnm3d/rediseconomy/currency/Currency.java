@@ -26,10 +26,10 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
 @AllArgsConstructor
 public class Currency implements Economy {
-    private final CurrenciesManager currenciesManager;
+    protected final CurrenciesManager currenciesManager;
 
     @Getter
-    private final String currencyName;
+    protected final String currencyName;
     private final ConcurrentHashMap<UUID, Double> accounts;
     private boolean enabled;
     @Getter
@@ -90,9 +90,9 @@ public class Currency implements Economy {
                     }
                 }
             });
-            connection.async().subscribe(UPDATE_CHANNEL_PREFIX + currencyName);
+            connection.async().subscribe(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
             if (RedisEconomyPlugin.getInstance().settings().debug) {
-                Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_CHANNEL_PREFIX + currencyName);
+                Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
             }
         });
 
@@ -347,6 +347,8 @@ public class Currency implements Economy {
         return withdrawPlayer(playerUniqueId, playerName, amount, reason);
     }
 
+
+
     public EconomyResponse withdrawPlayer(@NotNull UUID playerUUID, @NotNull String playerName, double amount, @Nullable String reason) {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
@@ -488,7 +490,7 @@ public class Currency implements Economy {
                 connection.setAutoFlushCommands(false);
                 commands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
                 commands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                commands.publish(UPDATE_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
+                commands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
                     if (RedisEconomyPlugin.getInstance().settings().debug) {
                         Bukkit.getLogger().info("01 Sent update account " + playerName + " to " + balance);
                     }
