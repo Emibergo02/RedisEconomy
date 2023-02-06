@@ -2,6 +2,7 @@ name: RedisEconomy
 version: '${project.version}'
 main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
 author: Unnm3d
+load: STARTUP
 depend:
   - Vault
 libraries:

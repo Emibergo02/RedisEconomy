@@ -31,10 +31,14 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         Currency defaultCurrency = economy.getDefaultCurrency();
         long init = System.currentTimeMillis();
+
         if (args.length == 0) {
             selfBalancePlayer(sender, defaultCurrency);
-        } else if (args.length == 1) {
-            balancePlayer(sender, defaultCurrency, args);
+            return true;
+        }
+        String target = economy.getCaseSensitiveName(args[0]);
+        if (args.length == 1) {
+            balancePlayer(sender, defaultCurrency, target);
         } else if (args.length == 2) {
             if (!sender.hasPermission("rediseconomy.balance." + args[1])) {
                 plugin.langs().send(sender, plugin.langs().noPermission);
@@ -45,21 +49,21 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 plugin.langs().send(sender, plugin.langs().invalidCurrency);
                 return true;
             }
-            balancePlayer(sender, currency, args);
+            balancePlayer(sender, currency, target);
 
         } else if (args.length > 3) {
             if (!sender.hasPermission("rediseconomy.admin")) {
                 plugin.langs().send(sender, plugin.langs().noPermission);
                 return true;
             }
-            String target = args[0];
+
             Currency currency = economy.getCurrencyByName(args[1]);
             if (currency == null) {
                 plugin.langs().send(sender, plugin.langs().invalidCurrency);
                 return true;
             }
             double amount = plugin.langs().formatAmountString(args[3]);
-            if (amount <= 0) {
+            if (amount < 0) {
                 plugin.langs().send(sender, plugin.langs().invalidAmount);
                 return true;
             }
@@ -91,7 +95,7 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
 
     protected abstract void selfBalancePlayer(CommandSender sender, Currency currency);
 
-    protected abstract void balancePlayer(CommandSender sender, Currency currency, String[] args);
+    protected abstract void balancePlayer(CommandSender sender, Currency currency, String target);
 
     protected abstract void takePlayer(CommandSender sender, Currency currency, double amount, String target, String reasonOrCommand);
 

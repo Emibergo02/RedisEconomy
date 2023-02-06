@@ -9,26 +9,21 @@ public abstract class RedisCurrencyListener implements RedisPubSubListener<Strin
 
     @Override
     public void message(String pattern, String channel, String message) {
-
     }
 
     @Override
     public void subscribed(String channel, long count) {
-
     }
 
     @Override
     public void psubscribed(String pattern, long count) {
-
     }
 
     @Override
     public void unsubscribed(String channel, long count) {
-
     }
 
     @Override
     public void punsubscribed(String pattern, long count) {
-
     }
 }

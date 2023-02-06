@@ -8,6 +8,7 @@ public enum RedisKeys {
     BANK_OWNERS("rediseco:b_owners"),
     UPDATE_PLAYER_CHANNEL_PREFIX("rediseco:update_"),
     UPDATE_BANK_CHANNEL_PREFIX("rediseco:b_update_"),
+    UPDATE_BANK_OWNER_CHANNEL_PREFIX("rediseco:b_owner_update_"),
     MSG_CHANNEL("rediseco:paymsg"),
     NEW_TRANSACTIONS("rediseco:transactions:"),
     ;

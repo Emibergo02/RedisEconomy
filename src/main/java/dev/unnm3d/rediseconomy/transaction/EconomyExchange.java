@@ -14,9 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
@@ -26,24 +24,33 @@ public class EconomyExchange {
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
     private final CurrenciesManager currenciesManager;
 
-    public CompletableFuture<Map<Integer, Transaction>> getTransactions(UUID player) {
-        return currenciesManager.getRedisManager().getConnection(connection -> {
-            connection.setTimeout(Duration.ofMillis(1000));
-            return connection.async().hgetall(NEW_TRANSACTIONS + player.toString()).thenApply(this::getTransactionsFromSerialized).exceptionally(exc -> {
-                exc.printStackTrace();
-                return null;
-            }).toCompletableFuture();
-        });
+
+    public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId) {
+        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
+                connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
+                        .thenApply(this::getTransactionsFromSerialized)
+                        .thenApply(integerTransactionMap -> {
+                            if(RedisEconomyPlugin.getInstance().settings().debug){
+                                integerTransactionMap.forEach((integer, transaction) -> Bukkit.getLogger().info("getTransactions: " + integer + " " + transaction));
+                            }
+                            return integerTransactionMap;
+                        })
+                        .exceptionally(exc -> {
+                            exc.printStackTrace();
+                            return null;
+                        })
+        );
     }
 
-    public CompletableFuture<Transaction> getTransaction(UUID player, int id) {
-        return currenciesManager.getRedisManager().getConnection(connection -> {
-            connection.setTimeout(Duration.ofMillis(1000));
-            return connection.async().hget(NEW_TRANSACTIONS + player.toString(), String.valueOf(id)).thenApply(Transaction::fromString).exceptionally(exc -> {
-                exc.printStackTrace();
-                return null;
-            }).toCompletableFuture();
-        });
+
+    public CompletionStage<Transaction> getTransaction(AccountID accountId, int id) {
+        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
+                connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))
+                        .thenApply(Transaction::fromString)
+                        .exceptionally(exc -> {
+                            exc.printStackTrace();
+                            return null;
+                        }));
     }
 
     /**
@@ -61,17 +68,17 @@ public class EconomyExchange {
         long init = System.currentTimeMillis();
 
         Transaction transactionSender = new Transaction(
-                sender,
+                new AccountID(sender),
                 System.currentTimeMillis(),
-                target,
+                new AccountID(target),
                 -amount,
                 currency.getCurrencyName(),
                 reason,
                 null);
         Transaction transactionReceiver = new Transaction(
-                target,
+                new AccountID(target),
                 System.currentTimeMillis(),
-                sender,
+                new AccountID(sender),
                 amount,
                 currency.getCurrencyName(),
                 reason,
@@ -101,23 +108,25 @@ public class EconomyExchange {
         });
     }
 
+
     /**
      * Saves a transaction
      *
-     * @param accountOwner The owner of the account
-     * @param target       Who transferred the money to the account owner. If it is the server the uuid will be UUID.fromString("00000000-0000-0000-0000-000000000000")
+     * @param accountOwner The id of the account, could be a UUID or a bank id (string)
+     * @param target       The id of the target account, could be a UUID or a bank id (string)
      * @param amount       The amount of money transferred
      * @param currencyName The name of the currency
      * @param reason       The reason of the transaction
      * @return The transaction id
      */
-    public CompletionStage<Integer> saveTransaction(UUID accountOwner, UUID target, double amount, String currencyName, String reason) {
+    public CompletionStage<Integer> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull String currencyName, @NotNull String reason) {
         long init = System.currentTimeMillis();
-        return currenciesManager.getRedisManager().getConnection(connection -> {                                               //Get connection
-                    RedisAsyncCommands<String, String> commands = connection.async();
+        return currenciesManager.getRedisManager().getConnectionAsync(commands -> {
 
-                    Transaction transaction = new Transaction(accountOwner, System.currentTimeMillis(),
-                            target == null ? UUID.fromString("00000000-0000-0000-0000-000000000000") : target, //If target is null, it has been sent from the server
+                    Transaction transaction = new Transaction(
+                            accountOwner,
+                            System.currentTimeMillis(),
+                            target, //If target is null, it has been sent from the server
                             amount, currencyName, reason, null);
 
                     return commands.eval(
@@ -139,37 +148,42 @@ public class EconomyExchange {
         );
     }
 
-    public CompletionStage<Integer> revertTransaction(UUID accountOwner, int transactionId) {
-        return getTransaction(accountOwner, transactionId).thenApply(transaction -> {//get current transaction on Redis
-            if (transaction == null) return null;
-            Currency currency = currenciesManager.getCurrencyByName(transaction.currencyName);
-            if (currency == null) {
-                return null;
-            }
-            if (transaction.revertedWith != null) {
-                //already cancelled
-                if (RedisEconomyPlugin.getInstance().settings().debug) {
-                    Bukkit.getLogger().info("revert01b Transaction " + transactionId + " already reverted with " + transaction.revertedWith);
-                }
-                return Integer.valueOf(transaction.revertedWith);
-            }
-
-            return currency.revertTransaction(transactionId, transaction).thenApply(newId -> {
-                if (newId != null) {
-                    transaction.revertedWith = String.valueOf(newId);
-                    //replace transaction on Redis
-                    boolean result = currenciesManager.getRedisManager().getConnection(connection ->
-                            connection.sync().hset(
-                                    NEW_TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID
-                                    String.valueOf(transactionId), //Previous transaction id
-                                    transaction.toString())); //New replaced transaction
-                    if (RedisEconomyPlugin.getInstance().settings().debug) {
-                        Bukkit.getLogger().info("revert02 Replace transaction " + transactionId + " with a new revertedWith id on Redis: " + result);
+    public CompletionStage<Integer> revertTransaction(AccountID accountOwner, int transactionId) {
+        return getTransaction(accountOwner, transactionId)
+                .thenApply(transaction -> {//get current transaction on Redis
+                    if (transaction == null) return -1;
+                    Currency currency = currenciesManager.getCurrencyByName(transaction.currencyName);
+                    if (currency == null) {
+                        return -1;
                     }
-                }
-                return newId;
-            }).join();
-        });
+                    if (transaction.revertedWith != null) {
+                        //already cancelled
+                        if (RedisEconomyPlugin.getInstance().settings().debug) {
+                            Bukkit.getLogger().info("revert01b Transaction " + transactionId + " already reverted with " + transaction.revertedWith);
+                        }
+                        return Integer.valueOf(transaction.revertedWith);
+                    }
+
+                    return currency.revertTransaction(transactionId, transaction)
+                            .thenApply(newId -> {
+                                if (newId != null) {
+                                    transaction.revertedWith = String.valueOf(newId);
+                                    //replace transaction on Redis
+                                    currenciesManager.getRedisManager().getConnectionAsync(connection ->
+                                            connection.hset(NEW_TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID
+                                                            String.valueOf(transactionId), //Previous transaction id
+                                                            transaction.toString())
+                                                    .thenApply(result2 -> {
+                                                        if (RedisEconomyPlugin.getInstance().settings().debug) {
+                                                            Bukkit.getLogger().info("revert02 Replace transaction " + transactionId + " with a new revertedWith id on Redis: " + result2);
+                                                        }
+                                                        return result2;
+                                                    }));
+
+                                }
+                                return newId;
+                            }).toCompletableFuture().join();
+                });
     }
 
 
@@ -188,8 +202,12 @@ public class EconomyExchange {
     }
 
     public void sendTransaction(CommandSender sender, int transactionId, Transaction transaction, String timestampArgument) {
-        String accountOwnerName = currenciesManager.getUsernameFromUUIDCache(transaction.sender);
-        String otherAccount = transaction.receiver.equals(UUID.fromString("00000000-0000-0000-0000-000000000000")) ? "Server" : currenciesManager.getUsernameFromUUIDCache(transaction.receiver);
+        String accountOwnerName = transaction.accountIdentifier.isPlayer() ?//If the sender is a player
+                currenciesManager.getUsernameFromUUIDCache(transaction.accountIdentifier.getUUID()) : //Get the username from the cache (with server uuid translation)
+                transaction.accountIdentifier.toString(); //Else, it's a bank, so we get the bank id
+        String otherAccount = transaction.receiver.isPlayer() ?
+                currenciesManager.getUsernameFromUUIDCache(transaction.receiver.getUUID()) :
+                transaction.receiver.toString();
         Currency currency = currenciesManager.getCurrencyByName(transaction.currencyName);
 
         String transactionMessage = RedisEconomyPlugin.getInstance().langs().transactionItem.incomingFunds();

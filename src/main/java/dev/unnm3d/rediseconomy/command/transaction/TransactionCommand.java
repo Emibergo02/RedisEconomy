@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.command.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.transaction.AccountID;
 import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -29,26 +30,29 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
             int transactionId = Integer.parseInt(args[1]);
 
             boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
+
             UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
-            if (targetUUID == null) {
-                plugin.langs().send(sender, plugin.langs().playerNotFound);
-                return true;
-            }
+            AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
             if (revertTransaction) {
                 if (plugin.settings().debug)
                     Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
-                currenciesManager.getExchange().revertTransaction(targetUUID, transactionId).thenAccept(newId ->
-                        sender.sendMessage("§3Transaction reverted with #" + newId));
+                currenciesManager.getExchange().revertTransaction(accountID, transactionId)
+                        .thenAccept(newId -> {
+                            sender.sendMessage("§3Transaction reverted with #" + newId);
+                            if (newId == -1)
+                                sender.sendMessage("§3Transaction reverted with §cFAIL");
+                        });
                 return true;
             }
-            currenciesManager.getExchange().getTransaction(targetUUID, transactionId).thenAccept(transaction -> {
-                if (transaction == null) {
-                    plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
+            currenciesManager.getExchange().getTransaction(accountID, transactionId)
+                    .thenAccept(transaction -> {
+                        if (transaction == null) {
+                            plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
 
-                } else {
-                    currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
-                }
-            });
+                        } else {
+                            currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
+                        }
+                    });
         } catch (NumberFormatException e) {
             plugin.langs().send(sender, plugin.langs().missingArguments);
         }

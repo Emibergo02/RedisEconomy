@@ -14,8 +14,7 @@ public class BalanceSubCommands extends BalanceCommand {
     }
 
     @Override
-    protected void balancePlayer(CommandSender sender, Currency currency, String[] args) {
-        String target = args[0];
+    protected void balancePlayer(CommandSender sender, Currency currency, String target) {
         if (!currency.hasAccount(target)) {
             plugin.langs().send(sender, plugin.langs().playerNotFound);
             return;

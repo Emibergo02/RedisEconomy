@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.command.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.transaction.AccountID;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -26,12 +27,9 @@ public class BrowseTransactionsCommand implements CommandExecutor, TabCompleter 
         }
         String target = args[0];
         UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
-        if (targetUUID == null) {
-            plugin.langs().send(sender, plugin.langs().playerNotFound);
-            return true;
-        }
+        AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
 
-        currenciesManager.getExchange().getTransactions(targetUUID).thenAccept(transactions -> {
+        currenciesManager.getExchange().getTransactions(accountID).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
             if (transactions.size() == 0) {
                 plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));

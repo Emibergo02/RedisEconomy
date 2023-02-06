@@ -1,11 +1,11 @@
 package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
@@ -15,7 +15,6 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -62,41 +61,43 @@ public class Currency implements Economy {
         this.startingBalance = startingBalance;
         this.transactionTax = transactionTax;
         this.accounts = new ConcurrentHashMap<>();
-        getOrderedAccountsSync().forEach(t -> accounts.put(UUID.fromString(t.getValue()), t.getScore()));
-        if (RedisEconomyPlugin.getInstance().settings().debug && accounts.size() > 0) {
-            Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
-        }
+        getOrderedAccounts().thenApply(result -> {
+                    result.forEach(t ->
+                            accounts.put(UUID.fromString(t.getValue()), t.getScore()));
+                    if (RedisEconomyPlugin.getInstance().settings().debug && accounts.size() > 0) {
+                        Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
+                    }
+                    return result;
+                }
+        ).toCompletableFuture().join(); //Wait to avoid API calls before accounts are loaded
         registerUpdateListener();
     }
 
 
     private void registerUpdateListener() {
-        currenciesManager.getRedisManager().getPubSubConnection(connection -> {
-            connection.addListener(new RedisCurrencyListener() {
-                @Override
-                public void message(String channel, String message) {
-                    String[] split = message.split(";;");
-                    if (split.length != 4) {
-                        Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
-                        return;
-                    }
-                    if (split[0].equals(RedisEconomyPlugin.getInstance().settings().serverId)) return;
-                    UUID uuid = UUID.fromString(split[1]);
-                    String playerName = split[2];
-                    double balance = Double.parseDouble(split[3]);
-                    updateAccountLocal(uuid, playerName, balance);
-                    if (RedisEconomyPlugin.getInstance().settings().debug) {
-                        Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
-                    }
+        StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
+        connection.addListener(new RedisCurrencyListener() {
+            @Override
+            public void message(String channel, String message) {
+                String[] split = message.split(";;");
+                if (split.length != 4) {
+                    Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
+                    return;
                 }
-            });
-            connection.async().subscribe(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
-            if (RedisEconomyPlugin.getInstance().settings().debug) {
-                Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
+                if (split[0].equals(RedisEconomyPlugin.getInstance().settings().serverId)) return;
+                UUID uuid = UUID.fromString(split[1]);
+                String playerName = split[2];
+                double balance = Double.parseDouble(split[3]);
+                updateAccountLocal(uuid, playerName, balance);
+                if (RedisEconomyPlugin.getInstance().settings().debug) {
+                    Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
+                }
             }
         });
-
-
+        connection.async().subscribe(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
+        if (RedisEconomyPlugin.getInstance().settings().debug) {
+            Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
+        }
     }
 
     @Override
@@ -348,7 +349,6 @@ public class Currency implements Economy {
     }
 
 
-
     public EconomyResponse withdrawPlayer(@NotNull UUID playerUUID, @NotNull String playerName, double amount, @Nullable String reason) {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
@@ -356,7 +356,7 @@ public class Currency implements Economy {
         if (!has(playerUUID, amountToWithdraw))
             return new EconomyResponse(0, getBalance(playerUUID), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
         updateAccount(playerUUID, playerName, getBalance(playerUUID) - amountToWithdraw);
-        currenciesManager.getExchange().saveTransaction(playerUUID, null, -amountToWithdraw, currencyName, reason == null ? "Withdraw" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -amountToWithdraw, currencyName, reason == null ? "Withdraw" : reason);
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -374,9 +374,9 @@ public class Currency implements Economy {
             return new EconomyResponse(0, getBalance(sender), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
 
         updateAccount(sender, senderName, getBalance(sender) - amountToWithdraw);
-        currenciesManager.getExchange().saveTransaction(sender, receiver, -amountToWithdraw, currencyName, reason == null ? "Payment" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(sender), new AccountID(receiver), -amountToWithdraw, currencyName, reason == null ? "Payment" : reason);
         updateAccount(sender, receiverName, getBalance(receiver) + amount);
-        currenciesManager.getExchange().saveTransaction(receiver, sender, amount, currencyName, reason == null ? "Payment" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(receiver), new AccountID(sender), amount, currencyName, reason == null ? "Payment" : reason);
 
         return new EconomyResponse(amount, getBalance(sender), EconomyResponse.ResponseType.SUCCESS, null);
     }
@@ -420,27 +420,31 @@ public class Currency implements Economy {
      * @return The result of the operation
      */
     public EconomyResponse setPlayerBalance(@NotNull UUID playerUUID, @NotNull String playerName, double amount) {
-        currenciesManager.getExchange().saveTransaction(playerUUID, null, -getBalance(playerUUID), currencyName, "Reset balance");
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -getBalance(playerUUID), currencyName, "Reset balance");
         updateAccount(playerUUID, playerName, amount);
-        currenciesManager.getExchange().saveTransaction(playerUUID, null, amount, currencyName, "Set balance");
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, currencyName, "Set balance");
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
     /**
-     * Reverse a transaction
+     * Revert a transaction
      *
      * @param transactionId The transaction id
      * @param transaction   The transaction to revert
      * @return The transaction id that reverted the initial transaction
      */
-    public CompletableFuture<Integer> revertTransaction(int transactionId, @NotNull Transaction transaction) {
-        String playerName = currenciesManager.getUsernameFromUUIDCache(transaction.sender);
-        playerName = playerName == null ? transaction.sender + "-Unknown" : playerName;
-        updateAccount(transaction.sender, playerName, getBalance(transaction.sender) - transaction.amount);
-        if (RedisEconomyPlugin.getInstance().settings().debug) {
-            Bukkit.getLogger().info("revert01a reverted on account " + transaction.sender + " amount " + transaction.amount);
+    public CompletionStage<Integer> revertTransaction(int transactionId, @NotNull Transaction transaction) {
+        String ownerName = transaction.accountIdentifier.isPlayer() ?//If the sender is a player
+                currenciesManager.getUsernameFromUUIDCache(transaction.accountIdentifier.getUUID()) : //Get the username from the cache (with server uuid translation)
+                transaction.accountIdentifier.toString(); //Else, it's a bank, so we get the bank id
+        if (transaction.accountIdentifier.isPlayer()) {
+            ownerName = ownerName == null ? transaction.accountIdentifier + "-Unknown" : ownerName;
+            updateAccount(transaction.accountIdentifier.getUUID(), ownerName, getBalance(transaction.accountIdentifier.getUUID()) - transaction.amount);
         }
-        return currenciesManager.getExchange().saveTransaction(transaction.sender, transaction.receiver, -transaction.amount, currencyName, "Revert #" + transactionId + ": " + transaction.reason).toCompletableFuture();
+        if (RedisEconomyPlugin.getInstance().settings().debug) {
+            Bukkit.getLogger().info("revert01a reverted on account " + transaction.accountIdentifier + " amount " + transaction.amount);
+        }
+        return currenciesManager.getExchange().saveTransaction(transaction.accountIdentifier, transaction.receiver, -transaction.amount, currencyName, "Revert #" + transactionId + ": " + transaction.reason);
     }
 
     /**
@@ -468,7 +472,7 @@ public class Currency implements Economy {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         updateAccount(playerUUID, playerName, getBalance(playerUUID) + amount);
-        currenciesManager.getExchange().saveTransaction(playerUUID, null, amount, currencyName, reason == null ? "Deposit" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, currencyName, reason == null ? "Deposit" : reason);
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -477,17 +481,14 @@ public class Currency implements Economy {
         accounts.put(uuid, balance);
     }
 
-    private void updateAccount(@NotNull UUID uuid, @NotNull String playerName, double balance) {
+    protected void updateAccount(@NotNull UUID uuid, @NotNull String playerName, double balance) {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
     }
 
     private void updateAccountCloudCache(@NotNull UUID uuid, @NotNull String playerName, double balance, int tries) {
         try {
-            currenciesManager.getRedisManager().getConnection(connection -> {
-                connection.setTimeout(Duration.ofMillis(300));
-                RedisAsyncCommands<String, String> commands = connection.async();
-                connection.setAutoFlushCommands(false);
+            currenciesManager.getRedisManager().getConnectionPipeline(commands -> {
                 commands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
                 commands.hset(NAME_UUID.toString(), playerName, uuid.toString());
                 commands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
@@ -495,7 +496,6 @@ public class Currency implements Economy {
                         Bukkit.getLogger().info("01 Sent update account " + playerName + " to " + balance);
                     }
                 });
-                connection.flushCommands();
                 return null;
             });
 
@@ -521,23 +521,20 @@ public class Currency implements Economy {
      */
     @SuppressWarnings("unchecked")
     public void updateBulkAccountsCloudCache(@NotNull List<ScoredValue<String>> balances, @NotNull Map<String, String> nameUUIDs) {
-        StatefulRedisConnection<String, String> connection = currenciesManager.getRedisManager().getUnclosedConnection();
-        RedisAsyncCommands<String, String> commands = connection.async();
-        connection.setAutoFlushCommands(false);
-        ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
-        balances.toArray(balancesArray);
+        currenciesManager.getRedisManager().getConnectionPipeline(commands -> {
+            ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
+            balances.toArray(balancesArray);
 
-        RedisFuture<Long> sortedAddFuture = commands.zadd(BALANCE_PREFIX + currencyName, balancesArray);
-        RedisFuture<Long> hstFuture = commands.hset(NAME_UUID.toString(), nameUUIDs);
-
-        connection.flushCommands();
-        try {
-            Bukkit.getLogger().info("migration01 updated balances into " + BALANCE_PREFIX + currencyName + " accounts. result " + sortedAddFuture.get(20, TimeUnit.SECONDS));
-            Bukkit.getLogger().info("migration02 updated nameuuids into " + NAME_UUID + " accounts. result " + hstFuture.get(20, TimeUnit.SECONDS));
-            connection.close();
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            e.printStackTrace();
-        }
+            RedisFuture<Long> sortedAddFuture = commands.zadd(BALANCE_PREFIX + currencyName, balancesArray);
+            RedisFuture<Long> hstFuture = commands.hset(NAME_UUID.toString(), nameUUIDs);
+            try {
+                Bukkit.getLogger().info("migration01 updated balances into " + BALANCE_PREFIX + currencyName + " accounts. result " + sortedAddFuture.get(20, TimeUnit.SECONDS));
+                Bukkit.getLogger().info("migration02 updated nameuuids into " + NAME_UUID + " accounts. result " + hstFuture.get(20, TimeUnit.SECONDS));
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                e.printStackTrace();
+            }
+            return null;
+        });
     }
 
     /**
@@ -548,11 +545,9 @@ public class Currency implements Economy {
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
     public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts() {
-        return CompletableFuture.supplyAsync(this::getOrderedAccountsSync);
-    }
+        return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
+                accounts.zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, -1));
 
-    private List<ScoredValue<String>> getOrderedAccountsSync() {
-        return currenciesManager.getRedisManager().getConnection(connection -> connection.sync().zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, -1));
     }
 
     /**
@@ -561,8 +556,8 @@ public class Currency implements Economy {
      * @param uuid The UUID of the account
      * @return The balance associated with the UUID on Redis
      */
-    public CompletableFuture<Double> getAccountRedis(UUID uuid) {
-        return currenciesManager.getRedisManager().getConnection(connection -> connection.async().zscore(BALANCE_PREFIX + currencyName, uuid.toString()).toCompletableFuture());
+    public CompletionStage<Double> getAccountRedis(UUID uuid) {
+        return currenciesManager.getRedisManager().getConnectionAsync(connection -> connection.zscore(BALANCE_PREFIX + currencyName, uuid.toString()));
     }
 
     /**

@@ -109,9 +109,10 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     private boolean setupRedis() {
         try {
-            this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri), configManager.getSettings().redisConnectionTimeout);
+            this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri));
             getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
-            return redisManager.isConnected();
+            redisManager.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
+            return true;
         } catch (Exception e) {
             return false;
         }

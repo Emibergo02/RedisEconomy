@@ -1,6 +1,7 @@
 package dev.unnm3d.rediseconomy.api;
 
 import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +21,13 @@ public abstract class RedisEconomyAPI {
     public static @Nullable RedisEconomyAPI getAPI() {
         return INSTANCE;
     }
+
+    /**
+     * Get transaction manager
+     *
+     * @return the EconomyExchange instance
+     */
+    public abstract @NotNull EconomyExchange getExchange();
 
     /**
      * Get all the currencies
@@ -49,6 +57,14 @@ public abstract class RedisEconomyAPI {
      * @return the default currency
      */
     public abstract @NotNull Currency getDefaultCurrency();
+
+    /**
+     * Get a playerName by its case-insensitive name
+     *
+     * @param caseInsensitiveName the case-insensitive name of the player
+     * @return the case-sensitive name of the player
+     */
+    public abstract @NotNull String getCaseSensitiveName(@NotNull String caseInsensitiveName);
 
     /**
      * Get a currency by its symbol

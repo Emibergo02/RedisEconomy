@@ -3,7 +3,6 @@ package dev.unnm3d.rediseconomy.command;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
-import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
@@ -37,7 +36,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length == 2) {
-            payDefaultCurrency(p, currenciesManager.getDefaultCurrency(), args);
+            payCurrency(p, currenciesManager.getDefaultCurrency(), args);
         } else {
             if (!sender.hasPermission("rediseconomy.pay." + args[2]))
                 plugin.langs().send(sender, plugin.langs().noPermission);
@@ -46,14 +45,14 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                 plugin.langs().send(sender, plugin.langs().invalidCurrency);
                 return true;
             }
-            payDefaultCurrency(p, currency, args);
+            payCurrency(p, currency, args);
         }
 
 
         return true;
     }
 
-    private void payDefaultCurrency(Player sender, Currency currency, String[] args) {
+    private void payCurrency(Player sender, Currency currency, String[] args) {
         if (!sender.hasPermission("rediseconomy.pay")) {
             plugin.langs().send(sender, plugin.langs().noPermission);
             return;
@@ -94,8 +93,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                         .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
         );
         //Send msg to target
-        currenciesManager.getRedisManager().getConnection(connection -> {
-            RedisAsyncCommands<String, String> commands = connection.async();
+        currenciesManager.getRedisManager().getConnectionAsync(commands -> {
             commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + target + ";;" + currency.format(amount));
             if (plugin.settings().debug) {
                 Bukkit.getLogger().info("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
@@ -105,8 +103,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             if (args.length >= 4) {
                 reason = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
             }
-            currenciesManager.getExchange().savePaymentTransaction(commands, sender.getUniqueId(), targetUUID, amount, currency, reason);
-            return null;
+            return currenciesManager.getExchange().savePaymentTransaction(commands, sender.getUniqueId(), targetUUID, amount, currency, reason);
         });
 
     }
