@@ -19,7 +19,7 @@ Add the dependency and replace `<version>...</version>` with the latest release 
   <scope>provided</scope>
 </dependency>
 ```
-### Docs
+### API JavaDocs
 https://emibergo02.github.io/RedisEconomy/index.html
 
 ### Gradle
