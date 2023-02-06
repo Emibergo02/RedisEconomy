@@ -32,6 +32,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     //private EzRedisMessenger ezRedisMessenger;
     @Getter
     private ConfigManager configManager;
+    @Getter
     private CurrenciesManager currenciesManager;
     private RedisManager redisManager;
 
@@ -81,9 +82,9 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
         loadCommand("balance", balanceCommand, balanceCommand);
         Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager, this));
-        TransactionCommand transactionCommand = new TransactionCommand(currenciesManager, this);
+        TransactionCommand transactionCommand = new TransactionCommand(this);
         loadCommand("transaction", transactionCommand, transactionCommand);
-        BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(currenciesManager, this);
+        BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(this);
         loadCommand("browse-transactions", browseTransactionsCommand, browseTransactionsCommand);
         PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager, this);
         loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);

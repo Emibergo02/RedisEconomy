@@ -1,9 +1,7 @@
 package dev.unnm3d.rediseconomy.command.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
-import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -14,10 +12,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-@AllArgsConstructor
-public class TransactionCommand implements CommandExecutor, TabCompleter {
-    private final CurrenciesManager currenciesManager;
-    private final RedisEconomyPlugin plugin;
+
+public class TransactionCommand extends TransactionCommandAbstract implements CommandExecutor, TabCompleter {
+
+
+    public TransactionCommand(RedisEconomyPlugin plugin) {
+        super(plugin);
+    }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -31,12 +32,12 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
 
             boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
 
-            UUID targetUUID = currenciesManager.getUUIDFromUsernameCache(target);
+            UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
             AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
             if (revertTransaction) {
                 if (plugin.settings().debug)
                     Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
-                currenciesManager.getExchange().revertTransaction(accountID, transactionId)
+                plugin.getCurrenciesManager().getExchange().revertTransaction(accountID, transactionId)
                         .thenAccept(newId -> {
                             sender.sendMessage("§3Transaction reverted with #" + newId);
                             if (newId == -1)
@@ -44,13 +45,13 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
                         });
                 return true;
             }
-            currenciesManager.getExchange().getTransaction(accountID, transactionId)
+            plugin.getCurrenciesManager().getExchange().getTransaction(accountID, transactionId)
                     .thenAccept(transaction -> {
                         if (transaction == null) {
                             plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
 
                         } else {
-                            currenciesManager.getExchange().sendTransaction(sender, transactionId, transaction);
+                            sendTransaction(sender, transactionId, transaction);
                         }
                     });
         } catch (NumberFormatException e) {
@@ -64,7 +65,7 @@ public class TransactionCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
-            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
             if (args[1].trim().equals(""))
                 return List.of("numeric_id");

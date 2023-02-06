@@ -8,12 +8,9 @@ import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CompletionStage;
 
@@ -21,10 +18,14 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
 
 @AllArgsConstructor
 public class EconomyExchange {
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
+
     private final CurrenciesManager currenciesManager;
 
-
+    /**
+     * Get transactions from an account id
+     * @param accountId Account id
+     * @return Map of transaction ids and transactions
+     */
     public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId) {
         return currenciesManager.getRedisManager().getConnectionAsync(connection ->
                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
@@ -42,7 +43,12 @@ public class EconomyExchange {
         );
     }
 
-
+    /**
+     * Get transactions from an account id and transaction id
+     * @param accountId Account id
+     * @param id Transaction id
+     * @return Transaction
+     */
     public CompletionStage<Transaction> getTransaction(AccountID accountId, int id) {
         return currenciesManager.getRedisManager().getConnectionAsync(connection ->
                 connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))
@@ -148,6 +154,12 @@ public class EconomyExchange {
         );
     }
 
+    /**
+     * Revert a transaction creating a new transaction with the opposite amount
+     * @param accountOwner The id of the account
+     * @param transactionId The id of the transaction to revert
+     * @return The id of the new transaction that reverts the old one or the id of the already existing transaction that reverts the old one
+     */
     public CompletionStage<Integer> revertTransaction(AccountID accountOwner, int transactionId) {
         return getTransaction(accountOwner, transactionId)
                 .thenApply(transaction -> {//get current transaction on Redis
@@ -201,45 +213,13 @@ public class EconomyExchange {
         return transactions;
     }
 
-    public void sendTransaction(CommandSender sender, int transactionId, Transaction transaction, String timestampArgument) {
-        String accountOwnerName = transaction.accountIdentifier.isPlayer() ?//If the sender is a player
-                currenciesManager.getUsernameFromUUIDCache(transaction.accountIdentifier.getUUID()) : //Get the username from the cache (with server uuid translation)
-                transaction.accountIdentifier.toString(); //Else, it's a bank, so we get the bank id
-        String otherAccount = transaction.receiver.isPlayer() ?
-                currenciesManager.getUsernameFromUUIDCache(transaction.receiver.getUUID()) :
-                transaction.receiver.toString();
-        Currency currency = currenciesManager.getCurrencyByName(transaction.currencyName);
 
-        String transactionMessage = RedisEconomyPlugin.getInstance().langs().transactionItem.incomingFunds();
-        if (transaction.amount < 0) {
-            transactionMessage = RedisEconomyPlugin.getInstance().langs().transactionItem.outgoingFunds();
-        }
-        transactionMessage = transactionMessage
-                .replace("%id%", transactionId + "")
-                .replace("%amount%", String.valueOf(transaction.amount))
-                .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
-                .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
-                .replace("%other-account%", otherAccount == null ? "Unknown" : otherAccount)
-                .replace("%timestamp%", convertTimeWithLocalTimeZome(transaction.timestamp))
-                .replace("%reason%", transaction.reason);
-        if (timestampArgument != null)
-            transactionMessage = transactionMessage.replace("%afterbefore%", timestampArgument);
-        RedisEconomyPlugin.getInstance().langs().send(sender, transactionMessage);
-    }
 
-    public void sendTransaction(CommandSender sender, int transactionId, Transaction transaction) {
-        sendTransaction(sender, transactionId, transaction, null);
-    }
 
-    public String convertTimeWithLocalTimeZome(long time) {
-        Date date = new Date(time);
-        dateFormat.setTimeZone(TimeZone.getDefault());
-        return dateFormat.format(date);
-    }
 
-    public Date formatDate(String fromString) throws ParseException {
-        return dateFormat.parse(fromString);
-    }
+
+
+
 
 
 }
