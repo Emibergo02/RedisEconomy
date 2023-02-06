@@ -9,8 +9,6 @@ Add this repository to your `pom.xml`:
   <url>https://jitpack.io</url>
 </repository>  
 ```
-### Docs
-https://emibergo02.github.io/RedisEconomy/index.html
 
 Add the dependency and replace `<version>...</version>` with the latest release version:
 ```xml
@@ -21,6 +19,8 @@ Add the dependency and replace `<version>...</version>` with the latest release 
   <scope>provided</scope>
 </dependency>
 ```
+### Docs
+https://emibergo02.github.io/RedisEconomy/index.html
 
 ### Gradle
 Add it in your root `build.gradle` at the end of repositories:
