@@ -3,9 +3,7 @@ package dev.unnm3d.rediseconomy.transaction;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
-import io.lettuce.core.RedisFuture;
 import io.lettuce.core.ScriptOutputType;
-import io.lettuce.core.api.async.RedisAsyncCommands;
 import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
@@ -62,7 +60,6 @@ public class EconomyExchange {
     /**
      * Save payment transaction
      *
-     * @param client   Redis client async commands
      * @param sender   Sender of the transaction
      * @param target   Target of the transaction
      * @param amount   Amount of the transaction
@@ -70,7 +67,7 @@ public class EconomyExchange {
      * @param reason   Reason of the transaction
      * @return List of ids: the first one is the id of the transaction on the sender side, the second one is the id of the transaction on the target side
      */
-    public CompletionStage<List<Integer>> savePaymentTransaction(@NotNull RedisAsyncCommands<String, String> client, @NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
+    public CompletionStage<List<Integer>> savePaymentTransaction(@NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
         long init = System.currentTimeMillis();
 
         Transaction transactionSender = new Transaction(
@@ -90,28 +87,29 @@ public class EconomyExchange {
                 reason,
                 null);
 
-        RedisFuture<List<Integer>> evalResult = client.eval(
-                "local senderCurrentId=redis.call('hlen', KEYS[1]);" +
-                        "local receiverCurrentId=redis.call('hlen', KEYS[2]);" +
-                        "redis.call('hset', KEYS[1], senderCurrentId, ARGV[1]);" +
-                        "redis.call('hset', KEYS[2], receiverCurrentId, ARGV[2]);" +
-                        "return {senderCurrentId,receiverCurrentId};", //Return the id of the new transaction
-                ScriptOutputType.MULTI,
-                new String[]{
-                        NEW_TRANSACTIONS + sender.toString(),
-                        NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
-                transactionSender.toString(),
-                transactionReceiver.toString());
-        return evalResult.thenApply(response -> {
-            if (RedisEconomyPlugin.getInstance().settings().debug) {
-                Bukkit.getLogger().info("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
-                Bukkit.getLogger().info("03payment Transaction for " + target + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(1) + " !");
-            }
-            return response;
-        }).exceptionally(throwable -> {
-            throwable.printStackTrace();
-            return null;
-        });
+        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
+                        connection.<List<Integer>>eval(
+                                "local senderCurrentId=redis.call('hlen', KEYS[1]);" +
+                                        "local receiverCurrentId=redis.call('hlen', KEYS[2]);" +
+                                        "redis.call('hset', KEYS[1], senderCurrentId, ARGV[1]);" +
+                                        "redis.call('hset', KEYS[2], receiverCurrentId, ARGV[2]);" +
+                                        "return {senderCurrentId,receiverCurrentId};", //Return the id of the new transaction
+                                ScriptOutputType.MULTI,
+                                new String[]{
+                                        NEW_TRANSACTIONS + sender.toString(),
+                                        NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
+                                transactionSender.toString(),
+                                transactionReceiver.toString()))
+                .thenApply(response -> {
+                    if (RedisEconomyPlugin.getInstance().settings().debug) {
+                        Bukkit.getLogger().info("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
+                        Bukkit.getLogger().info("03payment Transaction for " + target + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(1) + " !");
+                    }
+                    return response;
+                }).exceptionally(throwable -> {
+                    throwable.printStackTrace();
+                    return null;
+                });
     }
 
 

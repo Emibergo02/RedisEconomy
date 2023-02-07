@@ -21,9 +21,7 @@ public class Settings {
     public boolean migrationEnabled = false;
     @Comment("redis[s]://[password@]host[:port][/database][?option=value]")
     public String redisUri = "redis://localhost:6379/0?timeout=20s&clientName=RedisEconomy";
-    @Comment("Redis connections forced timeout")
-    public int redisConnectionTimeout = 3000;
-    @Comment("How many chars are needed for a command autocompletion")
+    @Comment({"How many chars are needed for a command autocompletion","Increase if you have a lot of players to list"})
     public int tab_complete_chars = 0;
     @Comment("Currencies")
     public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", 0, 0, true), new CurrencySettings("dollar", "$", "$", 0, 0, false));

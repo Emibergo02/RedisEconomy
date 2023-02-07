@@ -103,7 +103,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             if (args.length >= 4) {
                 reason = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
             }
-            return currenciesManager.getExchange().savePaymentTransaction(commands, sender.getUniqueId(), targetUUID, amount, currency, reason);
+            return currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), targetUUID, amount, currency, reason);
         });
 
     }
