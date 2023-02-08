@@ -139,6 +139,13 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         nameUniqueIds.put(name, uuid);
     }
 
+    /**
+     * Removes all players with the given name pattern
+     *
+     * @param namePattern  the pattern to match
+     * @param resetBalance if true, the balance of the removed players will be set to 0
+     * @return a map of removed players Name-UUID
+     */
     public HashMap<String, UUID> removeNamePattern(String namePattern, boolean resetBalance) {
         HashMap<String, UUID> removed = new HashMap<>();
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
@@ -268,7 +275,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     /**
      * Switches the currency accounts of two currencies
-     * @param currency The currency to switch
+     *
+     * @param currency    The currency to switch
      * @param newCurrency The new currency to switch to
      */
     public void switchCurrency(Currency currency, Currency newCurrency) {

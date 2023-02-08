@@ -50,9 +50,9 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     @Override
-    public void onEnable() {
+    public void onLoad() {
         instance = this;
-        configManager = new ConfigManager(this);
+        this.configManager = new ConfigManager(this);
 
         if (!setupRedis()) {
             this.getLogger().severe("Disabling: redis server unreachable!");
@@ -66,10 +66,14 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         if (!setupEconomy()) { //creates currenciesManager and exchange
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
-            return;
         } else {
             this.getLogger().info("Hooked into Vault!");
         }
+    }
+
+    @Override
+    public void onEnable() {
+        this.configManager.postStartupLoad();
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new PlaceholderAPIHook(currenciesManager, configManager.getLangs()).register();
@@ -92,7 +96,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
         BackupRestoreCommand backupRestoreCommand = new BackupRestoreCommand(currenciesManager, this);
         loadCommand("backup-economy", backupRestoreCommand, backupRestoreCommand);
-        MainCommand mainCommand = new MainCommand(configManager, new AdventureWebuiEditorAPI());
+        MainCommand mainCommand = new MainCommand(this, new AdventureWebuiEditorAPI());
         loadCommand("rediseconomy", mainCommand, mainCommand);
 
         new Metrics(this, 16802);

@@ -16,8 +16,14 @@ public class Transaction {
     public String reason = "Unknown";
     public String revertedWith = null;
 
-    public static Transaction fromString(String s) {
-        String[] parts = s.split(";");
+    /**
+     * Creates a new transaction from a string
+     *
+     * @param serializedTransaction The serialized transaction
+     * @return The transaction created from the string
+     */
+    public static Transaction fromString(String serializedTransaction) {
+        String[] parts = serializedTransaction.split(";");
         return new Transaction(
                 parts[0].length() == 36 ? new AccountID(UUID.fromString(parts[0])) : new AccountID(parts[0]),
                 Long.parseLong(parts[1]),
@@ -28,6 +34,11 @@ public class Transaction {
                 parts.length == 7 ? parts[6] : null);
     }
 
+    /**
+     * Returns the server UUID
+     *
+     * @return "00000000-0000-0000-0000-000000000000" as UUID
+     */
     public static UUID getServerUUID() {
         return UUID.fromString("00000000-0000-0000-0000-000000000000");
     }

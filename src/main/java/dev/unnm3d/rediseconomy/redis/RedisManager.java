@@ -8,7 +8,10 @@ import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 
 public class RedisManager {
@@ -22,10 +25,6 @@ public class RedisManager {
         this.lettuceRedisClient = lettuceRedisClient;
         this.roundRobinConnectionPool = new RoundRobinConnectionPool<>(lettuceRedisClient::connect, 5);
         pubSubConnections = new CopyOnWriteArrayList<>();
-    }
-
-    public <T> ScheduledFuture<T> scheduleConnection(Function<StatefulRedisConnection<String, String>, T> function, int timeout, TimeUnit timeUnit) {
-        return executorService.schedule(() -> function.apply(roundRobinConnectionPool.get()), timeout, timeUnit);
     }
 
     public <T> CompletionStage<T> getConnectionAsync(Function<RedisAsyncCommands<String, String>, CompletionStage<T>> redisCallBack) {
@@ -50,7 +49,6 @@ public class RedisManager {
     public void close() {
         pubSubConnections.forEach(StatefulRedisPubSubConnection::close);
         lettuceRedisClient.shutdown(Duration.ofSeconds(1), Duration.ofSeconds(1));
-        roundRobinConnectionPool.close();
         executorService.shutdown();
     }
 
