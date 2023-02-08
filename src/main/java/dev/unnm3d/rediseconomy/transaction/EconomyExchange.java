@@ -9,7 +9,10 @@ import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
@@ -21,6 +24,7 @@ public class EconomyExchange {
 
     /**
      * Get transactions from an account id
+     *
      * @param accountId Account id
      * @return Map of transaction ids and transactions
      */
@@ -29,7 +33,7 @@ public class EconomyExchange {
                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
                         .thenApply(this::getTransactionsFromSerialized)
                         .thenApply(integerTransactionMap -> {
-                            if(RedisEconomyPlugin.getInstance().settings().debug){
+                            if (RedisEconomyPlugin.getInstance().settings().debug) {
                                 integerTransactionMap.forEach((integer, transaction) -> Bukkit.getLogger().info("getTransactions: " + integer + " " + transaction));
                             }
                             return integerTransactionMap;
@@ -43,8 +47,9 @@ public class EconomyExchange {
 
     /**
      * Get transactions from an account id and transaction id
+     *
      * @param accountId Account id
-     * @param id Transaction id
+     * @param id        Transaction id
      * @return Transaction
      */
     public CompletionStage<Transaction> getTransaction(AccountID accountId, int id) {
@@ -154,7 +159,8 @@ public class EconomyExchange {
 
     /**
      * Revert a transaction creating a new transaction with the opposite amount
-     * @param accountOwner The id of the account
+     *
+     * @param accountOwner  The id of the account
      * @param transactionId The id of the transaction to revert
      * @return The id of the new transaction that reverts the old one or the id of the already existing transaction that reverts the old one
      */
@@ -210,14 +216,6 @@ public class EconomyExchange {
         serialized.forEach((k, v) -> transactions.put(Integer.parseInt(k), Transaction.fromString(v)));
         return transactions;
     }
-
-
-
-
-
-
-
-
 
 
 }

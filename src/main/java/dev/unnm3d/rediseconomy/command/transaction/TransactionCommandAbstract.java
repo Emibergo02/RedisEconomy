@@ -42,6 +42,7 @@ public abstract class TransactionCommandAbstract {
             transactionMessage = transactionMessage.replace("%afterbefore%", timestampArgument);
         plugin.langs().send(sender, transactionMessage);
     }
+
     void sendTransaction(CommandSender sender, int transactionId, Transaction transaction) {
         sendTransaction(sender, transactionId, transaction, null);
     }
@@ -51,6 +52,7 @@ public abstract class TransactionCommandAbstract {
         dateFormat.setTimeZone(TimeZone.getDefault());
         return dateFormat.format(date);
     }
+
     Date formatDate(String fromString) throws ParseException {
         return dateFormat.parse(fromString);
     }

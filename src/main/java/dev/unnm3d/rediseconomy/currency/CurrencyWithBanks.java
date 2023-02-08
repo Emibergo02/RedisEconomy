@@ -111,13 +111,15 @@ public class CurrencyWithBanks extends Currency {
 
     /**
      * Creates a bank account
-     * @param accountId Account ID
+     *
+     * @param accountId   Account ID
      * @param playerOwner Owner UUID
-     * @param reason Reason for the creation
+     * @param reason      Reason for the creation
      * @return EconomyResponse with the result of the operation (SUCCESS)
      */
     public EconomyResponse createBank(@NotNull String accountId, UUID playerOwner, String reason) {
-        if(bankAccounts.containsKey(accountId)) return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Bank account already exists");
+        if (bankAccounts.containsKey(accountId))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Bank account already exists");
         setOwner(accountId, playerOwner);
         updateBankAccount(accountId, 0);
         currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(playerOwner), 0, currencyName, reason);
@@ -128,6 +130,7 @@ public class CurrencyWithBanks extends Currency {
     public EconomyResponse createBank(@NotNull String accountId, OfflinePlayer player) {
         return createBank(accountId, player.getUniqueId(), "Bank account creation");
     }
+
     public boolean existsBank(@NotNull String accountId) {
         return bankAccounts.containsKey(accountId);
     }
@@ -168,9 +171,10 @@ public class CurrencyWithBanks extends Currency {
 
     /**
      * Withdraws money from a bank account with a reason
+     *
      * @param accountId Account ID
-     * @param amount Amount to withdraw
-     * @param reason Reason for the withdraw
+     * @param amount    Amount to withdraw
+     * @param reason    Reason for the withdraw
      * @return EconomyResponse with the result of the operation SUCCESS or FAILURE if there is not enough money
      */
     public EconomyResponse bankWithdraw(@NotNull String accountId, double amount, String reason) {
@@ -191,13 +195,14 @@ public class CurrencyWithBanks extends Currency {
 
     /**
      * Deposits money to a bank account with a reason
+     *
      * @param accountId Account ID
-     * @param amount Amount to deposit
-     * @param reason Reason for the deposit
+     * @param amount    Amount to deposit
+     * @param reason    Reason for the deposit
      * @return EconomyResponse with the result of the operation SUCCESS or FAILURE if the bank account does not exist
      */
     public EconomyResponse bankDeposit(@NotNull String accountId, double amount, String reason) {
-        if(existsBank(accountId)) {
+        if (existsBank(accountId)) {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Bank account does not exist");
         }
         EconomyResponse balanceResponse = bankBalance(accountId);
