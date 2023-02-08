@@ -6,8 +6,9 @@ import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
+import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
@@ -23,8 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NAME_UUID;
@@ -35,7 +35,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final ConfigManager configManager;
     @Getter
     private final RedisManager redisManager;
-    @Getter
     private final EconomyExchange exchange;
     private final HashMap<String, Currency> currencies;
     @Getter
@@ -49,10 +48,19 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         this.plugin = plugin;
         this.configManager = configManager;
         this.currencies = new HashMap<>();
-        this.nameUniqueIds = loadRedisNameUniqueIds();
+        try {
+            this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(1, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
 
         configManager.getSettings().currencies.forEach(currencySettings -> {
-            Currency currency = new Currency(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.startingBalance(), currencySettings.payTax());
+            Currency currency;
+            if (currencySettings.bankEnabled()) {
+                currency = new CurrencyWithBanks(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.startingBalance(), currencySettings.payTax());
+            } else {
+                currency = new Currency(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.startingBalance(), currencySettings.payTax());
+            }
             currencies.put(currencySettings.currencyName(), currency);
         });
         if (currencies.get("vault") == null) {
@@ -65,6 +73,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = currencies.get("vault");
+
         if (configManager.getSettings().migrationEnabled) {
             RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
             if (existentProvider == null) {
@@ -91,16 +100,24 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 return defaultCurrency;
             }).thenAccept((vaultCurrency) -> {
                 plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
+
                 configManager.getSettings().migrationEnabled = false;
                 configManager.saveConfigs();
             });
-        } else
+        } else {
             plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
+        }
+
     }
 
     @Override
     public @Nullable Currency getCurrencyByName(@NotNull String name) {
         return currencies.get(name);
+    }
+
+    @Override
+    public @NotNull EconomyExchange getExchange() {
+        return exchange;
     }
 
     @Override
@@ -122,6 +139,13 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         nameUniqueIds.put(name, uuid);
     }
 
+    /**
+     * Removes all players with the given name pattern
+     *
+     * @param namePattern  the pattern to match
+     * @param resetBalance if true, the balance of the removed players will be set to 0
+     * @return a map of removed players Name-UUID
+     */
     public HashMap<String, UUID> removeNamePattern(String namePattern, boolean resetBalance) {
         HashMap<String, UUID> removed = new HashMap<>();
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
@@ -148,11 +172,21 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     @Override
     public @Nullable String getUsernameFromUUIDCache(@NotNull UUID uuid) {
+        if (uuid.equals(Transaction.getServerUUID())) return "Server";
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
             if (entry.getValue().equals(uuid))
                 return entry.getKey();
         }
         return null;
+    }
+
+    @Override
+    public @NotNull String getCaseSensitiveName(@NotNull String caseInsensitiveName) {
+        for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(caseInsensitiveName))
+                return entry.getKey();
+        }
+        return caseInsensitiveName;
     }
 
     @Override
@@ -165,33 +199,37 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     @EventHandler
-    public void onJoin(PlayerJoinEvent e) {
-        getCurrencies().forEach(currency -> currency.getAccountRedis(e.getPlayer().getUniqueId()).thenAccept(balance -> {
-            //DEBUG
-            if (configManager.getSettings().debug) {
-                Bukkit.getLogger().info("00 Loaded " + e.getPlayer().getName() + "'s balance of " + balance + " " + currency.getCurrencyName());
-            }
-            if (balance == null) {
-                currency.createPlayerAccount(e.getPlayer());
-            } else {
-                currency.updateAccountLocal(e.getPlayer().getUniqueId(), e.getPlayer().getName(), balance);
-            }
-        }).exceptionally(ex -> {
-            ex.printStackTrace();
-            return null;
-        }));
+    private void onJoin(PlayerJoinEvent e) {
+        getCurrencies().forEach(currency ->
+                currency.getAccountRedis(e.getPlayer().getUniqueId())
+                        .thenAccept(balance -> {
+                            //DEBUG
+                            if (configManager.getSettings().debug) {
+                                Bukkit.getLogger().info("00 Loaded " + e.getPlayer().getName() + "'s balance of " + balance + " " + currency.getCurrencyName());
+                            }
+                            if (balance == null) {
+                                currency.createPlayerAccount(e.getPlayer());
+                            } else {
+                                currency.updateAccountLocal(e.getPlayer().getUniqueId(), e.getPlayer().getName(), balance);
+                            }
+                        }).exceptionally(ex -> {
+                            ex.printStackTrace();
+                            return null;
+                        }));
     }
 
-    private ConcurrentHashMap<String, UUID> loadRedisNameUniqueIds() {
-
-        return redisManager.getConnection(connection -> {
-            ConcurrentHashMap<String, UUID> nameUUIDs = new ConcurrentHashMap<>();
-            connection.sync().hgetall(NAME_UUID.toString()).forEach((name, uuid) -> nameUUIDs.put(name, UUID.fromString(uuid)));
-            if (configManager.getSettings().debug) {
-                Bukkit.getLogger().info("start0 Loaded " + nameUUIDs.size() + " name-uuid pairs");
-            }
-            return nameUUIDs;
-        });
+    private CompletionStage<ConcurrentHashMap<String, UUID>> loadRedisNameUniqueIds() {
+        return redisManager.getConnectionAsync(connection ->
+                connection.hgetall(NAME_UUID.toString())
+                        .thenApply(result -> {
+                            ConcurrentHashMap<String, UUID> nameUUIDs = new ConcurrentHashMap<>();
+                            result.forEach((name, uuid) -> nameUUIDs.put(name, UUID.fromString(uuid)));
+                            if (configManager.getSettings().debug) {
+                                Bukkit.getLogger().info("start0 Loaded " + nameUUIDs.size() + " name-uuid pairs");
+                            }
+                            return nameUUIDs;
+                        })
+        );
     }
 
     private void removeRedisNameUniqueIds(Map<String, UUID> toRemove) {
@@ -201,8 +239,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 toRemoveArray[i] = "null";
             }
         }
-        redisManager.getConnection(connection ->
-                connection.async().hdel(NAME_UUID.toString(), toRemoveArray).thenAccept(integer -> {
+        redisManager.getConnectionAsync(connection ->
+                connection.hdel(NAME_UUID.toString(), toRemoveArray).thenAccept(integer -> {
                     if (configManager.getSettings().debug) {
                         Bukkit.getLogger().info("purge0 Removed " + integer + " name-uuid pairs");
                     }
@@ -210,37 +248,39 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void registerPayMsgChannel() {
-        redisManager.getPubSubConnection(connection -> {
-            connection.addListener(new RedisCurrencyListener() {
-                @Override
-                public void message(String channel, String message) {
-                    String[] args = message.split(";;");
-                    String sender = args[0];
-                    String target = args[1];
-                    String currencyAmount = args[2];
-                    Player online = plugin.getServer().getPlayer(target);
-                    if (online != null) {
-                        if (online.isOnline()) {
-                            configManager.getLangs().send(online, configManager.getLangs().payReceived.replace("%player%", sender).replace("%amount%", currencyAmount));
-                            if (configManager.getSettings().debug) {
-                                plugin.getLogger().info("02b Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
-                            }
+        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        connection.addListener(new RedisCurrencyListener() {
+            @Override
+            public void message(String channel, String message) {
+                String[] args = message.split(";;");
+                String sender = args[0];
+                String target = args[1];
+                String currencyAmount = args[2];
+                Player online = plugin.getServer().getPlayer(target);
+                if (online != null) {
+                    if (online.isOnline()) {
+                        configManager.getLangs().send(online, configManager.getLangs().payReceived.replace("%player%", sender).replace("%amount%", currencyAmount));
+                        if (configManager.getSettings().debug) {
+                            plugin.getLogger().info("02b Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
                         }
                     }
                 }
-            });
-            connection.async().subscribe(MSG_CHANNEL.toString());
-            if (configManager.getSettings().debug) {
-                Bukkit.getLogger().info("start2 Registered pay message channel");
             }
         });
-
+        connection.async().subscribe(MSG_CHANNEL.toString());
+        if (configManager.getSettings().debug) {
+            Bukkit.getLogger().info("start2 Registered pay message channel");
+        }
     }
 
+    /**
+     * Switches the currency accounts of two currencies
+     *
+     * @param currency    The currency to switch
+     * @param newCurrency The new currency to switch to
+     */
     public void switchCurrency(Currency currency, Currency newCurrency) {
-        redisManager.getConnection(connection -> {
-            RedisAsyncCommands<String, String> asyncCommands = connection.async();
-            connection.setAutoFlushCommands(false);
+        redisManager.getConnectionPipeline(asyncCommands -> {
             asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup").thenAccept(success -> {
                 if (configManager.getSettings().debug) {
                     Bukkit.getLogger().info("Switch0 - Backup currency accounts: " + success);
@@ -256,7 +296,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                     Bukkit.getLogger().info("Switch2 - Write the backup on the new currency key: " + success);
                 }
             });
-            connection.flushCommands();
             return null;
         });
     }

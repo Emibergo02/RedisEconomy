@@ -31,31 +31,32 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private static RedisEconomyPlugin instance;
     //private EzRedisMessenger ezRedisMessenger;
     @Getter
-    private static ConfigManager configManager;
+    private ConfigManager configManager;
+    @Getter
     private CurrenciesManager currenciesManager;
     private RedisManager redisManager;
 
 
-    public static Settings settings() {
+    public Settings settings() {
         return configManager.getSettings();
     }
 
-    public static Langs langs() {
+    public Langs langs() {
         return configManager.getLangs();
     }
 
-    @SuppressWarnings("unused")
     public static RedisEconomyPlugin getInstance() {
         return instance;
     }
 
     @Override
-    public void onEnable() {
+    public void onLoad() {
         instance = this;
-        configManager = new ConfigManager(this);
+        this.configManager = new ConfigManager(this);
 
         if (!setupRedis()) {
-            this.getLogger().severe("Disabled: redis server unreachable!");
+            this.getLogger().severe("Disabling: redis server unreachable!");
+            this.getLogger().severe("Please setup a redis server before running this plugin!");
             this.getServer().getPluginManager().disablePlugin(this);
             return;
         } else {
@@ -65,10 +66,14 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         if (!setupEconomy()) { //creates currenciesManager and exchange
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
-            return;
         } else {
             this.getLogger().info("Hooked into Vault!");
         }
+    }
+
+    @Override
+    public void onEnable() {
+        this.configManager.postStartupLoad();
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new PlaceholderAPIHook(currenciesManager, configManager.getLangs()).register();
@@ -76,22 +81,22 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(currenciesManager, this);
         //Commands
-        PayCommand payCommand = new PayCommand(currenciesManager);
+        PayCommand payCommand = new PayCommand(currenciesManager, this);
         loadCommand("pay", payCommand, payCommand);
         BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
         loadCommand("balance", balanceCommand, balanceCommand);
-        Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager));
-        TransactionCommand transactionCommand = new TransactionCommand(currenciesManager);
+        Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager, this));
+        TransactionCommand transactionCommand = new TransactionCommand(this);
         loadCommand("transaction", transactionCommand, transactionCommand);
-        BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(currenciesManager);
+        BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(this);
         loadCommand("browse-transactions", browseTransactionsCommand, browseTransactionsCommand);
-        PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager);
+        PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager, this);
         loadCommand("purge-balance", purgeUserCommand, purgeUserCommand);
-        SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager);
+        SwitchCurrencyCommand switchCurrencyCommand = new SwitchCurrencyCommand(currenciesManager, this);
         loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
         BackupRestoreCommand backupRestoreCommand = new BackupRestoreCommand(currenciesManager, this);
         loadCommand("backup-economy", backupRestoreCommand, backupRestoreCommand);
-        MainCommand mainCommand = new MainCommand(configManager, new AdventureWebuiEditorAPI());
+        MainCommand mainCommand = new MainCommand(this, new AdventureWebuiEditorAPI());
         loadCommand("rediseconomy", mainCommand, mainCommand);
 
         new Metrics(this, 16802);
@@ -99,18 +104,23 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        //ezRedisMessenger.destroy();
         redisManager.close();
-        this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
+        if (currenciesManager != null)
+            this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
         this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         this.getServer().getMessenger().unregisterIncomingPluginChannel(this);
         getLogger().info("RedisEconomy disabled successfully!");
     }
 
     private boolean setupRedis() {
-        this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri), configManager.getSettings().redisConnectionTimeout);
-        getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
-        return redisManager.isConnected();
+        try {
+            this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri));
+            getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
+            redisManager.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private boolean setupEconomy() {

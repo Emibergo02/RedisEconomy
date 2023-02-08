@@ -8,7 +8,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -17,11 +16,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PurgeUserCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         String target = args[0];
@@ -33,25 +33,24 @@ public class PurgeUserCommand implements CommandExecutor, TabCompleter {
         }
         Map<String, UUID> nameUUIDs = currenciesManager.removeNamePattern(target, !onlyNameUUID);
         if (nameUUIDs.size() == 0) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
+            plugin.langs().send(sender, plugin.langs().playerNotFound);
             return true;
         }
-        RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().purgeUserSuccess.replace("%player%", target));
+        plugin.langs().send(sender, plugin.langs().purgeUserSuccess.replace("%player%", target));
 
 
         return true;
     }
 
-    @Nullable
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            if (args[0].length() < 2)
+            if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
             return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
             return List.of("onlyNameUUID");
         }
-        return null;
+        return List.of();
     }
 }

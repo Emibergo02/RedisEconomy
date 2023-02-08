@@ -10,7 +10,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -26,7 +25,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         CompletableFuture.runAsync(() -> {
@@ -89,15 +88,14 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
             throwable.printStackTrace();
             return null;
         }).thenAccept(aVoid ->
-                RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().backupRestoreFinished.replace("%file%", args[0]))
+                plugin.langs().send(sender, plugin.langs().backupRestoreFinished.replace("%file%", args[0]))
         );
 
         return true;
     }
 
-    @Nullable
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         return List.of("backup.csv");
     }
 }

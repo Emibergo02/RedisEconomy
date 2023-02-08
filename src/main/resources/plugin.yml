@@ -2,10 +2,10 @@ name: RedisEconomy
 version: '${project.version}'
 main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
 author: Unnm3d
+load: STARTUP
 depend:
   - Vault
 libraries:
-  - com.fasterxml.jackson.core:jackson-databind:2.14.0
   - io.lettuce:lettuce-core:6.2.2.RELEASE
 softdepend:
   - PlaceholderAPI
@@ -24,7 +24,7 @@ commands:
     permission: rediseconomy.pay
   balance:
     description: Show balances
-    usage: /balance [player]
+    usage: /balance <player>
     aliases: [money,bal]
     permission: rediseconomy.balance
   balancetop:

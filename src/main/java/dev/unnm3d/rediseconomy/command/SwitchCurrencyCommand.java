@@ -9,41 +9,40 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 @AllArgsConstructor
 public class SwitchCurrencyCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length != 2) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().missingArguments);
+            plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
         Currency currency = currenciesManager.getCurrencyByName(args[0]);
         if (currency == null) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+            plugin.langs().send(sender, plugin.langs().invalidCurrency);
             return true;
         }
         Currency newCurrency = currenciesManager.getCurrencyByName(args[1]);
         if (newCurrency == null) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().invalidCurrency);
+            plugin.langs().send(sender, plugin.langs().invalidCurrency);
             return true;
         }
         currenciesManager.switchCurrency(currency, newCurrency);
-        RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().switchCurrencySuccess.replace("%currency%", currency.getCurrencyName()).replace("%switch-currency%", newCurrency.getCurrencyName()));
+        plugin.langs().send(sender, plugin.langs().switchCurrencySuccess.replace("%currency%", currency.getCurrencyName()).replace("%switch-currency%", newCurrency.getCurrencyName()));
         return true;
     }
 
-    @Nullable
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length > 0 && args.length < 3) {
             return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).toList();
         }
-        return null;
+        return List.of();
     }
 }

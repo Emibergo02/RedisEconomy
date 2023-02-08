@@ -14,7 +14,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 public class ConfigManager {
@@ -26,18 +25,18 @@ public class ConfigManager {
 
     public ConfigManager(RedisEconomyPlugin plugin) {
         this.plugin = plugin;
-        loadConfigs();
+        loadSettingsConfig();
+    }
+
+    public void postStartupLoad() {
+        loadLangs();
         getServerId().thenAccept(s -> {
             settings.serverId = s;
             saveConfigs();
         });
     }
 
-    public void saveLangs() {
-        plugin.saveResource("it-IT.yml", false);
-    }
-
-    public void loadConfigs() {
+    public void loadSettingsConfig() {
         YamlConfigurationProperties properties = YamlConfigurationProperties.newBuilder()
                 .header(
                         """
@@ -50,18 +49,10 @@ public class ConfigManager {
                 .footer("Authors: Unnm3d")
                 .build();
         File settingsFile = new File(plugin.getDataFolder(), "config.yml");
-
-        if (!settingsFile.exists()) saveLangs();//if config.yml doesn't exist, probably langs doesn't exist too
-
         settings = YamlConfigurations.update(
                 settingsFile.toPath(),
                 Settings.class,
                 properties
-        );
-        Path langFile = new File(plugin.getDataFolder(), settings.lang + ".yml").toPath();
-        langs = YamlConfigurations.update(
-                langFile,
-                Langs.class
         );
     }
 
@@ -70,7 +61,19 @@ public class ConfigManager {
         YamlConfigurations.save(new File(plugin.getDataFolder(), settings.lang + ".yml").toPath(), Langs.class, langs);
     }
 
-    private CompletableFuture<String> getServerId() {
+    public void loadLangs() {
+        File settingsFile = new File(plugin.getDataFolder(), settings.lang + ".yml");
+        if (!settingsFile.exists()) {
+            plugin.saveResource("it-IT.yml", false);//save default lang
+        }
+        langs = YamlConfigurations.update(
+                settingsFile.toPath(),
+                Langs.class
+        );
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    public CompletableFuture<String> getServerId() {
         CompletableFuture<String> future = new CompletableFuture<>();
         plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, "BungeeCord");
         plugin.getServer().getMessenger().registerIncomingPluginChannel(plugin, "BungeeCord", (channel, player, message) -> {
@@ -105,6 +108,7 @@ public class ConfigManager {
         });
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     private void sendServerIdRequest(Player p) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("GetServer");

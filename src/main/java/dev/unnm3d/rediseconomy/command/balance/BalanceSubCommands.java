@@ -8,37 +8,34 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class BalanceSubCommands extends BalanceCommand {
-    private final RedisEconomyPlugin plugin;
 
     public BalanceSubCommands(CurrenciesManager economy, RedisEconomyPlugin plugin) {
-        super(economy);
-        this.plugin = plugin;
+        super(economy, plugin);
     }
 
     @Override
-    protected void balancePlayer(CommandSender sender, Currency currency, String[] args) {
-        String target = args[0];
+    protected void balancePlayer(CommandSender sender, Currency currency, String target) {
         if (!currency.hasAccount(target)) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().playerNotFound);
+            plugin.langs().send(sender, plugin.langs().playerNotFound);
             return;
         }
-        RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceOther.replace("%balance%", String.valueOf(currency.format(currency.getBalance(target)))).replace("%player%", target));
+        plugin.langs().send(sender, plugin.langs().balanceOther.replace("%balance%", String.valueOf(currency.format(currency.getBalance(target)))).replace("%player%", target));
     }
 
     @Override
     protected void selfBalancePlayer(CommandSender sender, Currency currency) {
         if (!(sender instanceof Player p)) {
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().noConsole);
+            plugin.langs().send(sender, plugin.langs().noConsole);
             return;
         }
-        RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balance.replace("%balance%", String.valueOf(currency.format(currency.getBalance(p)))));
+        plugin.langs().send(sender, plugin.langs().balance.replace("%balance%", String.valueOf(currency.format(currency.getBalance(p)))));
     }
 
     @Override
     protected void takePlayer(CommandSender sender, Currency currency, double amount, String target, String reasonOrCommand) {
         EconomyResponse er = currency.withdrawPlayer(target, amount, reasonOrCommand);
         if (er.transactionSuccess())
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
+            plugin.langs().send(sender, plugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         else sender.sendMessage(er.errorMessage);
     }
 
@@ -47,7 +44,7 @@ public class BalanceSubCommands extends BalanceCommand {
         EconomyResponse er = currency.withdrawPlayer(target, amount, command);
         if (er.transactionSuccess()) {
             plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command.replace("%player%", target).replace("%amount%", String.format("%.2f", amount)).substring(1));
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
+            plugin.langs().send(sender, plugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         } else sender.sendMessage(er.errorMessage);
     }
 
@@ -57,14 +54,14 @@ public class BalanceSubCommands extends BalanceCommand {
             for (Player p : plugin.getServer().getOnlinePlayers()) {
                 EconomyResponse er = currency.depositPlayer(p.getUniqueId(), p.getName(), amount, reason);
                 if (er.transactionSuccess())
-                    RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", p.getName()));
+                    plugin.langs().send(sender, plugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", p.getName()));
                 else sender.sendMessage(er.errorMessage);
             }
             return;
         }
         EconomyResponse er = currency.depositPlayer(target, amount, reason);
         if (er.transactionSuccess())
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
+            plugin.langs().send(sender, plugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         else sender.sendMessage(er.errorMessage);
     }
 
@@ -72,7 +69,7 @@ public class BalanceSubCommands extends BalanceCommand {
     protected void setPlayer(CommandSender sender, Currency currency, double amount, String target) {
         EconomyResponse er = currency.setPlayerBalance(target, amount);
         if (er.transactionSuccess())
-            RedisEconomyPlugin.langs().send(sender, RedisEconomyPlugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
+            plugin.langs().send(sender, plugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         else sender.sendMessage(er.errorMessage);
     }
 }
