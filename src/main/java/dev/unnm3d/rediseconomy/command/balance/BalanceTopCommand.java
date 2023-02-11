@@ -23,7 +23,7 @@ public class BalanceTopCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
 
         //Baltop paging, 10 per page
-        currenciesManager.getDefaultCurrency().getOrderedAccounts().thenApply(balances -> {
+        currenciesManager.getDefaultCurrency().getOrderedAccounts(500).thenApply(balances -> {
             int page = 1;
             List<ScoredValue<String>> pageBalances;
             try {

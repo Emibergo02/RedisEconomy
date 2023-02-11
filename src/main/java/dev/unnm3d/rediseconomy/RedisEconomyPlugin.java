@@ -75,10 +75,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     public void onEnable() {
         this.configManager.postStartupLoad();
 
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new PlaceholderAPIHook(currenciesManager, configManager.getLangs()).register();
-        }
-
         getServer().getPluginManager().registerEvents(currenciesManager, this);
         //Commands
         PayCommand payCommand = new PayCommand(currenciesManager, this);
@@ -98,6 +94,10 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("backup-economy", backupRestoreCommand, backupRestoreCommand);
         MainCommand mainCommand = new MainCommand(this, new AdventureWebuiEditorAPI());
         loadCommand("rediseconomy", mainCommand, mainCommand);
+
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new PlaceholderAPIHook(currenciesManager, configManager.getLangs()).register();
+        }
 
         new Metrics(this, 16802);
     }
