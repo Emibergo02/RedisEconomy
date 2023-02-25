@@ -24,8 +24,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (args.length == 0) {
             plugin.getConfigManager().getLangs().send(sender, plugin.langs().missingArguments);
             return true;
-        }
-        if (args.length == 1) {
+        } else if (args.length == 1) {
             if (!args[0].equalsIgnoreCase("reload")) return true;
             if (!sender.hasPermission("rediseconomy.admin")) return true;
             String serverId = plugin.getConfigManager().getSettings().serverId; //Keep serverId
@@ -33,6 +32,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             plugin.getConfigManager().loadLangs();
             plugin.getConfigManager().getSettings().serverId = serverId; //Restore serverId
             plugin.getConfigManager().saveConfigs(); //Save configs
+            this.adventureWebuiEditorAPI = new AdventureWebuiEditorAPI(plugin.getConfigManager().getSettings().webEditorUrl);
             sender.sendMessage("§aReloaded successfully " + plugin.getConfigManager().getSettings().serverId + "!");
             return true;
         }
@@ -42,7 +42,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             plugin.getConfigManager().getLangs().send(sender, plugin.getConfigManager().getLangs().noPermission);
             return true;
         }
-
 
         if (args[0].equalsIgnoreCase("savemessage")) {
             if (args.length < 3) return true;
@@ -66,7 +65,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 adventureWebuiEditorAPI.startSession(fieldString, "/rediseconomy savemessage " + langField + " {token}", "RedisEconomy")
-                        .thenAccept(token -> plugin.getConfigManager().getLangs().send(sender, plugin.getConfigManager().getLangs().editMessageClickHere.replace("%field%", langField).replace("%url%", adventureWebuiEditorAPI.getEditorUrl(token))));
+                        .thenAccept(token ->
+                                plugin.getConfigManager().getLangs()
+                                        .send(sender, plugin.getConfigManager().getLangs().editMessageClickHere
+                                                .replace("%field%", langField)
+                                                .replace("%url%", adventureWebuiEditorAPI.getEditorUrl(token))
+                                        )
+                        );
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 plugin.getConfigManager().getLangs().send(sender, plugin.getConfigManager().getLangs().editMessageError);
             }
