@@ -61,7 +61,7 @@ public class Currency implements Economy {
         this.startingBalance = startingBalance;
         this.transactionTax = transactionTax;
         this.accounts = new ConcurrentHashMap<>();
-        getOrderedAccounts().thenApply(result -> {
+        getOrderedAccounts(-1).thenApply(result -> {
                     result.forEach(t ->
                             accounts.put(UUID.fromString(t.getValue()), t.getScore()));
                     if (RedisEconomyPlugin.getInstance().settings().debug && accounts.size() > 0) {
@@ -542,11 +542,12 @@ public class Currency implements Economy {
      * Redis uses ordered sets as data structures
      * This method has a time complexity of O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements returned.
      *
+     * @param limit The number of accounts to return from the top 1
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
-    public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts() {
+    public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts(int limit) {
         return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
-                accounts.zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, -1));
+                accounts.zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, limit));
 
     }
 

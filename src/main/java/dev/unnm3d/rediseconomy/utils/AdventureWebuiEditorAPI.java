@@ -24,8 +24,8 @@ public final class AdventureWebuiEditorAPI {
     /**
      * Creates a new instance of the editor API.
      */
-    public AdventureWebuiEditorAPI() {
-        this(URI.create("https://webui.adventure.kyori.net"), HttpClient.newHttpClient());
+    public AdventureWebuiEditorAPI(String root) {
+        this(URI.create(root), HttpClient.newHttpClient());
     }
 
     /**

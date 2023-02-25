@@ -6,7 +6,7 @@
 
     <groupId>dev.unnm3d</groupId>
     <artifactId>RedisEconomy</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>4.1.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>RedisEconomy</name>
@@ -50,6 +50,33 @@
 
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.13</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <serverId>kalya-snapshots</serverId>
+                    <nexusUrl>https://repo.kalyamc.net/</nexusUrl>
+                    <skipStaging>true</skipStaging>
+                </configuration>
+            </plugin>
         </plugins>
         <resources>
             <resource>
@@ -58,6 +85,12 @@
             </resource>
         </resources>
     </build>
+    <distributionManagement>
+        <snapshotRepository>
+            <id>kalya-snapshots</id>
+            <url>https://repo.kalyamc.net/repository/kalya-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <repositories>
         <repository>
