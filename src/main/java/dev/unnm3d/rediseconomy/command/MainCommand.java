@@ -38,7 +38,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
         String langField = args[1];
 
-        if (!sender.hasPermission("rediseconomy.admin.editmessage")) return true;
+        if (!sender.hasPermission("rediseconomy.admin.editmessage")) {
+            plugin.getConfigManager().getLangs().send(sender, plugin.getConfigManager().getLangs().noPermission);
+            return true;
+        }
 
 
         if (args[0].equalsIgnoreCase("savemessage")) {
