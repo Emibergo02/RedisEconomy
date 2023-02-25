@@ -92,7 +92,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("switch-currency", switchCurrencyCommand, switchCurrencyCommand);
         BackupRestoreCommand backupRestoreCommand = new BackupRestoreCommand(currenciesManager, this);
         loadCommand("backup-economy", backupRestoreCommand, backupRestoreCommand);
-        MainCommand mainCommand = new MainCommand(this, new AdventureWebuiEditorAPI());
+        MainCommand mainCommand = new MainCommand(this, new AdventureWebuiEditorAPI(settings().webEditorUrl));
         loadCommand("rediseconomy", mainCommand, mainCommand);
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
