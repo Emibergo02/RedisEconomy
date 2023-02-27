@@ -328,6 +328,7 @@ public class Currency implements Economy {
         if (hasAccount(playerUUID))
             return false;
         updateAccount(playerUUID, playerName, startingBalance);
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), startingBalance, currencyName, "Account creation");
         return true;
     }
 
