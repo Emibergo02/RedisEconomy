@@ -89,5 +89,6 @@ permissions:
         rediseconomy.admin.purge-balance: true
         rediseconomy.admin.switch-currency: true
         rediseconomy.admin.browse-transactions: true
+        rediseconomy.admin.purge-transactions: true
         rediseconomy.admin.editmessage: true
         rediseconomy.admin.backup-restore: true
