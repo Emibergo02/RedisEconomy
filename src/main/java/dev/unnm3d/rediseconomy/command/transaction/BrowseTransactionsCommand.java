@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +29,8 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
         String target = args[0];
         UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
         AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
+        String afterDateString = args.length == 3 ? args[1] : "anytime";
+        String beforeDateString = args.length == 3 ? args[2] : "anytime";
 
         plugin.getCurrenciesManager().getExchange().getTransactions(accountID).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
@@ -35,11 +38,16 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
                 plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
                 return;
             }
-            String afterDateString = "anytime";
-            String beforeDateString = "anytime";
-            if (args.length == 3) {
-                afterDateString = args[1];
-                beforeDateString = args[2];
+
+            Date afterDate = null;
+            Date beforeDate = null;
+            try {
+                if (args.length == 3) {
+                    afterDate = formatDate(args[1]);
+                    beforeDate = formatDate(args[2]);
+                }
+            } catch (ParseException e) {
+                plugin.langs().send(sender, plugin.langs().incorrectDate);
             }
 
             plugin.langs().send(sender, plugin.langs().transactionsStart
@@ -47,9 +55,14 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
                     .replace("%after%", afterDateString)
                     .replace("%before%", beforeDateString));
             for (int i = 0; i < transactions.size(); i++) {
-                if (isAfter(transactions.get(i).timestamp, afterDateString) && isBefore(transactions.get(i).timestamp, beforeDateString)) {
-                    sendTransaction(sender, i, transactions.get(i), afterDateString + " " + beforeDateString);
-                }
+                Date transactionDate = new Date(transactions.get(i).timestamp);
+                if (afterDate != null)
+                    if (!transactionDate.after(afterDate)) continue;
+                if (beforeDate != null)
+                    if (!transactionDate.before(beforeDate)) continue;
+
+                sendTransaction(sender, i, transactions.get(i), afterDateString + " " + beforeDateString);
+
                 if (plugin.settings().debug)
                     sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
@@ -60,28 +73,6 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
         });
 
         return true;
-    }
-
-    private boolean isAfter(long timestamp, String toParse) {
-        if (toParse.equals("anytime")) return true;
-        try {
-            Date parsedDate = formatDate(toParse);
-            return new Date(timestamp).after(parsedDate);
-        } catch (Exception e) { //this generic but you can control another types of exception
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    private boolean isBefore(long timestamp, String toParse) {
-        if (toParse.equals("anytime")) return true;
-        try {
-            Date parsedDate = formatDate(toParse);
-            return new Date(timestamp).before(parsedDate);
-        } catch (Exception e) { //this generic but you can control another types of exception
-            e.printStackTrace();
-            return false;
-        }
     }
 
     @Override

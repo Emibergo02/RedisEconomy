@@ -31,6 +31,8 @@ public final class Langs {
     public String purgeUserSuccess = "<green>Users matching %player% have been purged!</green>";
     public String switchCurrencySuccess = "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>";
     public String noTransactionFound = "<red>No transaction found for %player%!</red>";
+    public String incorrectDate = "<red>Incorrect Date formatting !</red>";
+    public String purgeTransactionsSuccess = "<green>Purged %size% transactions from %player% before %date%</green>";
     public String transactionsStart = "<dark_aqua>Transactions of player %player% from %after% to %before%!</dark_aqua>";
     public String transactionsEnd = "<dark_aqua>End of %player% transactions in %time% ms</dark_aqua>";
     public String editMessageError = "<red>This config entry is not a String or doesn't exist!";

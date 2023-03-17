@@ -40,6 +40,10 @@ commands:
     description: Show transactions
     usage: /browse-transactions <player> [timestamp]
     permission: rediseconomy.admin.browse-transactions
+  purge-transactions:
+    description: Purge transactions
+    usage: /purge-transactions <player> [timestamp]
+    permission: rediseconomy.admin.purge-transactions
   purge-balance:
     description: Purge balances
     usage: /purge-balance <player> [onlyNameUUID]
