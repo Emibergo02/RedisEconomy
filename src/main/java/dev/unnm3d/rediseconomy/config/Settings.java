@@ -4,13 +4,14 @@ import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
 
 import java.util.List;
+import java.util.UUID;
 
 @SuppressWarnings("unused")
 @Configuration
 public class Settings {
     @Comment({"This is automatically generated on server startup",
             "Change it only if you have disabled plugin messages on the proxy"})
-    public String serverId = System.currentTimeMillis() + "";
+    public String serverId = UUID.randomUUID() + "";
     @Comment("Language file")
     public String lang = "en-US";
     @Comment("Webeditor URL")
@@ -22,6 +23,8 @@ public class Settings {
     public boolean migrationEnabled = false;
     @Comment({"redis[s]://[password@]host[:port][/database][?option=value]", "Guide: https://github.com/Emibergo02/RedisEconomy/wiki/Install-redis"})
     public String redisUri = "redis://localhost:6379/0?timeout=20s&clientName=RedisEconomy";
+    @Comment({"All RedisEconomy instances with the same cluster id will share the same data"})
+    public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})
     public int tab_complete_chars = 0;
     @Comment("Currencies")

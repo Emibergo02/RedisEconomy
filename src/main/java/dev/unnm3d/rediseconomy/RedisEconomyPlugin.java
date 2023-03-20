@@ -11,6 +11,7 @@ import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
 import dev.unnm3d.rediseconomy.utils.Metrics;
@@ -120,6 +121,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri));
             getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
             redisManager.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
+            if (!configManager.getSettings().clusterId.equals(""))
+                RedisKeys.setClusterId(configManager.getSettings().clusterId);
             return true;
         } catch (Exception e) {
             return false;

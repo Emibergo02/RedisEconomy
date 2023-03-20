@@ -13,7 +13,7 @@ public enum RedisKeys {
     NEW_TRANSACTIONS("rediseco:transactions:"),
     ;
 
-    private final String keyName;
+    private String keyName;
 
     /**
      * @param keyName the name of the key
@@ -25,6 +25,12 @@ public enum RedisKeys {
     @Override
     public String toString() {
         return keyName;
+    }
+
+    public static void setClusterId(String clusterId) {
+        for (RedisKeys key : values()) {
+            key.keyName = clusterId + "-" + key.keyName;
+        }
     }
 
 }
