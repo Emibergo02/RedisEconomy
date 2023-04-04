@@ -23,6 +23,10 @@ public final class Langs {
     public String balanceSet = "<green>You set %player% account to %balance% !</green>";
     public String balanceOther = "<green>%player% has %balance% !</green>";
     public String balanceTop = "<green>Top richest players:</green><br>%prevpage%      %page%      %nextpage%";
+    public String blockedAccounts = "<green>Blocked accounts:</green><br>%list%";
+    public String blockedAccountSuccess = "<green>Account %player% has been blocked!</green>";
+    public String unblockedAccountSuccess = "<green>Account %player% has been unblocked!</green>";
+    public String blockedPayment = "<red>Your payments to %player% have been blocked!</red>";
     public String balanceTopFormat = "<aqua>%pos% - %player% %balance%</aqua>";
     public String paySelf = "<red>You cannot pay yourself!</red>";
     public String paySuccess = "<green>You paid %player% %amount% with %tax_percentage% (%tax_applied%) of transaction fee!</green>";

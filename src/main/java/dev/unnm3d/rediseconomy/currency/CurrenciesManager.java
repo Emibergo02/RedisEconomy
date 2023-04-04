@@ -6,7 +6,6 @@ import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
-import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
@@ -25,9 +24,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.NAME_UUID;
+import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
 
 public class CurrenciesManager extends RedisEconomyAPI implements Listener {
@@ -39,6 +38,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final HashMap<String, Currency> currencies;
     @Getter
     private final ConcurrentHashMap<String, UUID> nameUniqueIds;
+    private final ConcurrentHashMap<UUID, List<UUID>> lockedAccounts;
 
 
     public CurrenciesManager(RedisManager redisManager, RedisEconomyPlugin plugin, ConfigManager configManager) {
@@ -50,6 +50,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         this.currencies = new HashMap<>();
         try {
             this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(1, TimeUnit.SECONDS);
+            this.lockedAccounts = loadLockedAccounts().toCompletableFuture().get(1, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -67,6 +68,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put("vault", new Currency(this, "vault", "€", "€", 0.0, 0.0));
         }
         registerPayMsgChannel();
+        registerBlockAccountChannel();
 
     }
 
@@ -172,7 +174,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     @Override
     public @Nullable String getUsernameFromUUIDCache(@NotNull UUID uuid) {
-        if (uuid.equals(Transaction.getServerUUID())) return "Server";
+        if (uuid.equals(RedisKeys.getServerUUID())) return "Server";
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
             if (entry.getValue().equals(uuid))
                 return entry.getKey();
@@ -228,6 +230,22 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                                 Bukkit.getLogger().info("start0 Loaded " + nameUUIDs.size() + " name-uuid pairs");
                             }
                             return nameUUIDs;
+                        })
+        );
+    }
+
+    private CompletionStage<ConcurrentHashMap<UUID, List<UUID>>> loadLockedAccounts() {
+        return redisManager.getConnectionAsync(connection ->
+                connection.hgetall(LOCKED_ACCOUNTS.toString())
+                        .thenApply(result -> {
+                            ConcurrentHashMap<UUID, List<UUID>> lockedAccounts = new ConcurrentHashMap<>();
+                            result.forEach((uuid, uuidList) ->
+                                lockedAccounts.put(UUID.fromString(uuid),
+                                        new ArrayList<>(Arrays.stream(uuidList.split(","))
+                                                .map(UUID::fromString).toList())
+                                )
+                            );
+                            return lockedAccounts;
                         })
         );
     }
@@ -299,4 +317,82 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             return null;
         });
     }
+
+    /**
+     * Toggles the lock status of an account
+     *
+     * @param uuid   The uuid of the player
+     * @param target The uuid of the target
+     * @return completable future true if the account is locked, false if it is unlocked
+     */
+    public CompletableFuture<Boolean> toggleAccountLock(UUID uuid, UUID target) {
+        final CompletableFuture<Boolean> future = new CompletableFuture<>();
+        List<UUID> locked = lockedAccounts.getOrDefault(uuid, new ArrayList<>());
+        boolean isLocked = locked.contains(target);
+
+        if (isLocked) {
+            locked.remove(target);
+        } else {
+            locked.add(target);
+        }
+
+        //The string to be stored into Redis
+        String redisString = locked.stream().map(UUID::toString).collect(Collectors.joining(","));
+
+        redisManager.getConnectionPipeline(connection -> {
+                    connection.hset(LOCKED_ACCOUNTS.toString(),
+                            uuid.toString(),
+                            redisString
+                    );
+                    connection.publish(UPDATE_LOCKED_ACCOUNTS.toString(), uuid + "," + redisString)
+                            .thenAccept(integer -> {
+                                if (configManager.getSettings().debug) {
+                                    Bukkit.getLogger().info("Lock0 - Published update locked accounts message: " + integer);
+                                }
+                                lockedAccounts.put(uuid, locked);
+                                future.complete(!isLocked);
+                            });
+                    return null;
+                }
+        );
+
+        return future;
+    }
+
+    public boolean isAccountLocked(UUID uuid, UUID target) {
+        return getLockedAccounts(uuid).contains(target) ||
+                getLockedAccounts(uuid).contains(RedisKeys.getAllAccountUUID());
+    }
+
+    public List<UUID> getLockedAccounts(UUID uuid) {
+        return lockedAccounts.getOrDefault(uuid, new ArrayList<>());
+    }
+
+    private void registerBlockAccountChannel() {
+        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        connection.addListener(new RedisCurrencyListener() {
+            @Override
+            public void message(String channel, String message) {
+                String[] args = message.split(",");
+                UUID account = UUID.fromString(args[0]);
+                if (args[1].equals("")) {
+                    lockedAccounts.remove(account);
+                    return;
+                }
+                List<UUID> newLockedAccounts = new ArrayList<>();
+                for (int i = 1; i < args.length; i++) {
+                    newLockedAccounts.add(UUID.fromString(args[i]));
+                }
+                lockedAccounts.put(account, newLockedAccounts);
+                if (configManager.getSettings().debug) {
+                    Bukkit.getLogger().info("Lockupdate Registered locked accounts for " + account);
+                }
+            }
+        });
+        connection.async().subscribe(UPDATE_LOCKED_ACCOUNTS.toString());
+        if (configManager.getSettings().debug) {
+            Bukkit.getLogger().info("Lockch Registered locked accounts channel");
+        }
+    }
+
 }

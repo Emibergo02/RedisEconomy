@@ -1,5 +1,7 @@
 package dev.unnm3d.rediseconomy.transaction;
 
+import dev.unnm3d.rediseconomy.redis.RedisKeys;
+
 import java.util.UUID;
 
 public class AccountID {
@@ -27,7 +29,7 @@ public class AccountID {
     }
 
     public AccountID() {
-        this.id = Transaction.getServerUUID().toString();
+        this.id = RedisKeys.getServerUUID().toString();
     }
 
     public boolean isPlayer() {

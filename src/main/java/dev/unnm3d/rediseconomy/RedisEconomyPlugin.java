@@ -17,6 +17,7 @@ import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
 import dev.unnm3d.rediseconomy.utils.Metrics;
 import dev.unnm3d.rediseconomy.utils.PlaceholderAPIHook;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
@@ -26,7 +27,9 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
 
@@ -81,6 +84,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         //Commands
         PayCommand payCommand = new PayCommand(currenciesManager, this);
         loadCommand("pay", payCommand, payCommand);
+        BlockPaymentsCommand blockPaymentsCommand = new BlockPaymentsCommand(this);
+        loadCommand("toggle-payments", blockPaymentsCommand, blockPaymentsCommand);
         BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
         loadCommand("balance", balanceCommand, balanceCommand);
         Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager, this));
@@ -118,13 +123,27 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     private boolean setupRedis() {
         try {
-            this.redisManager = new RedisManager(RedisClient.create(configManager.getSettings().redisUri));
-            getLogger().info("Connecting to redis server " + configManager.getSettings().redisUri + "...");
+            RedisURI.Builder redisURIBuilder = RedisURI.builder()
+                    .withHost(configManager.getSettings().redis.host())
+                    .withPort(configManager.getSettings().redis.port())
+                    .withDatabase(configManager.getSettings().redis.database())
+                    .withTimeout(Duration.of(configManager.getSettings().redis.timeout(), TimeUnit.MILLISECONDS.toChronoUnit()))
+                    .withClientName(configManager.getSettings().redis.clientName());
+            //Authentication params
+            redisURIBuilder = configManager.getSettings().redis.password().equals("") ?
+                    redisURIBuilder :
+                    configManager.getSettings().redis.user().equals("") ?
+                            redisURIBuilder.withPassword(configManager.getSettings().redis.password().toCharArray()) :
+                            redisURIBuilder.withAuthentication(configManager.getSettings().redis.user(), configManager.getSettings().redis.password());
+
+            getLogger().info("Connecting to redis server " + redisURIBuilder.build().toString() + "...");
+            this.redisManager = new RedisManager(RedisClient.create(redisURIBuilder.build()));
             redisManager.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
             if (!configManager.getSettings().clusterId.equals(""))
                 RedisKeys.setClusterId(configManager.getSettings().clusterId);
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }

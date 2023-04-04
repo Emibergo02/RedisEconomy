@@ -1,5 +1,7 @@
 package dev.unnm3d.rediseconomy.redis;
 
+import java.util.UUID;
+
 public enum RedisKeys {
 
     NAME_UUID("rediseco:nameuuid"),
@@ -11,6 +13,8 @@ public enum RedisKeys {
     UPDATE_BANK_OWNER_CHANNEL_PREFIX("rediseco:b_owner_update_"),
     MSG_CHANNEL("rediseco:paymsg"),
     NEW_TRANSACTIONS("rediseco:transactions:"),
+    LOCKED_ACCOUNTS("rediseco:locked"),
+    UPDATE_LOCKED_ACCOUNTS("rediseco:locked"),
     ;
 
     private String keyName;
@@ -31,6 +35,24 @@ public enum RedisKeys {
         for (RedisKeys key : values()) {
             key.keyName = clusterId + "-" + key.keyName;
         }
+    }
+
+    /**
+     * Returns the server UUID
+     *
+     * @return "00000000-0000-0000-0000-000000000000" as UUID
+     */
+    public static UUID getServerUUID() {
+        return UUID.fromString("00000000-0000-0000-0000-000000000000");
+    }
+
+    /**
+     * Returns a UUID that represents all accounts
+     *
+     * @return "ffffffff-ffff-ffff-ffff-ffffffffffff" as UUID
+     */
+    public static UUID getAllAccountUUID() {
+        return UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
     }
 
 }

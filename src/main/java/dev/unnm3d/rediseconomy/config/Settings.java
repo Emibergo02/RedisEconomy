@@ -21,8 +21,9 @@ public class Settings {
     @Comment({"if true, migrates the bukkit offline uuids accounts to the new system",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
-    @Comment({"redis[s]://[password@]host[:port][/database][?option=value]", "Guide: https://github.com/Emibergo02/RedisEconomy/wiki/Install-redis"})
-    public String redisUri = "redis://localhost:6379/0?timeout=20s&clientName=RedisEconomy";
+    @Comment({"Redis settings",
+            "Leave password or user empty if you don't have a password or user",})
+    public RedisSettings redis = new RedisSettings("localhost", 6379, "", "", 0, 2000, "RedisEconomy");
     @Comment({"All RedisEconomy instances with the same cluster id will share the same data"})
     public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})
@@ -32,5 +33,8 @@ public class Settings {
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
                                    double startingBalance, double payTax, boolean bankEnabled) {
+    }
+
+    public record RedisSettings(String host, int port, String user,String password, int database, int timeout, String clientName) {
     }
 }

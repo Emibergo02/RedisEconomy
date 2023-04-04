@@ -6,7 +6,7 @@ load: STARTUP
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.2.2.RELEASE
+  - io.lettuce:lettuce-core:6.2.3.RELEASE
 softdepend:
   - PlaceholderAPI
   - Essentials
@@ -62,9 +62,16 @@ commands:
     aliases: [restore-economy]
     usage: /backup-economy <file>
     permission: rediseconomy.admin.backup-restore
+  toggle-payments:
+    description: Toggles payments
+    usage: /toggle-payments
+    permission: rediseconomy.toggle-payments
 permissions:
     rediseconomy.pay:
         description: Allows to use /pay
+        default: true
+    rediseconomy.toggle-payments:
+        description: Allows to use /toggle-payments
         default: true
     rediseconomy.balance:
         description: Allows to use /balance
