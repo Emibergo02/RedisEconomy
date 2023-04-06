@@ -79,6 +79,11 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         this.configManager.postStartupLoad();
+        if(settings().migrationEnabled){
+            getServer().getScheduler().runTaskLaterAsynchronously(this, () ->
+                    currenciesManager.getCompleteMigration().complete(null),
+                    100L);//load: STARTUP doesn't consider dependencies on load so i have to wait a bit (bukkit bug?)
+        }
 
         getServer().getPluginManager().registerEvents(currenciesManager, this);
         //Commands

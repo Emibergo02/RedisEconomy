@@ -31,6 +31,8 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
 public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final RedisEconomyPlugin plugin;
+    @Getter
+    private final CompletableFuture<Void> completeMigration;
     private final ConfigManager configManager;
     @Getter
     private final RedisManager redisManager;
@@ -43,6 +45,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     public CurrenciesManager(RedisManager redisManager, RedisEconomyPlugin plugin, ConfigManager configManager) {
         INSTANCE = this;
+        this.completeMigration = new CompletableFuture<>();
         this.redisManager = redisManager;
         this.exchange = new EconomyExchange(this);
         this.plugin = plugin;
@@ -76,39 +79,44 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = currencies.get("vault");
 
-        if (configManager.getSettings().migrationEnabled) {
-            RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
-            if (existentProvider == null) {
-                plugin.getLogger().severe("Vault economy provider not found!");
-                return;
-            }
-            CompletableFuture.supplyAsync(() -> {
-                plugin.getLogger().info("§aMigrating from " + existentProvider.getProvider().getName() + "...");
-                if (existentProvider.getProvider() == defaultCurrency) {
-                    plugin.getLogger().info("There's no other provider apart RedisEconomy!");
-                    return defaultCurrency;
-                }
+        if (!configManager.getSettings().migrationEnabled) {
+            plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
+            return;
+        }
 
-                List<ScoredValue<String>> balances = new ArrayList<>();
-                Map<String, String> nameUniqueIds = new HashMap<>();
-                for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+        RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        if (existentProvider == null) {
+            plugin.getLogger().severe("Vault economy provider not found!");
+            return;
+        }
+        completeMigration.thenApply(voids -> {
+            plugin.getLogger().info("§aMigrating from " + existentProvider.getProvider().getName() + "...");
+            if (existentProvider.getProvider() == defaultCurrency) {
+                plugin.getLogger().info("There's no other provider apart RedisEconomy!");
+                return defaultCurrency;
+            }
+
+            List<ScoredValue<String>> balances = new ArrayList<>();
+            Map<String, String> nameUniqueIds = new HashMap<>();
+            for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+                try {
                     double bal = existentProvider.getProvider().getBalance(offlinePlayer);
                     balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
                     nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId() + "-Unknown" : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
                     defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            }
 
-                defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
-                return defaultCurrency;
-            }).thenAccept((vaultCurrency) -> {
-                plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
-
-                configManager.getSettings().migrationEnabled = false;
-                configManager.saveConfigs();
-            });
-        } else {
-            plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
-        }
+            defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
+            return defaultCurrency;
+        }).thenAccept((vaultCurrency) -> {
+            plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
+            plugin.getLogger().info("§aMigration completed!");
+            configManager.getSettings().migrationEnabled = false;
+            configManager.saveConfigs();
+        });
 
     }
 
@@ -240,10 +248,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                         .thenApply(result -> {
                             ConcurrentHashMap<UUID, List<UUID>> lockedAccounts = new ConcurrentHashMap<>();
                             result.forEach((uuid, uuidList) ->
-                                lockedAccounts.put(UUID.fromString(uuid),
-                                        new ArrayList<>(Arrays.stream(uuidList.split(","))
-                                                .map(UUID::fromString).toList())
-                                )
+                                    lockedAccounts.put(UUID.fromString(uuid),
+                                            new ArrayList<>(Arrays.stream(uuidList.split(","))
+                                                    .map(UUID::fromString).toList())
+                                    )
                             );
                             return lockedAccounts;
                         })
