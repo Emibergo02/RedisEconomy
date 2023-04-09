@@ -75,6 +75,11 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         //If the player has an account uuid is not null
         UUID targetUUID = Objects.requireNonNull(currenciesManager.getUUIDFromUsernameCache(target));
 
+        if (currenciesManager.isAccountLocked(targetUUID, sender.getUniqueId())) {
+            plugin.langs().send(sender, plugin.langs().blockedPayment.replace("%player%", target));
+            return;
+        }
+
         EconomyResponse response = currency.payPlayer(sender.getName(), target, amount);
         if (!response.transactionSuccess()) {
             if (response.errorMessage.equals("Insufficient funds")) {

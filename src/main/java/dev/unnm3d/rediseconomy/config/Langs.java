@@ -23,6 +23,10 @@ public final class Langs {
     public String balanceSet = "<green>You set %player% account to %balance% !</green>";
     public String balanceOther = "<green>%player% has %balance% !</green>";
     public String balanceTop = "<green>Top richest players:</green><br>%prevpage%      %page%      %nextpage%";
+    public String blockedAccounts = "<green>Blocked accounts:</green><br>%list%";
+    public String blockedAccountSuccess = "<green>Account %player% has been blocked!</green>";
+    public String unblockedAccountSuccess = "<green>Account %player% has been unblocked!</green>";
+    public String blockedPayment = "<red>Your payments to %player% have been blocked!</red>";
     public String balanceTopFormat = "<aqua>%pos% - %player% %balance%</aqua>";
     public String paySelf = "<red>You cannot pay yourself!</red>";
     public String paySuccess = "<green>You paid %player% %amount% with %tax_percentage% (%tax_applied%) of transaction fee!</green>";
@@ -31,6 +35,8 @@ public final class Langs {
     public String purgeUserSuccess = "<green>Users matching %player% have been purged!</green>";
     public String switchCurrencySuccess = "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>";
     public String noTransactionFound = "<red>No transaction found for %player%!</red>";
+    public String incorrectDate = "<red>Incorrect Date formatting !</red>";
+    public String purgeTransactionsSuccess = "<green>Purged %size% transactions from %player% before %date%</green>";
     public String transactionsStart = "<dark_aqua>Transactions of player %player% from %after% to %before%!</dark_aqua>";
     public String transactionsEnd = "<dark_aqua>End of %player% transactions in %time% ms</dark_aqua>";
     public String editMessageError = "<red>This config entry is not a String or doesn't exist!";

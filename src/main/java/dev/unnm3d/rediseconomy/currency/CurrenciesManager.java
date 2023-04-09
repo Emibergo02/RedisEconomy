@@ -6,7 +6,6 @@ import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
-import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
@@ -25,13 +24,15 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.NAME_UUID;
+import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
 
 public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final RedisEconomyPlugin plugin;
+    @Getter
+    private final CompletableFuture<Void> completeMigration;
     private final ConfigManager configManager;
     @Getter
     private final RedisManager redisManager;
@@ -39,10 +40,12 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final HashMap<String, Currency> currencies;
     @Getter
     private final ConcurrentHashMap<String, UUID> nameUniqueIds;
+    private final ConcurrentHashMap<UUID, List<UUID>> lockedAccounts;
 
 
     public CurrenciesManager(RedisManager redisManager, RedisEconomyPlugin plugin, ConfigManager configManager) {
         INSTANCE = this;
+        this.completeMigration = new CompletableFuture<>();
         this.redisManager = redisManager;
         this.exchange = new EconomyExchange(this);
         this.plugin = plugin;
@@ -50,6 +53,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         this.currencies = new HashMap<>();
         try {
             this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(1, TimeUnit.SECONDS);
+            this.lockedAccounts = loadLockedAccounts().toCompletableFuture().get(1, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -67,6 +71,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put("vault", new Currency(this, "vault", "€", "€", 0.0, 0.0));
         }
         registerPayMsgChannel();
+        registerBlockAccountChannel();
 
     }
 
@@ -74,39 +79,44 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = currencies.get("vault");
 
-        if (configManager.getSettings().migrationEnabled) {
-            RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
-            if (existentProvider == null) {
-                plugin.getLogger().severe("Vault economy provider not found!");
-                return;
-            }
-            CompletableFuture.supplyAsync(() -> {
-                plugin.getLogger().info("§aMigrating from " + existentProvider.getProvider().getName() + "...");
-                if (existentProvider.getProvider() == defaultCurrency) {
-                    plugin.getLogger().info("There's no other provider apart RedisEconomy!");
-                    return defaultCurrency;
-                }
+        if (!configManager.getSettings().migrationEnabled) {
+            plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
+            return;
+        }
 
-                List<ScoredValue<String>> balances = new ArrayList<>();
-                Map<String, String> nameUniqueIds = new HashMap<>();
-                for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+        RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        if (existentProvider == null) {
+            plugin.getLogger().severe("Vault economy provider not found!");
+            return;
+        }
+        completeMigration.thenApply(voids -> {
+            plugin.getLogger().info("§aMigrating from " + existentProvider.getProvider().getName() + "...");
+            if (existentProvider.getProvider() == defaultCurrency) {
+                plugin.getLogger().info("There's no other provider apart RedisEconomy!");
+                return defaultCurrency;
+            }
+
+            List<ScoredValue<String>> balances = new ArrayList<>();
+            Map<String, String> nameUniqueIds = new HashMap<>();
+            for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+                try {
                     double bal = existentProvider.getProvider().getBalance(offlinePlayer);
                     balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
                     nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId() + "-Unknown" : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
                     defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            }
 
-                defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
-                return defaultCurrency;
-            }).thenAccept((vaultCurrency) -> {
-                plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
-
-                configManager.getSettings().migrationEnabled = false;
-                configManager.saveConfigs();
-            });
-        } else {
-            plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
-        }
+            defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
+            return defaultCurrency;
+        }).thenAccept((vaultCurrency) -> {
+            plugin.getServer().getServicesManager().register(Economy.class, vaultCurrency, vaultPlugin, ServicePriority.High);
+            plugin.getLogger().info("§aMigration completed!");
+            configManager.getSettings().migrationEnabled = false;
+            configManager.saveConfigs();
+        });
 
     }
 
@@ -172,7 +182,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     @Override
     public @Nullable String getUsernameFromUUIDCache(@NotNull UUID uuid) {
-        if (uuid.equals(Transaction.getServerUUID())) return "Server";
+        if (uuid.equals(RedisKeys.getServerUUID())) return "Server";
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
             if (entry.getValue().equals(uuid))
                 return entry.getKey();
@@ -228,6 +238,22 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                                 Bukkit.getLogger().info("start0 Loaded " + nameUUIDs.size() + " name-uuid pairs");
                             }
                             return nameUUIDs;
+                        })
+        );
+    }
+
+    private CompletionStage<ConcurrentHashMap<UUID, List<UUID>>> loadLockedAccounts() {
+        return redisManager.getConnectionAsync(connection ->
+                connection.hgetall(LOCKED_ACCOUNTS.toString())
+                        .thenApply(result -> {
+                            ConcurrentHashMap<UUID, List<UUID>> lockedAccounts = new ConcurrentHashMap<>();
+                            result.forEach((uuid, uuidList) ->
+                                    lockedAccounts.put(UUID.fromString(uuid),
+                                            new ArrayList<>(Arrays.stream(uuidList.split(","))
+                                                    .map(UUID::fromString).toList())
+                                    )
+                            );
+                            return lockedAccounts;
                         })
         );
     }
@@ -299,4 +325,82 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             return null;
         });
     }
+
+    /**
+     * Toggles the lock status of an account
+     *
+     * @param uuid   The uuid of the player
+     * @param target The uuid of the target
+     * @return completable future true if the account is locked, false if it is unlocked
+     */
+    public CompletableFuture<Boolean> toggleAccountLock(UUID uuid, UUID target) {
+        final CompletableFuture<Boolean> future = new CompletableFuture<>();
+        List<UUID> locked = lockedAccounts.getOrDefault(uuid, new ArrayList<>());
+        boolean isLocked = locked.contains(target);
+
+        if (isLocked) {
+            locked.remove(target);
+        } else {
+            locked.add(target);
+        }
+
+        //The string to be stored into Redis
+        String redisString = locked.stream().map(UUID::toString).collect(Collectors.joining(","));
+
+        redisManager.getConnectionPipeline(connection -> {
+                    connection.hset(LOCKED_ACCOUNTS.toString(),
+                            uuid.toString(),
+                            redisString
+                    );
+                    connection.publish(UPDATE_LOCKED_ACCOUNTS.toString(), uuid + "," + redisString)
+                            .thenAccept(integer -> {
+                                if (configManager.getSettings().debug) {
+                                    Bukkit.getLogger().info("Lock0 - Published update locked accounts message: " + integer);
+                                }
+                                lockedAccounts.put(uuid, locked);
+                                future.complete(!isLocked);
+                            });
+                    return null;
+                }
+        );
+
+        return future;
+    }
+
+    public boolean isAccountLocked(UUID uuid, UUID target) {
+        return getLockedAccounts(uuid).contains(target) ||
+                getLockedAccounts(uuid).contains(RedisKeys.getAllAccountUUID());
+    }
+
+    public List<UUID> getLockedAccounts(UUID uuid) {
+        return lockedAccounts.getOrDefault(uuid, new ArrayList<>());
+    }
+
+    private void registerBlockAccountChannel() {
+        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        connection.addListener(new RedisCurrencyListener() {
+            @Override
+            public void message(String channel, String message) {
+                String[] args = message.split(",");
+                UUID account = UUID.fromString(args[0]);
+                if (args[1].equals("")) {
+                    lockedAccounts.remove(account);
+                    return;
+                }
+                List<UUID> newLockedAccounts = new ArrayList<>();
+                for (int i = 1; i < args.length; i++) {
+                    newLockedAccounts.add(UUID.fromString(args[i]));
+                }
+                lockedAccounts.put(account, newLockedAccounts);
+                if (configManager.getSettings().debug) {
+                    Bukkit.getLogger().info("Lockupdate Registered locked accounts for " + account);
+                }
+            }
+        });
+        connection.async().subscribe(UPDATE_LOCKED_ACCOUNTS.toString());
+        if (configManager.getSettings().debug) {
+            Bukkit.getLogger().info("Lockch Registered locked accounts channel");
+        }
+    }
+
 }

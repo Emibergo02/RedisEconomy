@@ -9,11 +9,10 @@ import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
 
@@ -32,17 +31,41 @@ public class EconomyExchange {
         return currenciesManager.getRedisManager().getConnectionAsync(connection ->
                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
                         .thenApply(this::getTransactionsFromSerialized)
-                        .thenApply(integerTransactionMap -> {
-                            if (RedisEconomyPlugin.getInstance().settings().debug) {
-                                integerTransactionMap.forEach((integer, transaction) -> Bukkit.getLogger().info("getTransactions: " + integer + " " + transaction));
-                            }
-                            return integerTransactionMap;
-                        })
                         .exceptionally(exc -> {
                             exc.printStackTrace();
                             return null;
                         })
         );
+    }
+
+    /**
+     * Remove transactions from an account id if they are older than a specific time
+     *
+     * @param accountId Account id
+     * @param timestamp Timestamp in milliseconds
+     * @return How many transactions were removed
+     */
+    public CompletionStage<Long> removeOutdatedTransactions(AccountID accountId, long timestamp) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+
+        getTransactions(accountId)
+                .thenAccept(integerTransactionMap -> {
+                    List<String> outdatedTransactionIds = new ArrayList<>();
+                    integerTransactionMap.forEach((integer, transaction) -> {
+                        if (transaction.timestamp < timestamp) {
+                            outdatedTransactionIds.add(String.valueOf(integer));
+                        }
+                    });
+                    if(outdatedTransactionIds.size()==0)
+                        future.complete(0L);
+                    currenciesManager.getRedisManager().getConnectionAsync(connection ->
+                            connection.hdel(NEW_TRANSACTIONS + accountId.toString(), outdatedTransactionIds.toArray(new String[0])))
+                            .thenAccept(future::complete);
+                });
+        return future.orTimeout(5, TimeUnit.SECONDS).exceptionally(exc -> {
+            exc.printStackTrace();
+            return null;
+        });
     }
 
     /**

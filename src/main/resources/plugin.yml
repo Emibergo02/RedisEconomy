@@ -6,7 +6,7 @@ load: STARTUP
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.2.2.RELEASE
+  - io.lettuce:lettuce-core:6.2.3.RELEASE
 softdepend:
   - PlaceholderAPI
   - Essentials
@@ -40,6 +40,10 @@ commands:
     description: Show transactions
     usage: /browse-transactions <player> [timestamp]
     permission: rediseconomy.admin.browse-transactions
+  purge-transactions:
+    description: Purge transactions
+    usage: /purge-transactions <player> [timestamp]
+    permission: rediseconomy.admin.purge-transactions
   purge-balance:
     description: Purge balances
     usage: /purge-balance <player> [onlyNameUUID]
@@ -58,9 +62,16 @@ commands:
     aliases: [restore-economy]
     usage: /backup-economy <file>
     permission: rediseconomy.admin.backup-restore
+  toggle-payments:
+    description: Toggles payments
+    usage: /toggle-payments
+    permission: rediseconomy.toggle-payments
 permissions:
     rediseconomy.pay:
         description: Allows to use /pay
+        default: true
+    rediseconomy.toggle-payments:
+        description: Allows to use /toggle-payments
         default: true
     rediseconomy.balance:
         description: Allows to use /balance
@@ -85,5 +96,6 @@ permissions:
         rediseconomy.admin.purge-balance: true
         rediseconomy.admin.switch-currency: true
         rediseconomy.admin.browse-transactions: true
+        rediseconomy.admin.purge-transactions: true
         rediseconomy.admin.editmessage: true
         rediseconomy.admin.backup-restore: true
