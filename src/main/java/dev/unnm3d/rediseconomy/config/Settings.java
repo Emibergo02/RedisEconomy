@@ -18,7 +18,7 @@ public class Settings {
     public String webEditorUrl = "https://webui.advntr.dev/";
     @Comment("Activate this before reporting an issue")
     public boolean debug = false;
-    @Comment({"if true, migrates the bukkit offline uuids accounts to the new system",
+    @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
     @Comment({"Redis settings",
@@ -28,6 +28,8 @@ public class Settings {
     public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})
     public int tab_complete_chars = 0;
+    @Comment("Default currency name (must be the same as the currency name in the currencies list)")
+    public String defaultCurrencyName = "vault";
     @Comment("Currencies")
     public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", 0, 0, true), new CurrencySettings("dollar", "$", "$", 0, 0, false));
 

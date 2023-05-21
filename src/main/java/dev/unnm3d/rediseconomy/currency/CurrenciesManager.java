@@ -67,8 +67,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
             currencies.put(currencySettings.currencyName(), currency);
         });
-        if (currencies.get("vault") == null) {
-            currencies.put("vault", new Currency(this, "vault", "€", "€", 0.0, 0.0));
+        if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, configManager.getSettings().defaultCurrencyName, "€", "€", 0.0, 0.0));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -77,7 +77,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
-        Currency defaultCurrency = currencies.get("vault");
+        Currency defaultCurrency = getDefaultCurrency();
 
         if (!configManager.getSettings().migrationEnabled) {
             plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
@@ -142,7 +142,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     @Override
     public @NotNull Currency getDefaultCurrency() {
-        return currencies.get("vault");
+        return currencies.get(configManager.getSettings().defaultCurrencyName);
     }
 
     void updateNameUniqueId(String name, UUID uuid) {
