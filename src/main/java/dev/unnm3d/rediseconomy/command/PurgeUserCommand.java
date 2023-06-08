@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.command;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.currency.Currency;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -26,17 +27,28 @@ public class PurgeUserCommand implements CommandExecutor, TabCompleter {
         }
         String target = args[0];
         boolean onlyNameUUID = false;
+        Currency currencyReset = null;
         if (args.length == 2) {
             if (args[1].equalsIgnoreCase("onlyNameUUID")) {
                 onlyNameUUID = true;
+            } else if (currenciesManager.getCurrencyByName(args[1]) != null) {
+                currencyReset = currenciesManager.getCurrencyByName(args[1]);
             }
         }
-        Map<String, UUID> nameUUIDs = currenciesManager.removeNamePattern(target, !onlyNameUUID);
+        Map<String, UUID> nameUUIDs;
+        String successMsg;
+        if (currencyReset != null) {
+            nameUUIDs = currenciesManager.resetBalanceNamePattern(target, currencyReset);
+            successMsg = plugin.langs().purgeBalanceSuccess.replace("%player%", target).replace("%currency%", currencyReset.getName());
+        } else {
+            nameUUIDs = currenciesManager.removeNamePattern(target, !onlyNameUUID);
+            successMsg = plugin.langs().purgeUserSuccess.replace("%player%", target);
+        }
         if (nameUUIDs.size() == 0) {
             plugin.langs().send(sender, plugin.langs().playerNotFound);
             return true;
         }
-        plugin.langs().send(sender, plugin.langs().purgeUserSuccess.replace("%player%", target));
+        plugin.langs().send(sender, successMsg);
 
 
         return true;

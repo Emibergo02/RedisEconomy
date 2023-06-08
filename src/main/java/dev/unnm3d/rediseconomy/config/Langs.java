@@ -33,6 +33,7 @@ public final class Langs {
     public String payFail = "<red>Payment failed!</red>";
     public String payReceived = "<green>You received %amount% from %player%!</green>";
     public String purgeUserSuccess = "<green>Users matching %player% have been purged!</green>";
+    public String purgeBalanceSuccess = "<green>Users matching %player% have been reset for currency %currency%!</green>";
     public String switchCurrencySuccess = "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>";
     public String noTransactionFound = "<red>No transaction found for %player%!</red>";
     public String incorrectDate = "<red>Incorrect Date formatting !</red>";

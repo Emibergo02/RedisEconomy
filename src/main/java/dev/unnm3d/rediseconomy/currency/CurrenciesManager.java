@@ -175,6 +175,26 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         return removed;
     }
 
+    /**
+     * Resets the balance of all players with the given name pattern
+     *
+     * @param namePattern   the pattern to match
+     * @param currencyReset the currency to be reset
+     * @return a map of reset players
+     */
+    public HashMap<String, UUID> resetBalanceNamePattern(String namePattern, Currency currencyReset) {
+        HashMap<String, UUID> removed = new HashMap<>();
+        for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
+            if (entry.getKey().matches(namePattern)) {
+                removed.put(entry.getKey(), entry.getValue());
+            }
+        }
+        if (!removed.isEmpty()) {
+            removed.forEach((name, uuid) -> currencyReset.setPlayerBalance(uuid, name, 0.0));
+        }
+        return removed;
+    }
+
     @Override
     public @Nullable UUID getUUIDFromUsernameCache(@NotNull String username) {
         return nameUniqueIds.get(username);
