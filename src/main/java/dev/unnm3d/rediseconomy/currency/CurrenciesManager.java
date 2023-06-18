@@ -67,8 +67,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
             currencies.put(currencySettings.currencyName(), currency);
         });
-        if (currencies.get("vault") == null) {
-            currencies.put("vault", new Currency(this, "vault", "€", "€", 0.0, 0.0));
+        if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, configManager.getSettings().defaultCurrencyName, "€", "€", 0.0, 0.0));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -77,7 +77,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
-        Currency defaultCurrency = currencies.get("vault");
+        Currency defaultCurrency = getDefaultCurrency();
 
         if (!configManager.getSettings().migrationEnabled) {
             plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
@@ -142,7 +142,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     @Override
     public @NotNull Currency getDefaultCurrency() {
-        return currencies.get("vault");
+        return currencies.get(configManager.getSettings().defaultCurrencyName);
     }
 
     void updateNameUniqueId(String name, UUID uuid) {
@@ -171,6 +171,26 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                     removed.forEach((name, uuid) -> currency.setPlayerBalance(uuid, name, 0.0));
                 }
             }
+        }
+        return removed;
+    }
+
+    /**
+     * Resets the balance of all players with the given name pattern
+     *
+     * @param namePattern   the pattern to match
+     * @param currencyReset the currency to be reset
+     * @return a map of reset players
+     */
+    public HashMap<String, UUID> resetBalanceNamePattern(String namePattern, Currency currencyReset) {
+        HashMap<String, UUID> removed = new HashMap<>();
+        for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
+            if (entry.getKey().matches(namePattern)) {
+                removed.put(entry.getKey(), entry.getValue());
+            }
+        }
+        if (!removed.isEmpty()) {
+            removed.forEach((name, uuid) -> currencyReset.setPlayerBalance(uuid, name, 0.0));
         }
         return removed;
     }
