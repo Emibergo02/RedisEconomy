@@ -28,7 +28,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
@@ -68,7 +67,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getLogger().info("Redis server connected!");
         }
 
-        if (!setupEconomy()) { //creates currenciesManager and exchange
+        if (!setupVault()) { //creates currenciesManager and exchange
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
         } else {
@@ -79,9 +78,9 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         this.configManager.postStartupLoad();
-        if(settings().migrationEnabled){
+        if (settings().migrationEnabled) {
             getServer().getScheduler().runTaskLaterAsynchronously(this, () ->
-                    currenciesManager.getCompleteMigration().complete(null),
+                            currenciesManager.getCompleteMigration().complete(null),
                     100L);//load: STARTUP doesn't consider dependencies on load so i have to wait a bit (bukkit bug?)
         }
 
@@ -93,7 +92,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("toggle-payments", blockPaymentsCommand, blockPaymentsCommand);
         BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
         loadCommand("balance", balanceCommand, balanceCommand);
-        Objects.requireNonNull(getServer().getPluginCommand("balancetop")).setExecutor(new BalanceTopCommand(currenciesManager, this));
+        BalanceTopCommand balanceTopCommand = new BalanceTopCommand(currenciesManager, this);
+        loadCommand("balancetop", balanceTopCommand, balanceTopCommand);
         TransactionCommand transactionCommand = new TransactionCommand(this);
         loadCommand("transaction", transactionCommand, transactionCommand);
         BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(this);
@@ -110,7 +110,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("rediseconomy", mainCommand, mainCommand);
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new PlaceholderAPIHook(currenciesManager, configManager.getLangs()).register();
+            new PlaceholderAPIHook(this).register();
         }
 
         new Metrics(this, 16802);
@@ -153,7 +153,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
     }
 
-    private boolean setupEconomy() {
+    private boolean setupVault() {
         Plugin vault = getServer().getPluginManager().getPlugin("Vault");
         if (vault == null)
             return false;
