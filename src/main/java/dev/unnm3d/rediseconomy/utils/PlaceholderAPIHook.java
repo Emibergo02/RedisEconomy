@@ -154,7 +154,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     private String parseParams(double amount, List<String> splitted, Currency currency) {
 
-        String formattedNumber = currency.format(amount);
+        String formattedNumber = currency.getDecimalFormat().format(amount);
 
         if (splitted.contains("short")) {
             if (amount >= 1000000000000.0) {
