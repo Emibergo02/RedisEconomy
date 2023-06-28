@@ -25,8 +25,8 @@ public class CurrencyWithBanks extends Currency {
      */
     private final ConcurrentHashMap<String, UUID> bankOwners;
 
-    public CurrencyWithBanks(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double transactionTax) {
-        super(currenciesManager, currencyName, currencySingular, currencyPlural, startingBalance, transactionTax);
+    public CurrencyWithBanks(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, String decimalFormat, String languageTag, double startingBalance, double transactionTax) {
+        super(currenciesManager, currencyName, currencySingular, currencyPlural, decimalFormat, languageTag, startingBalance, transactionTax);
         bankAccounts = new ConcurrentHashMap<>();
         bankOwners = new ConcurrentHashMap<>();
         getOrderedBankAccounts().thenApply(list -> {

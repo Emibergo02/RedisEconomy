@@ -15,10 +15,9 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
@@ -35,6 +34,7 @@ public class Currency implements Economy {
     private String currencySingular;
     @Getter
     private String currencyPlural;
+    private final DecimalFormat decimalFormat;
     @Getter
     private double startingBalance;
     @Getter
@@ -52,7 +52,7 @@ public class Currency implements Economy {
      * @param startingBalance   The starting balance of the currency
      * @param transactionTax    The transaction tax of the currency
      */
-    public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, double startingBalance, double transactionTax) {
+    public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, String decimalFormat, String languageTag, double startingBalance, double transactionTax) {
         this.currenciesManager = currenciesManager;
         this.enabled = true;
         this.currencyName = currencyName;
@@ -61,6 +61,10 @@ public class Currency implements Economy {
         this.startingBalance = startingBalance;
         this.transactionTax = transactionTax;
         this.accounts = new ConcurrentHashMap<>();
+        this.decimalFormat = new DecimalFormat(
+                decimalFormat != null ? decimalFormat : "#.##",
+                new DecimalFormatSymbols(Locale.forLanguageTag(languageTag != null ? languageTag : "en-US"))
+        );
         getOrderedAccounts(-1).thenApply(result -> {
                     result.forEach(t ->
                             accounts.put(UUID.fromString(t.getValue()), t.getScore()));
@@ -122,7 +126,7 @@ public class Currency implements Economy {
 
     @Override
     public String format(double amount) {
-        return String.format("%.2f", amount) + (amount == 1 ? currencySingular : currencyPlural);
+        return decimalFormat.format(amount) + (amount == 1 ? currencySingular : currencyPlural);
     }
 
     @Override

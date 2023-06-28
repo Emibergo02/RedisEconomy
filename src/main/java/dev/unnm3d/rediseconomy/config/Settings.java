@@ -31,12 +31,14 @@ public class Settings {
     @Comment("Default currency name (must be the same as the currency name in the currencies list)")
     public String defaultCurrencyName = "vault";
     @Comment("Currencies")
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", 0, 0, true), new CurrencySettings("dollar", "$", "$", 0, 0, false));
+    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false));
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
+                                   String decimalFormat, String languageTag,
                                    double startingBalance, double payTax, boolean bankEnabled) {
     }
 
-    public record RedisSettings(String host, int port, String user,String password, int database, int timeout, String clientName) {
+    public record RedisSettings(String host, int port, String user, String password, int database, int timeout,
+                                String clientName) {
     }
 }
