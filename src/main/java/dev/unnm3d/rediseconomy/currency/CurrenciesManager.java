@@ -61,14 +61,14 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         configManager.getSettings().currencies.forEach(currencySettings -> {
             Currency currency;
             if (currencySettings.bankEnabled()) {
-                currency = new CurrencyWithBanks(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.startingBalance(), currencySettings.payTax());
+                currency = new CurrencyWithBanks(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.decimalFormat(), currencySettings.languageTag(), currencySettings.startingBalance(), currencySettings.payTax());
             } else {
-                currency = new Currency(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.startingBalance(), currencySettings.payTax());
+                currency = new Currency(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.decimalFormat(), currencySettings.languageTag(), currencySettings.startingBalance(), currencySettings.payTax());
             }
             currencies.put(currencySettings.currencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, configManager.getSettings().defaultCurrencyName, "€", "€", 0.0, 0.0));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, 0.0));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();

@@ -118,7 +118,6 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             if (splitted.size() < 3) return null; //Insufficient parameters
 
             List<String[]> user_balance_strings = baltopCache.get(currency);
-            System.out.println(user_balance_strings);
             if (user_balance_strings == null) return null;
 
             if (splitted.get(1).equals("position")) {//rediseco_top_position_<currency>
@@ -155,17 +154,17 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     private String parseParams(double amount, List<String> splitted, Currency currency) {
 
-        String formattedNumber = String.format("%.2f", amount);
+        String formattedNumber = currency.format(amount);
 
         if (splitted.contains("short")) {
             if (amount >= 1000000000000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000000000000.0) + langs.unitSymbols.trillion();
+                formattedNumber = currency.format(amount / 1000000000000.0) + langs.unitSymbols.trillion();
             } else if (amount >= 1000000000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000000000.0) + langs.unitSymbols.billion();
+                formattedNumber = currency.format(amount / 1000000000.0) + langs.unitSymbols.billion();
             } else if (amount >= 1000000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000000.0) + langs.unitSymbols.million();
+                formattedNumber = currency.format(amount / 1000000.0) + langs.unitSymbols.million();
             } else if (amount >= 1000.0) {
-                formattedNumber = String.format("%.2f", amount / 1000.0) + langs.unitSymbols.thousand();
+                formattedNumber = currency.format(amount / 1000.0) + langs.unitSymbols.thousand();
             }
         }
         if (splitted.contains("formatted")) {
