@@ -54,7 +54,7 @@ public class ArchiveTransactionsCommand implements CommandExecutor, TabCompleter
                         e.printStackTrace();
                     }
 
-                    if (progress % 2 == 0)
+                    if (progress % 100 == 0)
                         plugin.langs().send(sender, plugin.langs().transactionsArchiveProgress.replace("%progress%", String.valueOf(progress * 100 / plugin.getCurrenciesManager().getNameUniqueIds().size())));
                 }
                 fw.write(sb.toString());
