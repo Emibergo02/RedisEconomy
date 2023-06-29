@@ -34,7 +34,7 @@ public class RedisManager {
     public <T> CompletionStage<T> getConnectionPipeline(Function<RedisAsyncCommands<String, String>, CompletionStage<T>> redisCallBack) {
         StatefulRedisConnection<String, String> connection = roundRobinConnectionPool.get();
         connection.setAutoFlushCommands(false);
-        CompletionStage<T> completionStage = redisCallBack.apply(roundRobinConnectionPool.get().async());
+        CompletionStage<T> completionStage = redisCallBack.apply(connection.async());
         connection.flushCommands();
         connection.setAutoFlushCommands(true);
         return completionStage;

@@ -34,6 +34,7 @@ public class Currency implements Economy {
     private String currencySingular;
     @Getter
     private String currencyPlural;
+    @Getter
     private final DecimalFormat decimalFormat;
     @Getter
     private double startingBalance;

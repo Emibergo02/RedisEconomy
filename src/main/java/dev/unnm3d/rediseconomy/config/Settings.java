@@ -21,9 +21,11 @@ public class Settings {
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
-    @Comment({"Redis settings",
-            "Leave password or user empty if you don't have a password or user",})
-    public RedisSettings redis = new RedisSettings("localhost", 6379, "", "", 0, 2000, "RedisEconomy");
+    @Comment({"Leave password or user empty if you don't have a password or user",
+            "Don't use the default credentials in production!! Generate new credentials on RedisLabs -> https://github.com/Emibergo02/RedisEconomy/wiki/Install-redis",
+            "Default credentials lead to a non-persistent redis server, only for testing!!",
+    })
+    public RedisSettings redis = new RedisSettings("redis-14919.c293.eu-central-1-1.ec2.cloud.redislabs.com", 14919, "default", "XNlI2IaLV04lm29AK3trpquHcScku9z2", 0, 2000, "RedisEconomy");
     @Comment({"All RedisEconomy instances with the same cluster id will share the same data"})
     public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})
