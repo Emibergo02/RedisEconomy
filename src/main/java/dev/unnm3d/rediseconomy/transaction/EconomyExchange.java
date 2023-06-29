@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
@@ -56,16 +57,36 @@ public class EconomyExchange {
                             outdatedTransactionIds.add(String.valueOf(integer));
                         }
                     });
-                    if(outdatedTransactionIds.size()==0)
+                    if (outdatedTransactionIds.size() == 0)
                         future.complete(0L);
                     currenciesManager.getRedisManager().getConnectionAsync(connection ->
-                            connection.hdel(NEW_TRANSACTIONS + accountId.toString(), outdatedTransactionIds.toArray(new String[0])))
+                                    connection.hdel(NEW_TRANSACTIONS + accountId.toString(), outdatedTransactionIds.toArray(new String[0])))
                             .thenAccept(future::complete);
                 });
         return future.orTimeout(5, TimeUnit.SECONDS).exceptionally(exc -> {
             exc.printStackTrace();
             return null;
         });
+    }
+
+    /**
+     * Remove all transactions from Redis
+     *
+     * @return How many transaction accounts were removed
+     */
+    public CompletionStage<Long> removeAllTransactions() {
+        return currenciesManager.getRedisManager().getConnectionAsync(connection -> {
+                    try {
+                        List<String> keys = connection.keys(NEW_TRANSACTIONS + "*").get();
+                        if (keys.size() == 0) {
+                            return CompletableFuture.completedFuture(0L);
+                        }
+                        return connection.del(keys.toArray(new String[0]));
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        );
     }
 
     /**

@@ -44,6 +44,10 @@ commands:
     description: Purge transactions
     usage: /purge-transactions <player> [timestamp]
     permission: rediseconomy.admin.purge-transactions
+  archive-transactions:
+    description: Archive transactions
+    usage: /archive-transactions <file>
+    permission: rediseconomy.admin.archive-transactions
   purge-balance:
     description: Purge balances
     usage: /purge-balance <player> [onlyNameUUID]
@@ -99,3 +103,4 @@ permissions:
         rediseconomy.admin.purge-transactions: true
         rediseconomy.admin.editmessage: true
         rediseconomy.admin.backup-restore: true
+        rediseconomy.admin.archive-transactions: true
