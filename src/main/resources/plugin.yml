@@ -40,10 +40,6 @@ commands:
     description: Show transactions
     usage: /browse-transactions <player> [timestamp]
     permission: rediseconomy.admin.browse-transactions
-  purge-transactions:
-    description: Purge transactions
-    usage: /purge-transactions <player> [timestamp]
-    permission: rediseconomy.admin.purge-transactions
   archive-transactions:
     description: Archive transactions
     usage: /archive-transactions <file>
@@ -100,7 +96,6 @@ permissions:
         rediseconomy.admin.purge-balance: true
         rediseconomy.admin.switch-currency: true
         rediseconomy.admin.browse-transactions: true
-        rediseconomy.admin.purge-transactions: true
         rediseconomy.admin.editmessage: true
         rediseconomy.admin.backup-restore: true
         rediseconomy.admin.archive-transactions: true

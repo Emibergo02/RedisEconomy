@@ -6,7 +6,6 @@ import dev.unnm3d.rediseconomy.command.balance.BalanceSubCommands;
 import dev.unnm3d.rediseconomy.command.balance.BalanceTopCommand;
 import dev.unnm3d.rediseconomy.command.transaction.ArchiveTransactionsCommand;
 import dev.unnm3d.rediseconomy.command.transaction.BrowseTransactionsCommand;
-import dev.unnm3d.rediseconomy.command.transaction.PurgeTransactionsCommand;
 import dev.unnm3d.rediseconomy.command.transaction.TransactionCommand;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Langs;
@@ -99,8 +98,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         loadCommand("transaction", transactionCommand, transactionCommand);
         BrowseTransactionsCommand browseTransactionsCommand = new BrowseTransactionsCommand(this);
         loadCommand("browse-transactions", browseTransactionsCommand, browseTransactionsCommand);
-        PurgeTransactionsCommand purgeTransactionsCommand = new PurgeTransactionsCommand(this);
-        loadCommand("purge-transactions", purgeTransactionsCommand, purgeTransactionsCommand);
         ArchiveTransactionsCommand archiveTransactionsCommand = new ArchiveTransactionsCommand(this);
         loadCommand("archive-transactions", archiveTransactionsCommand, archiveTransactionsCommand);
         PurgeUserCommand purgeUserCommand = new PurgeUserCommand(currenciesManager, this);
