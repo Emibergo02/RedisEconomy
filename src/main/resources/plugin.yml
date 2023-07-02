@@ -6,7 +6,7 @@ load: STARTUP
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.2.3.RELEASE
+  - io.lettuce:lettuce-core:6.2.4.RELEASE
 softdepend:
   - PlaceholderAPI
   - Essentials

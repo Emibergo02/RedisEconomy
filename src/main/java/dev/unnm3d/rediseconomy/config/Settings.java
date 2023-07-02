@@ -25,7 +25,7 @@ public class Settings {
             "Don't use the default credentials in production!! Generate new credentials on RedisLabs -> https://github.com/Emibergo02/RedisEconomy/wiki/Install-redis",
             "Default credentials lead to a non-persistent redis server, only for testing!!",
     })
-    public RedisSettings redis = new RedisSettings("redis-14919.c293.eu-central-1-1.ec2.cloud.redislabs.com", 14919, "default", "XNlI2IaLV04lm29AK3trpquHcScku9z2", 0, 2000, "RedisEconomy");
+    public RedisSettings redis = new RedisSettings("redis-18328.c55.eu-central-1-1.ec2.cloud.redislabs.com", 18328, "changecredentials", "XNlI2IaLV04lm_29AK3trpquHcScku9z2", 0, 2000, "RedisEconomy");
     @Comment({"All RedisEconomy instances with the same cluster id will share the same data"})
     public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})

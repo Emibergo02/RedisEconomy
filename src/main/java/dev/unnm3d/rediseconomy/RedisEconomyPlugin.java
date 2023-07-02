@@ -134,6 +134,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                     .withDatabase(configManager.getSettings().redis.database())
                     .withTimeout(Duration.of(configManager.getSettings().redis.timeout(), TimeUnit.MILLISECONDS.toChronoUnit()))
                     .withClientName(configManager.getSettings().redis.clientName());
+            if (configManager.getSettings().redis.user().equals("changecredentials"))
+                getLogger().warning("You are using default redis credentials. Please change them in the config.yml file!");
             //Authentication params
             redisURIBuilder = configManager.getSettings().redis.password().equals("") ?
                     redisURIBuilder :
@@ -148,7 +150,10 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                 RedisKeys.setClusterId(configManager.getSettings().clusterId);
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            if (e.getMessage().contains("max number of clients reached")) {
+                getLogger().severe("CHECK YOUR REDIS CREDENTIALS. DO NOT USE DEFAULT CREDENTIALS OR THE PLUGIN WILL LOSE DATA AND MAY NOT WORK!");
+            } else
+                e.printStackTrace();
             return false;
         }
     }
