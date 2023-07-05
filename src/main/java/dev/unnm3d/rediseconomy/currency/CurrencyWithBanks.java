@@ -255,7 +255,6 @@ public class CurrencyWithBanks extends Currency {
                 currenciesManager.getUsernameFromUUIDCache(transaction.accountIdentifier.getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.accountIdentifier.toString(); //Else, it's a bank, so we get the bank id
         if (transaction.accountIdentifier.isPlayer()) {//Update player account
-            ownerName = ownerName == null ? transaction.accountIdentifier + "-Unknown" : ownerName;
             updateAccount(transaction.accountIdentifier.getUUID(), ownerName, getBalance(transaction.accountIdentifier.getUUID()) - transaction.amount);
         } else {//Update bank account
             updateBankAccount(transaction.accountIdentifier.toString(), bankBalance(transaction.accountIdentifier.toString()).balance - transaction.amount);

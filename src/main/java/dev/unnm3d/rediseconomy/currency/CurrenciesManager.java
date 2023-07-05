@@ -102,7 +102,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 try {
                     double bal = existentProvider.getProvider().getBalance(offlinePlayer);
                     balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
-                    nameUniqueIds.put(offlinePlayer.getName() == null ? offlinePlayer.getUniqueId() + "-Unknown" : offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
+                    if(offlinePlayer.getName()!=null)
+                        nameUniqueIds.put(offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
                     defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -203,11 +204,14 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     @Override
     public @Nullable String getUsernameFromUUIDCache(@NotNull UUID uuid) {
         if (uuid.equals(RedisKeys.getServerUUID())) return "Server";
-        for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
-            if (entry.getValue().equals(uuid))
-                return entry.getKey();
-        }
-        return null;
+        return nameUniqueIds.entrySet().stream()
+                .filter(e -> e.getValue().equals(uuid))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElseGet(() -> {
+                    Bukkit.getLogger().warning("Couldn't find username for UUID " + uuid + " in cache!");
+                    return null;
+                });
     }
 
     @Override

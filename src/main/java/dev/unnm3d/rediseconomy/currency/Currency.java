@@ -223,7 +223,7 @@ public class Currency implements Economy {
 
     @Override
     public EconomyResponse withdrawPlayer(@NotNull OfflinePlayer player, double amount) {
-        return withdrawPlayer(player.getUniqueId(), player.getName() == null ? player.getUniqueId() + "-Unknown" : player.getName(), amount, "Withdraw");
+        return withdrawPlayer(player.getUniqueId(), player.getName(), amount, "Withdraw");
     }
 
     @Override
@@ -243,7 +243,7 @@ public class Currency implements Economy {
 
     @Override
     public EconomyResponse depositPlayer(@NotNull OfflinePlayer player, double amount) {
-        return depositPlayer(player.getUniqueId(), player.getName() == null ? player.getUniqueId() + "-Unknown" : player.getName(), amount, "Deposit");
+        return depositPlayer(player.getUniqueId(), player.getName(), amount, "Deposit");
     }
 
     @Override
@@ -326,10 +326,10 @@ public class Currency implements Economy {
 
     @Override
     public boolean createPlayerAccount(@NotNull OfflinePlayer player) {
-        return createPlayerAccount(player.getUniqueId(), player.getName() == null ? player.getUniqueId() + "-Unknown" : player.getName());
+        return createPlayerAccount(player.getUniqueId(), player.getName());
     }
 
-    public boolean createPlayerAccount(@NotNull UUID playerUUID, @NotNull String playerName) {
+    public boolean createPlayerAccount(@NotNull UUID playerUUID, @Nullable String playerName) {
         if (hasAccount(playerUUID))
             return false;
         updateAccount(playerUUID, playerName, startingBalance);
@@ -355,7 +355,7 @@ public class Currency implements Economy {
     }
 
 
-    public EconomyResponse withdrawPlayer(@NotNull UUID playerUUID, @NotNull String playerName, double amount, @Nullable String reason) {
+    public EconomyResponse withdrawPlayer(@NotNull UUID playerUUID, @Nullable String playerName, double amount, @Nullable String reason) {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         double amountToWithdraw = amount + (amount * transactionTax);
@@ -415,7 +415,7 @@ public class Currency implements Economy {
      */
     @SuppressWarnings("unused")
     public EconomyResponse setPlayerBalance(@NotNull OfflinePlayer player, double amount) {
-        return setPlayerBalance(player.getUniqueId(), player.getName() == null ? player.getUniqueId() + "-Unknown" : player.getName(), amount);
+        return setPlayerBalance(player.getUniqueId(), player.getName(), amount);
     }
 
     /**
@@ -425,7 +425,7 @@ public class Currency implements Economy {
      * @param amount     The amount to set the balance to
      * @return The result of the operation
      */
-    public EconomyResponse setPlayerBalance(@NotNull UUID playerUUID, @NotNull String playerName, double amount) {
+    public EconomyResponse setPlayerBalance(@NotNull UUID playerUUID, @Nullable String playerName, double amount) {
         currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -getBalance(playerUUID), currencyName, "Reset balance");
         updateAccount(playerUUID, playerName, amount);
         currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, currencyName, "Set balance");
@@ -444,7 +444,6 @@ public class Currency implements Economy {
                 currenciesManager.getUsernameFromUUIDCache(transaction.accountIdentifier.getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.accountIdentifier.toString(); //Else, it's a bank, so we get the bank id
         if (transaction.accountIdentifier.isPlayer()) {
-            ownerName = ownerName == null ? transaction.accountIdentifier + "-Unknown" : ownerName;
             updateAccount(transaction.accountIdentifier.getUUID(), ownerName, getBalance(transaction.accountIdentifier.getUUID()) - transaction.amount);
         }
         if (RedisEconomyPlugin.getInstance().settings().debug) {
@@ -474,7 +473,7 @@ public class Currency implements Economy {
         return depositPlayer(playerUUID, playerName, amount, reason);
     }
 
-    public EconomyResponse depositPlayer(@NotNull UUID playerUUID, @NotNull String playerName, double amount, String reason) {
+    public EconomyResponse depositPlayer(@NotNull UUID playerUUID, @Nullable String playerName, double amount, String reason) {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         updateAccount(playerUUID, playerName, getBalance(playerUUID) + amount);
@@ -482,21 +481,23 @@ public class Currency implements Economy {
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
-    void updateAccountLocal(UUID uuid, String playerName, double balance) {
-        currenciesManager.updateNameUniqueId(playerName, uuid);
+    void updateAccountLocal(@NotNull  UUID uuid, @Nullable String playerName, double balance) {
+        if (playerName != null)
+            currenciesManager.updateNameUniqueId(playerName, uuid);
         accounts.put(uuid, balance);
     }
 
-    protected void updateAccount(@NotNull UUID uuid, @NotNull String playerName, double balance) {
+    protected void updateAccount(@NotNull UUID uuid, @Nullable String playerName, double balance) {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
     }
 
-    private void updateAccountCloudCache(@NotNull UUID uuid, @NotNull String playerName, double balance, int tries) {
+    private void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
         try {
             currenciesManager.getRedisManager().getConnectionPipeline(commands -> {
                 commands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
-                commands.hset(NAME_UUID.toString(), playerName, uuid.toString());
+                if (playerName != null)
+                    commands.hset(NAME_UUID.toString(), playerName, uuid.toString());
                 commands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance).thenAccept((result) -> {
                     if (RedisEconomyPlugin.getInstance().settings().debug) {
                         Bukkit.getLogger().info("01 Sent update account " + playerName + " to " + balance);

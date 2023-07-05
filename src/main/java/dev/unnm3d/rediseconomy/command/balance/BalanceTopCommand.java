@@ -55,8 +55,8 @@ public class BalanceTopCommand implements CommandExecutor, TabCompleter {
                 String username = currenciesManager.getUsernameFromUUIDCache(UUID.fromString(tuple.getValue()));
                 plugin.langs().send(sender, plugin.langs().balanceTopFormat
                         .replace("%pos%", String.valueOf((pageData.pageNumber - 1) * 10 + i))
-                        .replace("%player%", username == null ? "Unknown" : username)
-                        .replace("%balance%", currenciesManager.getDefaultCurrency().format(tuple.getScore())));
+                        .replace("%player%", username == null ? tuple.getValue() + "-Unknown" : username)
+                        .replace("%balance%", baltopCurrency.format(tuple.getScore())));
                 i++;
             }
         });
