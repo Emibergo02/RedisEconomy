@@ -47,7 +47,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         INSTANCE = this;
         this.completeMigration = new CompletableFuture<>();
         this.redisManager = redisManager;
-        this.exchange = new EconomyExchange(this);
+        this.exchange = new EconomyExchange(plugin);
         this.plugin = plugin;
         this.configManager = configManager;
         this.currencies = new HashMap<>();
@@ -102,7 +102,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 try {
                     double bal = existentProvider.getProvider().getBalance(offlinePlayer);
                     balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
-                    if(offlinePlayer.getName()!=null)
+                    if (offlinePlayer.getName() != null)
                         nameUniqueIds.put(offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
                     defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
                 } catch (Exception e) {
@@ -274,6 +274,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                             result.forEach((uuid, uuidList) ->
                                     lockedAccounts.put(UUID.fromString(uuid),
                                             new ArrayList<>(Arrays.stream(uuidList.split(","))
+                                                    .filter(stringUUID -> stringUUID.length() >= 32)
                                                     .map(UUID::fromString).toList())
                                     )
                             );
@@ -357,7 +358,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
      * @param target The uuid of the target
      * @return completable future true if the account is locked, false if it is unlocked
      */
-    public CompletableFuture<Boolean> toggleAccountLock(UUID uuid, UUID target) {
+    public CompletableFuture<Boolean> toggleAccountLock(@NotNull UUID uuid, UUID target) {
         final CompletableFuture<Boolean> future = new CompletableFuture<>();
         List<UUID> locked = lockedAccounts.getOrDefault(uuid, new ArrayList<>());
         boolean isLocked = locked.contains(target);
@@ -406,18 +407,22 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             @Override
             public void message(String channel, String message) {
                 String[] args = message.split(",");
-                UUID account = UUID.fromString(args[0]);
-                if (args[1].equals("")) {
-                    lockedAccounts.remove(account);
-                    return;
-                }
-                List<UUID> newLockedAccounts = new ArrayList<>();
-                for (int i = 1; i < args.length; i++) {
-                    newLockedAccounts.add(UUID.fromString(args[i]));
-                }
-                lockedAccounts.put(account, newLockedAccounts);
-                if (configManager.getSettings().debug) {
-                    Bukkit.getLogger().info("Lockupdate Registered locked accounts for " + account);
+                try {
+                    UUID account = UUID.fromString(args[0]);
+                    if (args.length == 1 || args[1].isEmpty()) {
+                        lockedAccounts.remove(account);
+                        return;
+                    }
+                    List<UUID> newLockedAccounts = new ArrayList<>();
+                    for (int i = 1; i < args.length; i++) {
+                        newLockedAccounts.add(UUID.fromString(args[i]));
+                    }
+                    lockedAccounts.put(account, newLockedAccounts);
+                    if (configManager.getSettings().debug) {
+                        Bukkit.getLogger().info("Lockupdate Registered locked accounts for " + account);
+                    }
+                } catch (IllegalArgumentException e) {
+                    Bukkit.getLogger().warning("Lockupdate Received invalid uuid: " + args[0]);
                 }
             }
         });

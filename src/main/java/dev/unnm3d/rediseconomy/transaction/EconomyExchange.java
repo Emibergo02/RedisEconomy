@@ -1,7 +1,6 @@
 package dev.unnm3d.rediseconomy.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import io.lettuce.core.ScriptOutputType;
 import lombok.AllArgsConstructor;
@@ -22,7 +21,7 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
 @AllArgsConstructor
 public class EconomyExchange {
 
-    private final CurrenciesManager currenciesManager;
+    private final RedisEconomyPlugin plugin;
 
     /**
      * Get transactions from an account id
@@ -31,7 +30,7 @@ public class EconomyExchange {
      * @return Map of transaction ids and transactions
      */
     public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId) {
-        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
+        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
                         .thenApply(this::getTransactionsFromSerialized)
                         .exceptionally(exc -> {
@@ -47,7 +46,7 @@ public class EconomyExchange {
      * @return How many transaction accounts were removed
      */
     public CompletionStage<Long> removeAllTransactions() {
-        return currenciesManager.getRedisManager().getConnectionAsync(connection -> {
+        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection -> {
                     try {
                         List<String> keys = connection.keys(NEW_TRANSACTIONS + "*").get();
                         if (keys.size() == 0) {
@@ -69,7 +68,7 @@ public class EconomyExchange {
      * @return Transaction
      */
     public CompletionStage<Transaction> getTransaction(AccountID accountId, int id) {
-        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
+        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                 connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))
                         .thenApply(Transaction::fromString)
                         .exceptionally(exc -> {
@@ -90,6 +89,7 @@ public class EconomyExchange {
      */
     public CompletionStage<List<Integer>> savePaymentTransaction(@NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
         long init = System.currentTimeMillis();
+        reason += getCallerPluginString();
 
         Transaction transactionSender = new Transaction(
                 new AccountID(sender),
@@ -108,7 +108,7 @@ public class EconomyExchange {
                 reason,
                 null);
 
-        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
+        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                         connection.<List<Integer>>eval(
                                 "local senderCurrentId=redis.call('hlen', KEYS[1]);" +
                                         "local receiverCurrentId=redis.call('hlen', KEYS[2]);" +
@@ -146,13 +146,13 @@ public class EconomyExchange {
      */
     public CompletionStage<Integer> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull String currencyName, @NotNull String reason) {
         long init = System.currentTimeMillis();
-        return currenciesManager.getRedisManager().getConnectionAsync(commands -> {
+        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(commands -> {
 
                     Transaction transaction = new Transaction(
                             accountOwner,
                             System.currentTimeMillis(),
                             target, //If target is null, it has been sent from the server
-                            amount, currencyName, reason, null);
+                            amount, currencyName, reason + getCallerPluginString(), null);
 
                     return commands.eval(
                             "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
@@ -184,7 +184,7 @@ public class EconomyExchange {
         return getTransaction(accountOwner, transactionId)
                 .thenApply(transaction -> {//get current transaction on Redis
                     if (transaction == null) return -1;
-                    Currency currency = currenciesManager.getCurrencyByName(transaction.currencyName);
+                    Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.currencyName);
                     if (currency == null) {
                         return -1;
                     }
@@ -201,7 +201,7 @@ public class EconomyExchange {
                                 if (newId != null) {
                                     transaction.revertedWith = String.valueOf(newId);
                                     //replace transaction on Redis
-                                    currenciesManager.getRedisManager().getConnectionAsync(connection ->
+                                    plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                                             connection.hset(NEW_TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID
                                                             String.valueOf(transactionId), //Previous transaction id
                                                             transaction.toString())
@@ -233,5 +233,18 @@ public class EconomyExchange {
         return transactions;
     }
 
+    public String getCallerPluginString() {
+        if (!plugin.settings().registerCalls) return "";
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        for (int i = 3; i < stackTraceElements.length; i++) {
+            if (!stackTraceElements[i].getClassName().startsWith("org.bukkit") &&
+                    !stackTraceElements[i].getClassName().startsWith("dev.unnm3d.rediseconomy") &&
+                    !stackTraceElements[i].getClassName().startsWith("com.mojang")
+            ) {
+                return "\nCall: " + stackTraceElements[i].getClassName() + ":" + stackTraceElements[i].getMethodName();
+            }
+        }
+        return "";
+    }
 
 }

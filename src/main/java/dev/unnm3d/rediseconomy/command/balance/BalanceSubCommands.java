@@ -43,7 +43,7 @@ public class BalanceSubCommands extends BalanceCommand {
     protected void takePlayerWithCommand(CommandSender sender, Currency currency, double amount, String target, String command) {
         EconomyResponse er = currency.withdrawPlayer(target, amount, command);
         if (er.transactionSuccess()) {
-            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command.replace("%player%", target).replace("%amount%", String.format("%.2f", amount)).substring(1));
+            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command.replace("%player%", target).replace("%amount%", currency.getDecimalFormat().format(amount)).substring(1));
             plugin.langs().send(sender, plugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         } else sender.sendMessage(er.errorMessage);
     }

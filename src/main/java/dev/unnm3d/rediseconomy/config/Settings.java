@@ -11,13 +11,15 @@ import java.util.UUID;
 public class Settings {
     @Comment({"This is automatically generated on server startup",
             "Change it only if you have disabled plugin messages on the proxy"})
-    public String serverId = UUID.randomUUID() + "";
+    public String serverId = String.valueOf(UUID.randomUUID());
     @Comment("Language file")
     public String lang = "en-US";
     @Comment("Webeditor URL")
     public String webEditorUrl = "https://webui.advntr.dev/";
     @Comment("Activate this before reporting an issue")
     public boolean debug = false;
+    @Comment("If true, the plugin registers who's calling it's methods inside transactions")
+    public boolean registerCalls = false;
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
@@ -32,7 +34,7 @@ public class Settings {
     public int tab_complete_chars = 0;
     @Comment("Default currency name (must be the same as the currency name in the currencies list)")
     public String defaultCurrencyName = "vault";
-    @Comment("Currencies")
+    @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
     public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false));
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
