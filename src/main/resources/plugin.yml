@@ -67,35 +67,56 @@ commands:
     usage: /toggle-payments
     permission: rediseconomy.toggle-payments
 permissions:
-    rediseconomy.pay:
-        description: Allows to use /pay
-        default: true
-    rediseconomy.toggle-payments:
-        description: Allows to use /toggle-payments
-        default: true
-    rediseconomy.balance:
-        description: Allows to use /balance
-        default: true
-    rediseconomy.balancetop:
-        description: Allows to use /balancetop
-        default: true
-    rediseconomy.admin:
-        description: Allows to use admin commands
-        default: op
-    rediseconomy.pay.*:
+  rediseconomy.pay:
+    description: Allows to use /pay
+    default: true
+  rediseconomy.toggle-payments:
+    description: Allows to use /toggle-payments
+    default: true
+  rediseconomy.balance:
+    description: Allows to use /balance
+    default: true
+  rediseconomy.balancetop:
+    description: Allows to use /balancetop
+    default: true
+  rediseconomy.admin:
+    description: Allows to use admin commands
+    default: op
+  rediseconomy.admin.backup-restore:
+    description: Allows to use /backup-economy and /restore-economy
+    default: false
+  rediseconomy.admin.archive-transactions:
+    description: Allows to archive transactions
+    default: false
+  rediseconomy.admin.editmessage:
+    description: Allows to use /rediseconomy editmessage
+    default: false
+  rediseconomy.admin.browse-transactions:
+    description: Allows to browse transactions
+    default: false
+  rediseconomy.admin.switch-currency:
+    description: Allows to switch currency
+    default: false
+  rediseconomy.admin.purge-balance:
+    description: Allows to purge balances
+    default: false
+  rediseconomy.admin.transaction:
+    description: Allows to use /transaction
+    default: false
+  rediseconomy.pay.*:
       description: Allows to use /pay all currencies
       default: op
-    rediseconomy.balance.*:
-      description: Allows to use /balance with other currencies
-      default: op
-    rediseconomy.admin.*:
-      description: Allows to use all admin commands
-      default: op
-      children:
-        rediseconomy.admin.transaction: true
-        rediseconomy.admin.purge-balance: true
-        rediseconomy.admin.switch-currency: true
-        rediseconomy.admin.browse-transactions: true
-        rediseconomy.admin.editmessage: true
-        rediseconomy.admin.backup-restore: true
-        rediseconomy.admin.archive-transactions: true
+  rediseconomy.balance.*:
+    description: Allows to use /balance with other currencies
+    default: op
+  rediseconomy.admin.*:
+    description: Allows to use all admin commands
+    default: op
+    children:
+      rediseconomy.admin.transaction: true
+      rediseconomy.admin.purge-balance: true
+      rediseconomy.admin.switch-currency: true
+      rediseconomy.admin.browse-transactions: true
+      rediseconomy.admin.editmessage: true
+      rediseconomy.admin.backup-restore: true
+      rediseconomy.admin.archive-transactions: true

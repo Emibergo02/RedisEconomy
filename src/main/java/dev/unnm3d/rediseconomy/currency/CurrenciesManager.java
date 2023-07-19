@@ -209,7 +209,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElseGet(() -> {
-                    Bukkit.getLogger().warning("Couldn't find username for UUID " + uuid + " in cache!");
+                    if(plugin.settings().debug)
+                        Bukkit.getLogger().warning("Couldn't find username for UUID " + uuid + " in cache!");
                     return null;
                 });
     }

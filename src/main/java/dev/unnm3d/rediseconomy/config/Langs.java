@@ -54,6 +54,7 @@ public final class Langs {
                     "<yellow>Reason: </yellow>%reason%");
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
     public String backupRestoreFinished = "<green>Backup/restore file %file% finished!</green>";
+    public String invalidPath = "<red>Invalid path!</red>";
 
 
     public record TransactionItem(

@@ -12,6 +12,7 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,11 +29,15 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
             plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
+        if(args[0].contains("..")||args[0].startsWith(File.pathSeparator)){
+            plugin.langs().send(sender, plugin.langs().invalidPath);
+            return true;
+        }
         CompletableFuture.runAsync(() -> {
-            File file = new File(plugin.getDataFolder(), args[0]);
+            Path userPath= Path.of(plugin.getDataFolder().getAbsolutePath(), args[0]);
             switch (label) {
                 case "backup-economy" -> {
-                    try (FileWriter fw = new FileWriter(file)) {
+                    try (FileWriter fw = new FileWriter(userPath.normalize().toFile())) {
                         StringBuilder sb = new StringBuilder();
                         currenciesManager.getCurrencies().forEach(currency ->
                                 currency.getAccounts().forEach((uuid, balance) ->
@@ -51,7 +56,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                     }
                 }
                 case "restore-economy" -> {
-                    try (FileInputStream is = new FileInputStream(file)) {
+                    try (FileInputStream is = new FileInputStream(userPath.normalize().toFile())) {
                         List<String> lines = new BufferedReader(new InputStreamReader(is)).lines().toList();
                         HashMap<String, ArrayList<ScoredValue<String>>> accounts = new HashMap<>();
                         HashMap<String, String> nameUUIDs = new HashMap<>();
