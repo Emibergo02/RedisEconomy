@@ -358,8 +358,7 @@ public class Currency implements Economy {
     public EconomyResponse withdrawPlayer(@NotNull UUID playerUUID, @Nullable String playerName, double amount, @Nullable String reason) {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        double amountToWithdraw = amount + (taxOnlyPay ? amount : amount * transactionTax);
-
+        double amountToWithdraw = amount + (taxOnlyPay ? 0d : amount * transactionTax);
         if (amountToWithdraw == Double.POSITIVE_INFINITY || amountToWithdraw == Double.NEGATIVE_INFINITY || Double.isNaN(amountToWithdraw))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
 
