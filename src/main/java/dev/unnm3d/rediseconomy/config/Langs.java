@@ -1,5 +1,6 @@
 package dev.unnm3d.rediseconomy.config;
 
+import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -29,7 +30,8 @@ public final class Langs {
     public String blockedPayment = "<red>Your payments to %player% have been blocked!</red>";
     public String balanceTopFormat = "<aqua>%pos% - %player% %balance%</aqua>";
     public String paySelf = "<red>You cannot pay yourself!</red>";
-    public String paySuccess = "<green>You paid %player% %amount% with %tax_percentage% (%tax_applied%) of transaction fee!</green>";
+    @Comment("Use %tax_percentage% for tax percentage and %tax_applied% for tax applied to the transaction.")
+    public String paySuccess = "<green>You paid %player% %amount%</green>";
     public String payFail = "<red>Payment failed!</red>";
     public String payReceived = "<green>You received %amount% from %player%!</green>";
     public String purgeUserSuccess = "<green>Users matching %player% have been purged!</green>";
@@ -37,7 +39,6 @@ public final class Langs {
     public String switchCurrencySuccess = "<green>Switched %currency% to %switch-currency%.<br>Please restart immediately every instance<br> with RedisEconomy installed to avoid any overwrite!</green>";
     public String noTransactionFound = "<red>No transaction found for %player%!</red>";
     public String incorrectDate = "<red>Incorrect Date formatting !</red>";
-    public String purgeTransactionsSuccess = "<green>Purged %size% transactions from %player% before %date%</green>";
     public String transactionsStart = "<dark_aqua>Transactions of player %player% from %after% to %before%!</dark_aqua>";
     public String transactionsEnd = "<dark_aqua>End of %player% transactions in %time% ms</dark_aqua>";
     public String transactionsArchiveCompleted = "<green>Archived %size% transaction accounts to %file%</green>";

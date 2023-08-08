@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.currency;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
+import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
@@ -61,14 +62,14 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         configManager.getSettings().currencies.forEach(currencySettings -> {
             Currency currency;
             if (currencySettings.bankEnabled()) {
-                currency = new CurrencyWithBanks(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.decimalFormat(), currencySettings.languageTag(), currencySettings.startingBalance(), currencySettings.payTax());
+                currency = new CurrencyWithBanks(this, currencySettings);
             } else {
-                currency = new Currency(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.decimalFormat(), currencySettings.languageTag(), currencySettings.startingBalance(), currencySettings.payTax());
+                currency = new Currency(this, currencySettings);
             }
             currencies.put(currencySettings.currencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, 0.0));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, 0.0, true, false)));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -78,6 +79,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     public void loadDefaultCurrency(Plugin vaultPlugin) {
         Currency defaultCurrency = getDefaultCurrency();
+
+        for (RegisteredServiceProvider<Economy> registration : plugin.getServer().getServicesManager().getRegistrations(Economy.class)) {
+            plugin.getServer().getServicesManager().unregister(Economy.class, registration.getProvider());
+        }
 
         if (!configManager.getSettings().migrationEnabled) {
             plugin.getServer().getServicesManager().register(Economy.class, defaultCurrency, vaultPlugin, ServicePriority.High);
@@ -209,7 +214,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElseGet(() -> {
-                    if(plugin.settings().debug)
+                    if (plugin.settings().debug)
                         Bukkit.getLogger().warning("Couldn't find username for UUID " + uuid + " in cache!");
                     return null;
                 });

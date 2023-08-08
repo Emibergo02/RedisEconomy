@@ -1,6 +1,7 @@
 package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.ScoredValue;
@@ -25,8 +26,8 @@ public class CurrencyWithBanks extends Currency {
      */
     private final ConcurrentHashMap<String, UUID> bankOwners;
 
-    public CurrencyWithBanks(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, String decimalFormat, String languageTag, double startingBalance, double transactionTax) {
-        super(currenciesManager, currencyName, currencySingular, currencyPlural, decimalFormat, languageTag, startingBalance, transactionTax);
+    public CurrencyWithBanks(CurrenciesManager currenciesManager, Settings.CurrencySettings currencySettings) {
+        super(currenciesManager, currencySettings);
         bankAccounts = new ConcurrentHashMap<>();
         bankOwners = new ConcurrentHashMap<>();
         getOrderedBankAccounts().thenApply(list -> {

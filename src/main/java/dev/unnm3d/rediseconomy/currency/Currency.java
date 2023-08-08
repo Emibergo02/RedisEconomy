@@ -1,6 +1,7 @@
 package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisFuture;
@@ -40,6 +41,8 @@ public class Currency implements Economy {
     private double startingBalance;
     @Getter
     private double transactionTax;
+    @Getter
+    private final boolean taxOnlyPay;
 
 
     /**
@@ -47,24 +50,21 @@ public class Currency implements Economy {
      * Currency implements Economy from Vault, so it's the same as using any other Vault Economy plugin
      *
      * @param currenciesManager The CurrenciesManager instance
-     * @param currencyName      The name of the currency
-     * @param currencySingular  The singular symbol of the currency
-     * @param currencyPlural    The plural symbol of the currency
-     * @param startingBalance   The starting balance of the currency
-     * @param transactionTax    The transaction tax of the currency
+     * @param currencySettings  The currency settings
      */
-    public Currency(CurrenciesManager currenciesManager, String currencyName, String currencySingular, String currencyPlural, String decimalFormat, String languageTag, double startingBalance, double transactionTax) {
+    public Currency(CurrenciesManager currenciesManager, Settings.CurrencySettings currencySettings) {
         this.currenciesManager = currenciesManager;
         this.enabled = true;
-        this.currencyName = currencyName;
-        this.currencySingular = currencySingular;
-        this.currencyPlural = currencyPlural;
-        this.startingBalance = startingBalance;
-        this.transactionTax = transactionTax;
+        this.currencyName = currencySettings.currencyName();
+        this.currencySingular = currencySettings.currencySingle();
+        this.currencyPlural = currencySettings.currencyPlural();
+        this.startingBalance = currencySettings.startingBalance();
+        this.transactionTax = currencySettings.payTax();
+        this.taxOnlyPay = currencySettings.taxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();
         this.decimalFormat = new DecimalFormat(
-                decimalFormat != null ? decimalFormat : "#.##",
-                new DecimalFormatSymbols(Locale.forLanguageTag(languageTag != null ? languageTag : "en-US"))
+                currencySettings.decimalFormat() != null ? currencySettings.decimalFormat() : "#.##",
+                new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.languageTag() != null ? currencySettings.languageTag() : "en-US"))
         );
         getOrderedAccounts(-1).thenApply(result -> {
                     result.forEach(t ->
@@ -358,9 +358,14 @@ public class Currency implements Economy {
     public EconomyResponse withdrawPlayer(@NotNull UUID playerUUID, @Nullable String playerName, double amount, @Nullable String reason) {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
-        double amountToWithdraw = amount + (amount * transactionTax);
+        double amountToWithdraw = amount + (taxOnlyPay ? amount : amount * transactionTax);
+
+        if (amountToWithdraw == Double.POSITIVE_INFINITY || amountToWithdraw == Double.NEGATIVE_INFINITY || Double.isNaN(amountToWithdraw))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
+
         if (!has(playerUUID, amountToWithdraw))
-            return new EconomyResponse(0, getBalance(playerUUID), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
+            return new EconomyResponse(amountToWithdraw, getBalance(playerUUID), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
+
         updateAccount(playerUUID, playerName, getBalance(playerUUID) - amountToWithdraw);
         currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -amountToWithdraw, currencyName, reason == null ? "Withdraw" : reason);
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
@@ -376,6 +381,10 @@ public class Currency implements Economy {
         if (receiverName == null || !hasAccount(receiver))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
         double amountToWithdraw = amount + (amount * transactionTax);
+
+        if (amountToWithdraw == Double.POSITIVE_INFINITY || amountToWithdraw == Double.NEGATIVE_INFINITY || Double.isNaN(amountToWithdraw))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
+
         if (!has(sender, amountToWithdraw))
             return new EconomyResponse(0, getBalance(sender), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
 
@@ -397,6 +406,10 @@ public class Currency implements Economy {
         double amountToWithdraw = amount + (amount * transactionTax);
         if (sender == null || receiver == null)
             return new EconomyResponse(amount, getBalance(senderName), EconomyResponse.ResponseType.FAILURE, "Account not found");
+
+        if (amountToWithdraw == Double.POSITIVE_INFINITY || amountToWithdraw == Double.NEGATIVE_INFINITY || Double.isNaN(amountToWithdraw))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
+
         if (!has(senderName, amountToWithdraw))
             return new EconomyResponse(0, getBalance(senderName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
 
@@ -426,6 +439,8 @@ public class Currency implements Economy {
      * @return The result of the operation
      */
     public EconomyResponse setPlayerBalance(@NotNull UUID playerUUID, @Nullable String playerName, double amount) {
+        if (amount == Double.POSITIVE_INFINITY || amount == Double.NEGATIVE_INFINITY || Double.isNaN(amount))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
         currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -getBalance(playerUUID), currencyName, "Reset balance");
         updateAccount(playerUUID, playerName, amount);
         currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, currencyName, "Set balance");
@@ -476,6 +491,10 @@ public class Currency implements Economy {
     public EconomyResponse depositPlayer(@NotNull UUID playerUUID, @Nullable String playerName, double amount, String reason) {
         if (!hasAccount(playerUUID))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Account not found");
+
+        if (amount == Double.POSITIVE_INFINITY || amount == Double.NEGATIVE_INFINITY || Double.isNaN(amount))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
+
         updateAccount(playerUUID, playerName, getBalance(playerUUID) + amount);
         currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, currencyName, reason == null ? "Deposit" : reason);
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
