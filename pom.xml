@@ -150,12 +150,6 @@
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
             <version>6.2.4.RELEASE</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.Emibergo02</groupId>
-            <artifactId>ConfigLib</artifactId>
-            <version>master-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
