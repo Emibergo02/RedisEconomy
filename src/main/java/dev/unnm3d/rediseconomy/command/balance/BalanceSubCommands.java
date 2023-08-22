@@ -24,11 +24,11 @@ public class BalanceSubCommands extends BalanceCommand {
 
     @Override
     protected void selfBalancePlayer(CommandSender sender, Currency currency) {
-        if (!(sender instanceof Player p)) {
+        if (!(sender instanceof Player)) {
             plugin.langs().send(sender, plugin.langs().noConsole);
             return;
         }
-        plugin.langs().send(sender, plugin.langs().balance.replace("%balance%", String.valueOf(currency.format(currency.getBalance(p)))));
+        plugin.langs().send(sender, plugin.langs().balance.replace("%balance%", String.valueOf(currency.format(currency.getBalance((Player) sender)))));
     }
 
     @Override

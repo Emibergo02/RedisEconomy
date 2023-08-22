@@ -19,6 +19,7 @@ import dev.unnm3d.rediseconomy.utils.PlaceholderAPIHook;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
@@ -28,6 +29,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
@@ -75,6 +77,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
     }
 
+    @SneakyThrows
     @Override
     public void onEnable() {
         this.configManager.postStartupLoad();
@@ -129,17 +132,17 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private boolean setupRedis() {
         try {
             RedisURI.Builder redisURIBuilder = RedisURI.builder()
-                    .withHost(configManager.getSettings().redis.host())
-                    .withPort(configManager.getSettings().redis.port())
-                    .withDatabase(configManager.getSettings().redis.database())
-                    .withTimeout(Duration.of(configManager.getSettings().redis.timeout(), TimeUnit.MILLISECONDS.toChronoUnit()))
-                    .withClientName(configManager.getSettings().redis.clientName());
+                    .withHost(configManager.getSettings().redis.getHost())
+                    .withPort(configManager.getSettings().redis.getPort())
+                    .withDatabase(configManager.getSettings().redis.getDatabase())
+                    .withTimeout(Duration.of(configManager.getSettings().redis.getTimeout(), ChronoUnit.MILLIS))
+                    .withClientName(configManager.getSettings().redis.getClientName());
             //Authentication params
-            redisURIBuilder = configManager.getSettings().redis.password().equals("") ?
+            redisURIBuilder = configManager.getSettings().redis.getPassword().equals("") ?
                     redisURIBuilder :
-                    configManager.getSettings().redis.user().equals("") ?
-                            redisURIBuilder.withPassword(configManager.getSettings().redis.password().toCharArray()) :
-                            redisURIBuilder.withAuthentication(configManager.getSettings().redis.user(), configManager.getSettings().redis.password());
+                    configManager.getSettings().redis.getUser().equals("") ?
+                            redisURIBuilder.withPassword(configManager.getSettings().redis.getPassword().toCharArray()) :
+                            redisURIBuilder.withAuthentication(configManager.getSettings().redis.getUser(), configManager.getSettings().redis.getPassword());
 
             getLogger().info("Connecting to redis server " + redisURIBuilder.build().toString() + "...");
             this.redisManager = new RedisManager(RedisClient.create(redisURIBuilder.build()));

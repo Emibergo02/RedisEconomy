@@ -60,12 +60,12 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
         configManager.getSettings().currencies.forEach(currencySettings -> {
             Currency currency;
-            if (currencySettings.bankEnabled()) {
-                currency = new CurrencyWithBanks(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.decimalFormat(), currencySettings.languageTag(), currencySettings.startingBalance(), currencySettings.payTax());
+            if (currencySettings.isBankEnabled()) {
+                currency = new CurrencyWithBanks(this, currencySettings.getCurrencyName(), currencySettings.getCurrencySingle(), currencySettings.getCurrencyPlural(), currencySettings.getDecimalFormat(), currencySettings.getLanguageTag(), currencySettings.getStartingBalance(), currencySettings.getPayTax());
             } else {
-                currency = new Currency(this, currencySettings.currencyName(), currencySettings.currencySingle(), currencySettings.currencyPlural(), currencySettings.decimalFormat(), currencySettings.languageTag(), currencySettings.startingBalance(), currencySettings.payTax());
+                currency = new Currency(this, currencySettings.getCurrencyName(), currencySettings.getCurrencySingle(), currencySettings.getCurrencyPlural(), currencySettings.getDecimalFormat(), currencySettings.getLanguageTag(), currencySettings.getStartingBalance(), currencySettings.getPayTax());
             }
-            currencies.put(currencySettings.currencyName(), currency);
+            currencies.put(currencySettings.getCurrencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
             currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, 0.0));
@@ -270,7 +270,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                             result.forEach((uuid, uuidList) ->
                                     lockedAccounts.put(UUID.fromString(uuid),
                                             new ArrayList<>(Arrays.stream(uuidList.split(","))
-                                                    .map(UUID::fromString).toList())
+                                                    .map(UUID::fromString).collect(Collectors.toList()))
                                     )
                             );
                             return lockedAccounts;

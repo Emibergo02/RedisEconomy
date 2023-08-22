@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -239,7 +240,7 @@ public class CurrencyWithBanks extends Currency {
 
     @Override
     public List<String> getBanks() {
-        return bankAccounts.keySet().stream().toList();
+        return new ArrayList<>(bankAccounts.keySet());
     }
 
     /**

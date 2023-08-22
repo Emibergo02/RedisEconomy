@@ -26,9 +26,9 @@ public abstract class TransactionCommandAbstract {
                 transaction.receiver.toString();
         Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.currencyName);
 
-        String transactionMessage = plugin.langs().transactionItem.incomingFunds();
+        String transactionMessage = plugin.langs().transactionItem.getIncomingFunds();
         if (transaction.amount < 0) {
-            transactionMessage = plugin.langs().transactionItem.outgoingFunds();
+            transactionMessage = plugin.langs().transactionItem.getOutgoingFunds();
         }
         transactionMessage = transactionMessage
                 .replace("%id%", transactionId + "")

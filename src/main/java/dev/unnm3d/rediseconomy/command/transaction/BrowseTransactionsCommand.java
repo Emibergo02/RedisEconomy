@@ -9,9 +9,8 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.ParseException;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class BrowseTransactionsCommand extends TransactionCommandAbstract implements CommandExecutor, TabCompleter {
@@ -79,13 +78,13 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
-                return List.of();
-            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+                return Collections.emptyList();
+            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).collect(Collectors.toList());
         } else if (args.length == 2) {
             if (args[1].trim().equals(""))
-                return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
+                return Arrays.asList("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
         }
-        return List.of();
+        return Collections.emptyList();
     }
 
 

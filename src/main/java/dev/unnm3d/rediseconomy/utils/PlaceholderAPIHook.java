@@ -96,7 +96,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
     // %rediseco_top_1_bal_shorthand_<currency>%
     @Override
     public String onRequest(OfflinePlayer player, String params) {
-        List<String> splitted = List.of(params.split("_"));
+        List<String> splitted = Arrays.asList(params.split("_"));
         if (splitted.size() < 2) return null;
         Currency currency = currenciesManager.getCurrencyByName(splitted.get(splitted.size() - 1));
         if (currency == null) return "Invalid currency";
@@ -134,19 +134,17 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             if (user_balance_strings.size() < position) return "N/A";
 
             switch (splitted.get(2)) {
-                case "playerprefix" -> {
+                case "playerprefix":
                     return user_balance_strings.get(position - 1)[0];
-                }
-                case "playersuffix" -> {
+                case "playersuffix":
                     return user_balance_strings.get(position - 1)[1];
-                }
-                case "name" -> {
+                case "name":
                     return user_balance_strings.get(position - 1)[2];
-                }
-                case "bal" -> {
+                case "bal":
                     double balance = Double.parseDouble(user_balance_strings.get(position - 1)[3]);
                     return parseParams(balance, splitted, currency);
-                }
+                default:
+                    break;
             }
         }
         return null;
@@ -158,15 +156,21 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
         if (splitted.contains("short")) {
             if (amount >= 1000000000000.0) {
-                formattedNumber = currency.format(amount / 1000000000000.0) + langs.unitSymbols.trillion();
+                formattedNumber = currency.format(amount / 1000000000000.0) + langs.unitSymbols.getTrillion();
             } else if (amount >= 1000000000.0) {
-                formattedNumber = currency.format(amount / 1000000000.0) + langs.unitSymbols.billion();
+                formattedNumber = currency.format(amount / 1000000000.0) + langs.unitSymbols.getBillion();
             } else if (amount >= 1000000.0) {
-                formattedNumber = currency.format(amount / 1000000.0) + langs.unitSymbols.million();
+                formattedNumber = currency.format(amount / 1000000.0) + langs.unitSymbols.getMillion();
             } else if (amount >= 1000.0) {
-                formattedNumber = currency.format(amount / 1000.0) + langs.unitSymbols.thousand();
+                formattedNumber = currency.format(amount / 1000.0) + langs.unitSymbols.getThousand();
             }
         }
+
+        if (splitted.contains("stripped")) {
+            int stripped = (int) amount;
+            return String.valueOf(stripped);
+        }
+
         if (splitted.contains("formatted")) {
             if (amount == 1)
                 formattedNumber += currency.getCurrencySingular();

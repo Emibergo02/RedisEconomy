@@ -2,6 +2,8 @@ package dev.unnm3d.rediseconomy.config;
 
 import de.exlll.configlib.Configuration;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.CommandSender;
@@ -55,20 +57,21 @@ public final class Langs {
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
     public String backupRestoreFinished = "<green>Backup/restore file %file% finished!</green>";
 
-
-    public record TransactionItem(
-            String outgoingFunds,
-            String incomingFunds
-    ) {
+    @AllArgsConstructor
+    @Data
+    public static class TransactionItem {
+        String outgoingFunds;
+        String incomingFunds;
     }
 
-    public record UnitSymbols(
-            String thousand,
-            String million,
-            String billion,
-            String trillion,
-            String quadrillion
-    ) {
+    @AllArgsConstructor
+    @Data
+    public static class UnitSymbols {
+        String thousand;
+        String million;
+        String billion;
+        String trillion;
+        String quadrillion;
     }
 
     public void send(CommandSender sender, String text) {
@@ -77,16 +80,16 @@ public final class Langs {
 
     public double formatAmountString(String amount) {
         try {
-            if (amount.endsWith(unitSymbols.quadrillion())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.quadrillion().length())) * 1_000_000_000_000_000D;
-            } else if (amount.endsWith(unitSymbols.trillion())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.trillion().length())) * 1_000_000_000_000D;
-            } else if (amount.endsWith(unitSymbols.billion())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.billion().length())) * 1_000_000_000D;
-            } else if (amount.endsWith(unitSymbols.million())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.million().length())) * 1_000_000D;
-            } else if (amount.endsWith(unitSymbols.thousand())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.thousand().length())) * 1_000D;
+            if (amount.endsWith(unitSymbols.getQuadrillion())) {
+                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.getQuadrillion().length())) * 1_000_000_000_000_000D;
+            } else if (amount.endsWith(unitSymbols.getTrillion())) {
+                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.getTrillion().length())) * 1_000_000_000_000D;
+            } else if (amount.endsWith(unitSymbols.getBillion())) {
+                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.getBillion().length())) * 1_000_000_000D;
+            } else if (amount.endsWith(unitSymbols.getMillion())) {
+                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.getMillion().length())) * 1_000_000D;
+            } else if (amount.endsWith(unitSymbols.getThousand())) {
+                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.getThousand().length())) * 1_000D;
             }
             return Double.parseDouble(amount);
         } catch (NumberFormatException e) {

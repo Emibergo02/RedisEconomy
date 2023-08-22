@@ -2,7 +2,10 @@ package dev.unnm3d.rediseconomy.config;
 
 import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,7 +14,7 @@ import java.util.UUID;
 public class Settings {
     @Comment({"This is automatically generated on server startup",
             "Change it only if you have disabled plugin messages on the proxy"})
-    public String serverId = UUID.randomUUID() + "";
+    public String serverId = UUID.randomUUID().toString();
     @Comment("Language file")
     public String lang = "en-US";
     @Comment("Webeditor URL")
@@ -33,14 +36,29 @@ public class Settings {
     @Comment("Default currency name (must be the same as the currency name in the currencies list)")
     public String defaultCurrencyName = "vault";
     @Comment("Currencies")
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false));
+    public List<CurrencySettings> currencies = Arrays.asList(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false));
 
-    public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
-                                   String decimalFormat, String languageTag,
-                                   double startingBalance, double payTax, boolean bankEnabled) {
+
+    @AllArgsConstructor
+    @Data
+    public static class CurrencySettings {
+        String currencyName, currencySingle, currencyPlural, decimalFormat, languageTag;
+        double startingBalance, payTax;
+        boolean bankEnabled;
     }
 
-    public record RedisSettings(String host, int port, String user, String password, int database, int timeout,
-                                String clientName) {
+
+
+    @AllArgsConstructor
+    @Data
+    public static class RedisSettings {
+        String host;
+        int port;
+        String user;
+        String password;
+        int database;
+        int timeout;
+        String clientName;
     }
+
 }

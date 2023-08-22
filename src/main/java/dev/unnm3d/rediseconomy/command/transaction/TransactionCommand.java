@@ -9,8 +9,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 public class TransactionCommand extends TransactionCommandAbstract implements CommandExecutor, TabCompleter {
@@ -64,15 +67,15 @@ public class TransactionCommand extends TransactionCommandAbstract implements Co
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
-                return List.of();
-            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+                return Collections.emptyList();
+            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).collect(Collectors.toList());
         } else if (args.length == 2) {
             if (args[1].trim().equals(""))
-                return List.of("numeric_id");
+                return Collections.singletonList( "numeric_id");
         } else if (args.length == 3) {
-            return List.of("revert");
+            return Collections.singletonList("revert");
         }
-        return List.of();
+        return Collections.emptyList();
     }
 
 

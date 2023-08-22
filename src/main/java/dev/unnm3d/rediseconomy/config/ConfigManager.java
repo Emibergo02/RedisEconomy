@@ -12,8 +12,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.io.File;
+import java.util.StringJoiner;
 import java.util.concurrent.CompletableFuture;
 
 public class ConfigManager {
@@ -37,16 +39,16 @@ public class ConfigManager {
     }
 
     public void loadSettingsConfig() {
+        StringJoiner joiner = new StringJoiner("\n");
+        joiner.add("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
+        joiner.add("┃      RedisEconomy Config     ┃");
+        joiner.add("┃      Developed by Unnm3d     ┃");
+        joiner.add("┃        Edited by vSKAH       ┃");
+        joiner.add("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+
         YamlConfigurationProperties properties = YamlConfigurationProperties.newBuilder()
-                .header(
-                        """
-                                ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-                                ┃      RedisEconomy Config     ┃
-                                ┃      Developed by Unnm3d     ┃
-                                ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-                                                        """
-                )
-                .footer("Authors: Unnm3d")
+                .header(joiner.toString())
+                .footer("Authors: Unnm3d \nEditors: vSKAH")
                 .build();
         File settingsFile = new File(plugin.getDataFolder(), "config.yml");
         settings = YamlConfigurations.update(
@@ -86,7 +88,7 @@ public class ConfigManager {
         });
         Listener listener = new Listener() {
             @EventHandler
-            public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+            public void onJoin(PlayerJoinEvent event) {
                 if (future.isDone()) {
                     return;
                 }

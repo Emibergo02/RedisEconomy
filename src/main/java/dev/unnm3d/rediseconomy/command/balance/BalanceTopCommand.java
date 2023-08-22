@@ -5,15 +5,15 @@ import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import io.lettuce.core.ScoredValue;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @AllArgsConstructor
@@ -63,16 +63,21 @@ public class BalanceTopCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private record PageData(int pageNumber, List<ScoredValue<String>> pageBalances) {
+    @AllArgsConstructor
+    @Data
+    private static class PageData {
+        int pageNumber;
+        List<ScoredValue<String>> pageBalances;
+
     }
 
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("1", "2", "3", "4", "5", "6", "7", "8", "9");
+            return Arrays.asList("1", "2", "3", "4", "5", "6", "7", "8", "9");
         } else if (args.length == 2) {
-            return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).toList();
+            return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).collect(Collectors.toList());
         }
-        return List.of();
+        return Collections.emptyList();
     }
 }

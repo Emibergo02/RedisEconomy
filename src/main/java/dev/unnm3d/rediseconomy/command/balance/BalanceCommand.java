@@ -12,7 +12,9 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
@@ -109,19 +111,19 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
-                return List.of();
+                return Collections.emptyList();
             long init = System.currentTimeMillis();
-            List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+            List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).collect(Collectors.toList());
             if (plugin.settings().debug)
                 Bukkit.getLogger().info("Tab complete executed in " + (System.currentTimeMillis() - init) + "ms");
             return players;
         } else if (args.length == 2)
-            return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1]) && sender.hasPermission("rediseconomy.balance." + args[1])).toList();
+            return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1]) && sender.hasPermission("rediseconomy.balance." + args[1])).collect(Collectors.toList());
         else if (args.length == 3)
-            return List.of("give", "take", "set");
+            return Arrays.asList("give", "take", "set");
         else if (args.length == 4)
-            return List.of("69");
-        return List.of();
+            return Collections.singletonList("69");
+        return Collections.emptyList();
     }
 
 

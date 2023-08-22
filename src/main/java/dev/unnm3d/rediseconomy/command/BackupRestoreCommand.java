@@ -12,10 +12,9 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
@@ -31,7 +30,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
         CompletableFuture.runAsync(() -> {
             File file = new File(plugin.getDataFolder(), args[0]);
             switch (label) {
-                case "backup-economy" -> {
+                case "backup-economy":
                     try (FileWriter fw = new FileWriter(file)) {
                         StringBuilder sb = new StringBuilder();
                         currenciesManager.getCurrencies().forEach(currency ->
@@ -49,10 +48,9 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }
-                case "restore-economy" -> {
+            case "restore-economy":
                     try (FileInputStream is = new FileInputStream(file)) {
-                        List<String> lines = new BufferedReader(new InputStreamReader(is)).lines().toList();
+                        List<String> lines = new BufferedReader(new InputStreamReader(is)).lines().collect(Collectors.toList());
                         HashMap<String, ArrayList<ScoredValue<String>>> accounts = new HashMap<>();
                         HashMap<String, String> nameUUIDs = new HashMap<>();
                         //Put every information in a data structure
@@ -62,7 +60,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                                 scoredValues.add(ScoredValue.just(Double.parseDouble(split[3]), split[1]));
                                 return scoredValues;
                             }) == null) {
-                                accounts.put(split[0], new ArrayList<>(List.of(ScoredValue.just(Double.parseDouble(split[3]), split[1]))));
+                                accounts.put(split[0], new ArrayList<>(Collections.singletonList(ScoredValue.just(Double.parseDouble(split[3]), split[1]))));
                             }
 
                             nameUUIDs.put(split[2], split[1]);
@@ -82,7 +80,6 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }
             }
         }).exceptionally(throwable -> {
             throwable.printStackTrace();
@@ -96,6 +93,6 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        return List.of("backup.csv");
+        return Collections.singletonList("backup.csv");
     }
 }
