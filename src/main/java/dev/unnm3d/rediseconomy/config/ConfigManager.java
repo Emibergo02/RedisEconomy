@@ -3,9 +3,11 @@ package dev.unnm3d.rediseconomy.config;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import de.exlll.configlib.YamlConfigurationProperties;
-import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.config.struct.CurrencySettings;
+import dev.unnm3d.rediseconomy.config.struct.RedisSettings;
+import dev.unnm3d.rediseconomy.config.struct.TransactionItem;
+import dev.unnm3d.rediseconomy.config.struct.UnitSymbols;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -13,9 +15,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import ru.xezard.configurations.bukkit.serialization.ConfigurationSerialization;
 
 import java.io.File;
-import java.util.StringJoiner;
 import java.util.concurrent.CompletableFuture;
 
 public class ConfigManager {
@@ -27,6 +29,12 @@ public class ConfigManager {
 
     public ConfigManager(RedisEconomyPlugin plugin) {
         this.plugin = plugin;
+        ConfigurationSerialization.registerClass(RedisSettings.class);
+        ConfigurationSerialization.registerClass(CurrencySettings.class);
+
+        ConfigurationSerialization.registerClass(TransactionItem.class);
+        ConfigurationSerialization.registerClass(UnitSymbols.class);
+
         loadSettingsConfig();
     }
 
@@ -39,28 +47,16 @@ public class ConfigManager {
     }
 
     public void loadSettingsConfig() {
-        StringJoiner joiner = new StringJoiner("\n");
-        joiner.add("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
-        joiner.add("┃      RedisEconomy Config     ┃");
-        joiner.add("┃      Developed by Unnm3d     ┃");
-        joiner.add("┃        Edited by vSKAH       ┃");
-        joiner.add("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
 
-        YamlConfigurationProperties properties = YamlConfigurationProperties.newBuilder()
-                .header(joiner.toString())
-                .footer("Authors: Unnm3d \nEditors: vSKAH")
-                .build();
-        File settingsFile = new File(plugin.getDataFolder(), "config.yml");
-        settings = YamlConfigurations.update(
-                settingsFile.toPath(),
-                Settings.class,
-                properties
-        );
+        settings = new Settings(plugin.getDataFolder());
+        File settingsFile = new File(settings.getPathToFile());
+        if (!settingsFile.exists()) settings.load(true);
+        else settings.load();
     }
 
     public void saveConfigs() {
-        YamlConfigurations.save(new File(plugin.getDataFolder(), "config.yml").toPath(), Settings.class, settings);
-        YamlConfigurations.save(new File(plugin.getDataFolder(), settings.lang + ".yml").toPath(), Langs.class, langs);
+        settings.save();
+        langs.save();
     }
 
     public void loadLangs() {
@@ -68,10 +64,8 @@ public class ConfigManager {
         if (!settingsFile.exists()) {
             plugin.saveResource("it-IT.yml", false);//save default lang
         }
-        langs = YamlConfigurations.update(
-                settingsFile.toPath(),
-                Langs.class
-        );
+        langs = new Langs(settingsFile.getAbsolutePath());
+        langs.load();
     }
 
     @SuppressWarnings("UnstableApiUsage")
