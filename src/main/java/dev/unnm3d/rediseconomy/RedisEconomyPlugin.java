@@ -30,7 +30,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.TimeUnit;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
 

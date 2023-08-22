@@ -65,13 +65,12 @@ public class Metrics {
             config.addDefault("logResponseStatusText", false);
             // Inform the server owners about bStats
 
-            StringBuilder header = new StringBuilder("bStats (https://bStats.org) collects some basic information for plugin authors, like how\n");
-            header.append("many people use their plugin and their total player count. It's recommended to keep bStats\n");
-            header.append("enabled, but if you're not comfortable with this, you can turn this setting off. There is no\n");
-            header.append("performance penalty associated with having metrics enabled, and data sent to bStats is fully\n");
-            header.append("anonymous");
+            String header = "bStats (https://bStats.org) collects some basic information for plugin authors, like how\n" + "many people use their plugin and their total player count. It's recommended to keep bStats\n" +
+                    "enabled, but if you're not comfortable with this, you can turn this setting off. There is no\n" +
+                    "performance penalty associated with having metrics enabled, and data sent to bStats is fully\n" +
+                    "anonymous";
 
-            config.options().header(header.toString()).copyDefaults(true);
+            config.options().header(header).copyDefaults(true);
             try {
                 config.save(configFile);
             } catch (IOException ignored) {

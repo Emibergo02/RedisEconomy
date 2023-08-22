@@ -31,7 +31,7 @@ public abstract class TransactionCommandAbstract {
             transactionMessage = plugin.langs().transactionItem.getOutgoingFunds();
         }
         transactionMessage = transactionMessage
-                .replace("%id%", transactionId + "")
+                .replace("%id%", String.valueOf(transactionId))
                 .replace("%amount%", String.valueOf(transaction.amount))
                 .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
                 .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)
