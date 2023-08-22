@@ -95,33 +95,35 @@ public final class AdventureWebuiEditorAPI {
      * @param token the token
      * @return the resulting MiniMessage string in a completable future
      */
-    @SneakyThrows
+
     public @NotNull CompletableFuture<String> retrieveSession(final @NotNull String token) {
 
         final CompletableFuture<String> result = new CompletableFuture<>();
 
-        client = (HttpURLConnection) new URL(root + "/api/editor/output?token=" + token).openConnection();
-        client.setRequestMethod("GET");
-        client.setConnectTimeout(6000);
-        client.setReadTimeout(6000);
-        int responseCode = client.getResponseCode();
+        try {
+            client = (HttpURLConnection) new URL(root + "/api/editor/output?token=" + token).openConnection();
+            client.setRequestMethod("GET");
+            client.setConnectTimeout(6000);
+            client.setReadTimeout(6000);
+            int responseCode = client.getResponseCode();
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-        String inputLine;
-        StringBuilder response = new StringBuilder();
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
 
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
-        }
-        in.close();
-
-
-        if (responseCode == 404) {
-            result.complete(null);
-        } else if (responseCode != 200) {
-            result.completeExceptionally(new IOException("The server could not handle the request."));
-        } else {
-            result.complete(response.toString());
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+            if (responseCode == 404) {
+                result.complete(null);
+            } else if (responseCode != 200) {
+                result.completeExceptionally(new IOException("The server could not handle the request."));
+            } else {
+                result.complete(response.toString());
+            }
+        } catch (IOException e) {
+            result.completeExceptionally(new IOException("The server does not have a session with the given token."));
         }
 
 
