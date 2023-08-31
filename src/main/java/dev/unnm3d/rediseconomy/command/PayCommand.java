@@ -13,10 +13,8 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
 
@@ -27,10 +25,11 @@ public class PayCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!(sender instanceof Player p)) {
+        if (!(sender instanceof Player)) {
             plugin.langs().send(sender, plugin.langs().noConsole);
             return true;
         }
+        Player p = (Player) sender;
         if (args.length < 2) {
             plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
@@ -117,14 +116,14 @@ public class PayCommand implements CommandExecutor, TabCompleter {
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
-                return List.of();
-            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+                return Collections.emptyList();
+            return currenciesManager.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).collect(Collectors.toList());
         } else if (args.length == 2)
-            return List.of("69");
+            return Collections.singletonList("69");
         else if (args.length == 3)
-            return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[2]) && sender.hasPermission("rediseconomy.pay." + args[2])).toList();
+            return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[2]) && sender.hasPermission("rediseconomy.pay." + args[2])).collect(Collectors.toList());
 
-        return List.of();
+        return Collections.emptyList();
     }
 
 

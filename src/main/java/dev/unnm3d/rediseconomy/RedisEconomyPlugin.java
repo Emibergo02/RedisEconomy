@@ -28,7 +28,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
+import java.time.temporal.ChronoUnit;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
 
@@ -75,13 +75,14 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
     }
 
+    @SneakyThrows
     @Override
     public void onEnable() {
         this.configManager.postStartupLoad();
         if (settings().migrationEnabled) {
             getServer().getScheduler().runTaskLaterAsynchronously(this, () ->
                             currenciesManager.getCompleteMigration().complete(null),
-                    100L);//load: STARTUP doesn't consider dependencies on load so i have to wait a bit (bukkit bug?)
+                    500L);//load: STARTUP doesn't consider dependencies on load so i have to wait a bit (bukkit bug?)
         }
 
         getServer().getPluginManager().registerEvents(currenciesManager, this);
@@ -129,19 +130,19 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private boolean setupRedis() {
         try {
             RedisURI.Builder redisURIBuilder = RedisURI.builder()
-                    .withHost(configManager.getSettings().redis.host())
-                    .withPort(configManager.getSettings().redis.port())
-                    .withDatabase(configManager.getSettings().redis.database())
-                    .withTimeout(Duration.of(configManager.getSettings().redis.timeout(), TimeUnit.MILLISECONDS.toChronoUnit()))
-                    .withClientName(configManager.getSettings().redis.clientName());
+                    .withHost(configManager.getSettings().redis.getHost())
+                    .withPort(configManager.getSettings().redis.getPort())
+                    .withDatabase(configManager.getSettings().redis.getDatabase())
+                    .withTimeout(Duration.of(configManager.getSettings().redis.getTimeout(), ChronoUnit.MILLIS))
+                    .withClientName(configManager.getSettings().redis.getClientName());
             if (configManager.getSettings().redis.user().equals("changecredentials"))
                 getLogger().warning("You are using default redis credentials. Please change them in the config.yml file!");
             //Authentication params
-            redisURIBuilder = configManager.getSettings().redis.password().equals("") ?
+            redisURIBuilder = configManager.getSettings().redis.getPassword().equals("") ?
                     redisURIBuilder :
-                    configManager.getSettings().redis.user().equals("") ?
-                            redisURIBuilder.withPassword(configManager.getSettings().redis.password().toCharArray()) :
-                            redisURIBuilder.withAuthentication(configManager.getSettings().redis.user(), configManager.getSettings().redis.password());
+                    configManager.getSettings().redis.getUser().equals("") ?
+                            redisURIBuilder.withPassword(configManager.getSettings().redis.getPassword().toCharArray()) :
+                            redisURIBuilder.withAuthentication(configManager.getSettings().redis.getUser(), configManager.getSettings().redis.getPassword());
 
             getLogger().info("Connecting to redis server " + redisURIBuilder.build().toString() + "...");
             this.redisManager = new RedisManager(RedisClient.create(redisURIBuilder.build()));

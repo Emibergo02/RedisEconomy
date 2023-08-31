@@ -12,11 +12,11 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
@@ -57,7 +57,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                 }
                 case "restore-economy" -> {
                     try (FileInputStream is = new FileInputStream(userPath.normalize().toFile())) {
-                        List<String> lines = new BufferedReader(new InputStreamReader(is)).lines().toList();
+                        List<String> lines = new BufferedReader(new InputStreamReader(is)).lines().collect(Collectors.toList());
                         HashMap<String, ArrayList<ScoredValue<String>>> accounts = new HashMap<>();
                         HashMap<String, String> nameUUIDs = new HashMap<>();
                         //Put every information in a data structure
@@ -67,7 +67,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                                 scoredValues.add(ScoredValue.just(Double.parseDouble(split[3]), split[1]));
                                 return scoredValues;
                             }) == null) {
-                                accounts.put(split[0], new ArrayList<>(List.of(ScoredValue.just(Double.parseDouble(split[3]), split[1]))));
+                                accounts.put(split[0], new ArrayList<>(Collections.singletonList(ScoredValue.just(Double.parseDouble(split[3]), split[1]))));
                             }
 
                             nameUUIDs.put(split[2], split[1]);

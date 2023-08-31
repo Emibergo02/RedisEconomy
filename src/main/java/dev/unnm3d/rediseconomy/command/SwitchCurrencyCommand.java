@@ -10,7 +10,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public class SwitchCurrencyCommand implements CommandExecutor, TabCompleter {
@@ -41,8 +43,8 @@ public class SwitchCurrencyCommand implements CommandExecutor, TabCompleter {
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length > 0 && args.length < 3) {
-            return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).toList();
+            return currenciesManager.getCurrencies().stream().map(Currency::getCurrencyName).collect(Collectors.toList());
         }
-        return List.of();
+        return Collections.emptyList();
     }
 }
