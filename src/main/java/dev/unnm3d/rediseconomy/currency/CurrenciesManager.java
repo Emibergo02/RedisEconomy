@@ -3,7 +3,7 @@ package dev.unnm3d.rediseconomy.currency;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
-import dev.unnm3d.rediseconomy.config.Settings;
+import dev.unnm3d.rediseconomy.config.struct.CurrencySettings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
@@ -61,15 +61,15 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
         configManager.getSettings().currencies.forEach(currencySettings -> {
             Currency currency;
-            if (currencySettings.bankEnabled()) {
+            if (currencySettings.isBankEnabled()) {
                 currency = new CurrencyWithBanks(this, currencySettings);
             } else {
                 currency = new Currency(this, currencySettings);
             }
-            currencies.put(currencySettings.currencyName(), currency);
+            currencies.put(currencySettings.getCurrencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, 0.0, true, false)));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, 0.0, true, false)));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -280,7 +280,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                             result.forEach((uuid, uuidList) ->
                                     lockedAccounts.put(UUID.fromString(uuid),
                                             new ArrayList<>(Arrays.stream(uuidList.split(","))
-                                                    .map(UUID::fromString).toList())
+                                                    .map(UUID::fromString).collect(Collectors.toList()))
                                     )
                             );
                             return lockedAccounts;

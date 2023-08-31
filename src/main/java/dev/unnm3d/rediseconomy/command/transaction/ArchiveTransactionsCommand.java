@@ -13,10 +13,9 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -30,12 +29,12 @@ public class ArchiveTransactionsCommand implements CommandExecutor, TabCompleter
             plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
-        if(args[0].contains("..")||args[0].startsWith(File.pathSeparator)){
+        if (args[0].contains("..") || args[0].startsWith(File.pathSeparator)) {
             plugin.langs().send(sender, plugin.langs().invalidPath);
             return true;
         }
 
-        Path userPath= Path.of(plugin.getDataFolder().getAbsolutePath(), args[0]);
+        Path userPath = FileSystems.getDefault().getPath(plugin.getDataFolder().getAbsolutePath(), args[0]);
 
         CompletableFuture.runAsync(() -> {
             try (FileWriter fw = new FileWriter(userPath.normalize().toFile())) {
@@ -81,6 +80,6 @@ public class ArchiveTransactionsCommand implements CommandExecutor, TabCompleter
 
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        return Collections.singletonList( "backup.rediseco");
+        return Collections.singletonList("backup.rediseco");
     }
 }

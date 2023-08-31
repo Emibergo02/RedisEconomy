@@ -51,7 +51,7 @@ public final class Langs extends Configuration {
     public String paySelf = "<red>You cannot pay yourself!</red>";
     @ConfigurationComments("Use %tax_percentage% for tax percentage and %tax_applied% for tax applied to the transaction.")
     @ConfigurationField("paySuccess")
-    public String paySuccess = "<green>You paid %player% %amount% with %tax_percentage% (%tax_applied%) of transaction fee!</green>";
+    public String paySuccess = "<green>You paid %player% %amount%</green>";
     @ConfigurationField("payFail")
     public String payFail = "<red>Payment failed!</red>";
     @ConfigurationField("payReceived")

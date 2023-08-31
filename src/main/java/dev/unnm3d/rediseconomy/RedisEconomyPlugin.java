@@ -5,8 +5,8 @@ import dev.unnm3d.rediseconomy.command.balance.BalanceCommand;
 import dev.unnm3d.rediseconomy.command.balance.BalanceSubCommands;
 import dev.unnm3d.rediseconomy.command.balance.BalanceTopCommand;
 import dev.unnm3d.rediseconomy.command.transaction.ArchiveTransactionsCommand;
-import dev.unnm3d.rediseconomy.command.transaction.BrowseTransactionsCommand;
 import dev.unnm3d.rediseconomy.command.transaction.TransactionCommand;
+import dev.unnm3d.rediseconomy.command.transaction.BrowseTransactionsCommand;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.config.Settings;
@@ -19,6 +19,7 @@ import dev.unnm3d.rediseconomy.utils.PlaceholderAPIHook;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
@@ -135,7 +136,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                     .withDatabase(configManager.getSettings().redis.getDatabase())
                     .withTimeout(Duration.of(configManager.getSettings().redis.getTimeout(), ChronoUnit.MILLIS))
                     .withClientName(configManager.getSettings().redis.getClientName());
-            if (configManager.getSettings().redis.user().equals("changecredentials"))
+            if (configManager.getSettings().redis.getUser().equals("changecredentials"))
                 getLogger().warning("You are using default redis credentials. Please change them in the config.yml file!");
             //Authentication params
             redisURIBuilder = configManager.getSettings().redis.getPassword().equals("") ?

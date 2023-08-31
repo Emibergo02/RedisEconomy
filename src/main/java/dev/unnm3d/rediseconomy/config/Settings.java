@@ -33,6 +33,9 @@ public class Settings extends Configuration {
     @ConfigurationField("debug")
     @ConfigurationComments("# Activate this before reporting an issue")
     public boolean debug = false;
+    @ConfigurationField("registerCalls")
+    @ConfigurationComments("# Register calls to RedisEconomy methods")
+    public boolean registerCalls = false;
     @ConfigurationField("migrationEnabled")
     @ConfigurationComments({"# if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "# During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
@@ -57,6 +60,6 @@ public class Settings extends Configuration {
 
     @ConfigurationField("currencies")
     @ConfigurationComments("# Currencies")
-    public List<CurrencySettings> currencies = Arrays.asList(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false));
+    public List<CurrencySettings> currencies = Arrays.asList(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true,false), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false,false));
 
 }

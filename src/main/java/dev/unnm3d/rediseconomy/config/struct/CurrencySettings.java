@@ -14,7 +14,7 @@ import java.util.Map;
 public class CurrencySettings implements ConfigurationSerializable {
     String currencyName, currencySingle, currencyPlural, decimalFormat, languageTag;
     double startingBalance, payTax;
-    boolean bankEnabled;
+    boolean bankEnabled,taxOnlyPay;
 
     @Override
     public Map<String, Object> serialize() {
@@ -27,11 +27,7 @@ public class CurrencySettings implements ConfigurationSerializable {
         map.put("startingBalance", startingBalance);
         map.put("payTax", payTax);
         map.put("bankEnabled", bankEnabled);
+        map.put("taxOnlyPay", taxOnlyPay);
         return map;
-    }
-
-    public static CurrencySettings deserialize(Map<String, Object> s)
-    {
-        return new CurrencySettings((String) s.get("currencyName"), (String) s.get("currencySingle"), (String) s.get("currencyPlural"), (String) s.get("decimalFormat"), (String) s.get("languageTag"), (double) s.get("startingBalance"), (double) s.get("payTax"), (boolean) s.get("bankEnabled"));
     }
 }

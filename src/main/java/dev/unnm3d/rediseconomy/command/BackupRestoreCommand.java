@@ -1,5 +1,6 @@
 package dev.unnm3d.rediseconomy.command;
 
+import com.google.common.collect.ImmutableList;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
@@ -12,7 +13,10 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -29,14 +33,14 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
             plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
-        if(args[0].contains("..")||args[0].startsWith(File.pathSeparator)){
+        if (args[0].contains("..") || args[0].startsWith(File.pathSeparator)) {
             plugin.langs().send(sender, plugin.langs().invalidPath);
             return true;
         }
         CompletableFuture.runAsync(() -> {
-            Path userPath= Path.of(plugin.getDataFolder().getAbsolutePath(), args[0]);
+            Path userPath = FileSystems.getDefault().getPath(plugin.getDataFolder().getAbsolutePath(), args[0]);
             switch (label) {
-                case "backup-economy" -> {
+                case "backup-economy":
                     try (FileWriter fw = new FileWriter(userPath.normalize().toFile())) {
                         StringBuilder sb = new StringBuilder();
                         currenciesManager.getCurrencies().forEach(currency ->
@@ -54,8 +58,8 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }
-                case "restore-economy" -> {
+                    break;
+                case "restore-economy":
                     try (FileInputStream is = new FileInputStream(userPath.normalize().toFile())) {
                         List<String> lines = new BufferedReader(new InputStreamReader(is)).lines().collect(Collectors.toList());
                         HashMap<String, ArrayList<ScoredValue<String>>> accounts = new HashMap<>();
@@ -87,7 +91,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }
+                    break;
             }
         }).exceptionally(throwable -> {
             throwable.printStackTrace();
@@ -101,6 +105,6 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        return List.of("backup.csv");
+        return ImmutableList.of("backup.csv");
     }
 }
