@@ -280,6 +280,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                             result.forEach((uuid, uuidList) ->
                                     lockedAccounts.put(UUID.fromString(uuid),
                                             new ArrayList<>(Arrays.stream(uuidList.split(","))
+                                                    .filter(stringUUID -> stringUUID.length() >= 32)
                                                     .map(UUID::fromString).collect(Collectors.toList()))
                                     )
                             );
