@@ -1,12 +1,12 @@
 package dev.unnm3d.rediseconomy.utils;
 
+import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.URL;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -18,14 +18,15 @@ import java.util.regex.Pattern;
 public final class AdventureWebuiEditorAPI {
     private static final Pattern TOKEN_PATTERN = Pattern.compile("(\\w{32})");
     private final URI root;
-    private final HttpClient client;
+    private HttpURLConnection client;
 
 
     /**
      * Creates a new instance of the editor API.
      */
-    public AdventureWebuiEditorAPI(String root) {
-        this(URI.create(root), HttpClient.newHttpClient());
+
+    public AdventureWebuiEditorAPI(String root) throws IOException {
+        this(URI.create(root), (HttpURLConnection) new URL(root).openConnection());
     }
 
     /**
@@ -34,7 +35,7 @@ public final class AdventureWebuiEditorAPI {
      * @param root   the root URI
      * @param client the client
      */
-    public AdventureWebuiEditorAPI(final @NotNull URI root, final @NotNull HttpClient client) {
+    public AdventureWebuiEditorAPI(final @NotNull URI root, final @NotNull HttpURLConnection client) {
         this.root = Objects.requireNonNull(root, "root");
         this.client = Objects.requireNonNull(client, "client");
     }
@@ -47,32 +48,43 @@ public final class AdventureWebuiEditorAPI {
      * @param application the application name
      * @return a completable future that will provide the token
      */
+    @SneakyThrows
     public @NotNull CompletableFuture<String> startSession(final @NotNull String input, final @NotNull String command, final @NotNull String application) {
-        final HttpRequest request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(constructBody(input, command, application)))
-                .uri(root.resolve(URI.create("/api/editor/input")))
-                .build();
+
         final CompletableFuture<String> result = new CompletableFuture<>();
 
-        this.client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).exceptionally(throwable -> {
-            throwable.printStackTrace();
-            return null;
-        }).thenApply(stringHttpResponse -> {
-            if (stringHttpResponse.statusCode() != 200) {
-                result.completeExceptionally(new IOException("The server could not handle the request."));
-            } else {
-                final String body = stringHttpResponse.body();
-                final Matcher matcher = TOKEN_PATTERN.matcher(body);
-                if (matcher.find()) {
-                    final String group = matcher.group(0);
-                    result.complete(group);
-                    return group;
-                }
+        client = (HttpURLConnection) new URL(root + "/api/editor/input").openConnection();
+        client.setRequestMethod("POST");
+        client.setDoOutput(true);
+        client.setConnectTimeout(6000);
+        client.setReadTimeout(6000);
 
-                result.completeExceptionally(new IOException("The result did not contain a token."));
+        OutputStream os = client.getOutputStream();
+        os.write(constructBody(input, command, application).getBytes());
+        os.flush();
+        os.close();
+
+
+        int responseCode = client.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) { //success
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
             }
-            return null;
-        });
+            in.close();
+
+            final Matcher matcher = TOKEN_PATTERN.matcher(response.toString());
+            if (matcher.find()) {
+                final String group = matcher.group(0);
+                result.complete(group);
+            }
+        } else {
+            result.completeExceptionally(new IOException("The server could not handle the request."));
+        }
 
         return result;
     }
@@ -83,24 +95,37 @@ public final class AdventureWebuiEditorAPI {
      * @param token the token
      * @return the resulting MiniMessage string in a completable future
      */
+
     public @NotNull CompletableFuture<String> retrieveSession(final @NotNull String token) {
-        final HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(root.resolve(URI.create("/api/editor/output?token=" + token)))
-                .build();
+
         final CompletableFuture<String> result = new CompletableFuture<>();
 
-        this.client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(stringHttpResponse -> {
-            final int statusCode = stringHttpResponse.statusCode();
-            if (statusCode == 404) {
+        try {
+            client = (HttpURLConnection) new URL(root + "/api/editor/output?token=" + token).openConnection();
+            client.setRequestMethod("GET");
+            client.setConnectTimeout(6000);
+            client.setReadTimeout(6000);
+            int responseCode = client.getResponseCode();
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+            if (responseCode == 404) {
                 result.complete(null);
-            } else if (statusCode != 200) {
+            } else if (responseCode != 200) {
                 result.completeExceptionally(new IOException("The server could not handle the request."));
             } else {
-                result.complete(stringHttpResponse.body());
+                result.complete(response.toString());
             }
-            return null;
-        });
+        } catch (IOException e) {
+            result.completeExceptionally(new IOException("The server does not have a session with the given token."));
+        }
+
 
         return result;
     }

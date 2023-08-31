@@ -313,7 +313,7 @@ public class Currency implements Economy {
 
     @Override
     public List<String> getBanks() {
-        return List.of();
+        return new ArrayList<>();
     }
 
     @Override

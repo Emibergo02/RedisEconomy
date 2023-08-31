@@ -26,12 +26,12 @@ public abstract class TransactionCommandAbstract {
                 transaction.receiver.toString();
         Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.currencyName);
 
-        String transactionMessage = plugin.langs().transactionItem.incomingFunds();
+        String transactionMessage = plugin.langs().transactionItem.getIncomingFunds();
         if (transaction.amount < 0) {
-            transactionMessage = plugin.langs().transactionItem.outgoingFunds();
+            transactionMessage = plugin.langs().transactionItem.getOutgoingFunds();
         }
         transactionMessage = transactionMessage
-                .replace("%id%", transactionId + "")
+                .replace("%id%", String.valueOf(transactionId))
                 .replace("%amount%", String.valueOf(transaction.amount))
                 .replace("%symbol%", currency == null ? "" : currency.getCurrencyPlural())
                 .replace("%account-owner%", accountOwnerName == null ? "Unknown" : accountOwnerName)

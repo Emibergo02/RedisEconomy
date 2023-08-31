@@ -10,9 +10,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @AllArgsConstructor
@@ -21,11 +19,11 @@ public class BlockPaymentsCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!(sender instanceof Player p)) {
+        if (!(sender instanceof Player)) {
             plugin.langs().send(sender, plugin.langs().noConsole);
             return true;
         }
-
+        Player p = (Player) sender;
         if (args.length == 0) {
             List<UUID> localLocked = plugin.getCurrenciesManager().getLockedAccounts(p.getUniqueId());
             if (localLocked.contains(RedisKeys.getAllAccountUUID())) {
@@ -69,11 +67,11 @@ public class BlockPaymentsCommand implements CommandExecutor, TabCompleter {
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
-                return List.of();
-            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+                return Collections.emptyList();
+            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).collect(Collectors.toList());
         }
 
-        return List.of();
+        return Collections.emptyList();
     }
 
 
