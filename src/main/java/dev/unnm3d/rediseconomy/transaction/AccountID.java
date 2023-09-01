@@ -32,8 +32,18 @@ public class AccountID {
         this.id = RedisKeys.getServerUUID().toString();
     }
 
+    /**
+     * Returns if the account id is a player or a bank id (non UUID)
+     *
+     * @return true if the account id is a player uuid
+     */
     public boolean isPlayer() {
         return id.length() == 36;
+    }
+
+    public boolean isServer() {
+        if (!isPlayer()) return false;
+        return getUUID().equals(RedisKeys.getServerUUID());
     }
 
     public UUID getUUID() {

@@ -2,20 +2,26 @@ package dev.unnm3d.rediseconomy.transaction;
 
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.UUID;
 
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
 public class Transaction {
-    public AccountID accountIdentifier = new AccountID(RedisKeys.getServerUUID());
-    public long timestamp = 0;
-    public AccountID receiver = new AccountID(RedisKeys.getServerUUID());
-    public double amount = 0;
-    public String currencyName = "";
-    public String reason = "Unknown";
-    public String revertedWith = null;
+    private AccountID accountIdentifier = new AccountID(RedisKeys.getServerUUID());
+    private long timestamp = 0;
+    private AccountID receiver = new AccountID(RedisKeys.getServerUUID());
+    @Setter
+    private double amount = 0;
+    private String currencyName = "";
+    @Setter
+    private String reason = "Unknown";
+    @Setter
+    private String revertedWith = null;
 
     /**
      * Creates a new transaction from a string

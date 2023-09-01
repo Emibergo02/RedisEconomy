@@ -188,23 +188,23 @@ public class EconomyExchange {
         return getTransaction(accountOwner, transactionId)
                 .thenApply(transaction -> {//get current transaction on Redis
                     if (transaction == null) return -1;
-                    Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.currencyName);
+                    Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.getCurrencyName());
                     if (currency == null) {
                         return -1;
                     }
-                    if (transaction.revertedWith != null) {
+                    if (transaction.getRevertedWith() != null) {
                         //already cancelled
                         if (RedisEconomyPlugin.getInstance().settings().debug) {
-                            Bukkit.getLogger().info("revert01b Transaction " + transactionId + " already reverted with " + transaction.revertedWith);
+                            Bukkit.getLogger().info("revert01b Transaction " + transactionId + " already reverted with " + transaction.getRevertedWith());
                         }
-                        return Integer.valueOf(transaction.revertedWith);
+                        return Integer.valueOf(transaction.getRevertedWith());
                     }
                     TransactionEvent revertTransactionEvent = new TransactionEvent(transaction);
 
                     return currency.revertTransaction(transactionId, revertTransactionEvent.getTransaction())
                             .thenApply(newId -> {
                                 if (newId != null) {
-                                    revertTransactionEvent.getTransaction().revertedWith = String.valueOf(newId);
+                                    revertTransactionEvent.getTransaction().setRevertedWith(String.valueOf(newId));
                                     //replace transaction on Redis
                                     plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                                             connection.hset(NEW_TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID

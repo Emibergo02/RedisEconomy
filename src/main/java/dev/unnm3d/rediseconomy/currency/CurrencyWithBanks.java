@@ -252,18 +252,18 @@ public class CurrencyWithBanks extends Currency {
      */
     @Override
     public CompletionStage<Integer> revertTransaction(int transactionId, @NotNull Transaction transaction) {
-        String ownerName = transaction.accountIdentifier.isPlayer() ?//If the sender is a player
-                currenciesManager.getUsernameFromUUIDCache(transaction.accountIdentifier.getUUID()) : //Get the username from the cache (with server uuid translation)
-                transaction.accountIdentifier.toString(); //Else, it's a bank, so we get the bank id
-        if (transaction.accountIdentifier.isPlayer()) {//Update player account
-            updateAccount(transaction.accountIdentifier.getUUID(), ownerName, getBalance(transaction.accountIdentifier.getUUID()) - transaction.amount);
+        String ownerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
+                currenciesManager.getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
+                transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id
+        if (transaction.getAccountIdentifier().isPlayer()) {//Update player account
+            updateAccount(transaction.getAccountIdentifier().getUUID(), ownerName, getBalance(transaction.getAccountIdentifier().getUUID()) - transaction.getAmount());
         } else {//Update bank account
-            updateBankAccount(transaction.accountIdentifier.toString(), bankBalance(transaction.accountIdentifier.toString()).balance - transaction.amount);
+            updateBankAccount(transaction.getAccountIdentifier().toString(), bankBalance(transaction.getAccountIdentifier().toString()).balance - transaction.getAmount());
         }
         if (RedisEconomyPlugin.getInstance().settings().debug) {
-            Bukkit.getLogger().info("revert01a reverted on account " + transaction.accountIdentifier + " amount " + transaction.amount);
+            Bukkit.getLogger().info("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
         }
-        return currenciesManager.getExchange().saveTransaction(transaction.accountIdentifier, transaction.receiver, -transaction.amount, currencyName, "Revert #" + transactionId + ": " + transaction.reason);
+        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getReceiver(), -transaction.getAmount(), currencyName, "Revert #" + transactionId + ": " + transaction.getReason());
     }
 
     private void setOwner(@NotNull String accountId, UUID ownerUUID) {

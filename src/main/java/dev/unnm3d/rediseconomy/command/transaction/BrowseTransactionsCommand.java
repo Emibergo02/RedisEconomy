@@ -55,7 +55,7 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
                     .replace("%after%", afterDateString)
                     .replace("%before%", beforeDateString));
             for (int i = 0; i < transactions.size(); i++) {
-                Date transactionDate = new Date(transactions.get(i).timestamp);
+                Date transactionDate = new Date(transactions.get(i).getTimestamp());
                 if (afterDate != null)
                     if (!transactionDate.after(afterDate)) continue;
                 if (beforeDate != null)
