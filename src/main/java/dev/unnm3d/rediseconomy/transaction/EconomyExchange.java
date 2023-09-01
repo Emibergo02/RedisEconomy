@@ -1,6 +1,7 @@
 package dev.unnm3d.rediseconomy.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.api.TransactionEvent;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import io.lettuce.core.ScriptOutputType;
 import lombok.AllArgsConstructor;
@@ -91,22 +92,24 @@ public class EconomyExchange {
         long init = System.currentTimeMillis();
         reason += getCallerPluginString();
 
-        Transaction transactionSender = new Transaction(
+        TransactionEvent transactionSenderEvent = new TransactionEvent(new Transaction(
                 new AccountID(sender),
                 System.currentTimeMillis(),
                 new AccountID(target),
                 -amount,
                 currency.getCurrencyName(),
                 reason,
-                null);
-        Transaction transactionReceiver = new Transaction(
+                null));
+        TransactionEvent transactionReceiverEvent = new TransactionEvent(new Transaction(
                 new AccountID(target),
                 System.currentTimeMillis(),
                 new AccountID(sender),
                 amount,
                 currency.getCurrencyName(),
                 reason,
-                null);
+                null));
+        plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
+        plugin.getServer().getPluginManager().callEvent(transactionReceiverEvent);
 
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                         connection.<List<Integer>>eval(
@@ -119,8 +122,8 @@ public class EconomyExchange {
                                 new String[]{
                                         NEW_TRANSACTIONS + sender.toString(),
                                         NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
-                                transactionSender.toString(),
-                                transactionReceiver.toString()))
+                                transactionSenderEvent.getTransaction().toString(),
+                                transactionReceiverEvent.getTransaction().toString()))
                 .thenApply(response -> {
                     if (RedisEconomyPlugin.getInstance().settings().debug) {
                         Bukkit.getLogger().info("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
@@ -148,11 +151,12 @@ public class EconomyExchange {
         long init = System.currentTimeMillis();
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(commands -> {
 
-                    Transaction transaction = new Transaction(
+                    TransactionEvent transactionEvent = new TransactionEvent(new Transaction(
                             accountOwner,
                             System.currentTimeMillis(),
                             target, //If target is null, it has been sent from the server
-                            amount, currencyName, reason + getCallerPluginString(), null);
+                            amount, currencyName, reason + getCallerPluginString(), null));
+                    plugin.getServer().getPluginManager().callEvent(transactionEvent);
 
                     return commands.eval(
                             "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
@@ -160,7 +164,7 @@ public class EconomyExchange {
                                     "return currentId;", //Return the id of the new transaction
                             ScriptOutputType.INTEGER,
                             new String[]{NEW_TRANSACTIONS + accountOwner.toString()}, //Key rediseco:transactions:playerUUID
-                            transaction.toString()).thenApply(response -> {
+                            transactionEvent.getTransaction().toString()).thenApply(response -> {
                         if (RedisEconomyPlugin.getInstance().settings().debug) {
                             Bukkit.getLogger().info("03 Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response + " !");
                         }
@@ -195,16 +199,17 @@ public class EconomyExchange {
                         }
                         return Integer.valueOf(transaction.revertedWith);
                     }
+                    TransactionEvent revertTransactionEvent = new TransactionEvent(transaction);
 
-                    return currency.revertTransaction(transactionId, transaction)
+                    return currency.revertTransaction(transactionId, revertTransactionEvent.getTransaction())
                             .thenApply(newId -> {
                                 if (newId != null) {
-                                    transaction.revertedWith = String.valueOf(newId);
+                                    revertTransactionEvent.getTransaction().revertedWith = String.valueOf(newId);
                                     //replace transaction on Redis
                                     plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                                             connection.hset(NEW_TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID
                                                             String.valueOf(transactionId), //Previous transaction id
-                                                            transaction.toString())
+                                                            revertTransactionEvent.getTransaction().toString())
                                                     .thenApply(result2 -> {
                                                         if (RedisEconomyPlugin.getInstance().settings().debug) {
                                                             Bukkit.getLogger().info("revert02 Replace transaction " + transactionId + " with a new revertedWith id on Redis: " + result2);
