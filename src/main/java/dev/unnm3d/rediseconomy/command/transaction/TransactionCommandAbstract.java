@@ -21,9 +21,9 @@ public abstract class TransactionCommandAbstract {
         String accountOwnerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
                 plugin.getCurrenciesManager().getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id
-        String otherAccount = transaction.getReceiver().isPlayer() ?
-                plugin.getCurrenciesManager().getUsernameFromUUIDCache(transaction.getReceiver().getUUID()) :
-                transaction.getReceiver().toString();
+        String otherAccount = transaction.getActor().isPlayer() ?
+                plugin.getCurrenciesManager().getUsernameFromUUIDCache(transaction.getActor().getUUID()) :
+                transaction.getActor().toString();
         Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.getCurrencyName());
 
         String transactionMessage = plugin.langs().transactionItem.incomingFunds();

@@ -7,7 +7,6 @@ import de.exlll.configlib.YamlConfigurationProperties;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import lombok.Getter;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -15,6 +14,7 @@ import org.bukkit.event.Listener;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class ConfigManager {
     private final RedisEconomyPlugin plugin;
@@ -90,8 +90,7 @@ public class ConfigManager {
                 if (future.isDone()) {
                     return;
                 }
-                Bukkit.getScheduler().runTaskLater(plugin, () -> sendServerIdRequest(event.getPlayer()), 20L);
-
+                plugin.getPlatformAdapter().getImpl().runLaterAsync(() -> sendServerIdRequest(event.getPlayer()), 1, TimeUnit.SECONDS);
             }
         };
         if (plugin.getServer().getOnlinePlayers().size() > 0) {

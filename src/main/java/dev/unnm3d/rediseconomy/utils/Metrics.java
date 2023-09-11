@@ -14,11 +14,10 @@ package dev.unnm3d.rediseconomy.utils;
  * Violations will result in a ban of your plugin and account from bStats.
  */
 
+import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
@@ -40,7 +39,7 @@ import java.util.zip.GZIPOutputStream;
 @SuppressWarnings("unused")
 public class Metrics {
 
-    private final Plugin plugin;
+    private final RedisEconomyPlugin plugin;
 
     private final MetricsBase metricsBase;
 
@@ -51,7 +50,7 @@ public class Metrics {
      * @param serviceId The id of the service. It can be found at <a
      *                  href="https://bstats.org/what-is-my-plugin-id">What is my plugin id?</a>
      */
-    public Metrics(JavaPlugin plugin, int serviceId) {
+    public Metrics(RedisEconomyPlugin plugin, int serviceId) {
         this.plugin = plugin;
         // Get the config file
         File bStatsFolder = new File(plugin.getDataFolder().getParentFile(), "bStats");
@@ -93,7 +92,7 @@ public class Metrics {
                         enabled,
                         this::appendPlatformData,
                         this::appendServiceData,
-                        submitDataTask -> Bukkit.getScheduler().runTask(plugin, submitDataTask),
+                        submitDataTask -> plugin.getPlatformAdapter().getImpl().runNextTick(submitDataTask),
                         plugin::isEnabled,
                         (message, error) -> this.plugin.getLogger().log(Level.WARNING, message, error),
                         (message) -> this.plugin.getLogger().log(Level.INFO, message),

@@ -463,7 +463,7 @@ public class Currency implements Economy {
         if (RedisEconomyPlugin.getInstance().settings().debug) {
             Bukkit.getLogger().info("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
         }
-        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getReceiver(), -transaction.getAmount(), currencyName, "Revert #" + transactionId + ": " + transaction.getReason());
+        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getActor(), -transaction.getAmount(), currencyName, "Revert #" + transactionId + ": " + transaction.getReason());
     }
 
     /**

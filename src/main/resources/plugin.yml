@@ -17,6 +17,7 @@ softdepend:
   - BetterEconomy
   - ArcaneEconomy
   - EasyConomy
+folia-supported: true
 commands:
   pay:
     description: Pay a player

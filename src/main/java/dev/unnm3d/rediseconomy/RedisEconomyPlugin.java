@@ -1,5 +1,6 @@
 package dev.unnm3d.rediseconomy;
 
+import com.tcoded.folialib.FoliaLib;
 import dev.unnm3d.rediseconomy.command.*;
 import dev.unnm3d.rediseconomy.command.balance.BalanceCommand;
 import dev.unnm3d.rediseconomy.command.balance.BalanceSubCommands;
@@ -39,6 +40,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Getter
     private CurrenciesManager currenciesManager;
     private RedisManager redisManager;
+    @Getter
+    private FoliaLib platformAdapter;
 
 
     public Settings settings() {
@@ -56,6 +59,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Override
     public void onLoad() {
         instance = this;
+        this.platformAdapter = new FoliaLib(this);
         this.configManager = new ConfigManager(this);
 
         if (!setupRedis()) {
@@ -79,7 +83,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     public void onEnable() {
         this.configManager.postStartupLoad();
         if (settings().migrationEnabled) {
-            getServer().getScheduler().runTaskLaterAsynchronously(this, () ->
+            platformAdapter.getImpl().runLaterAsync(() ->
                             currenciesManager.getCompleteMigration().complete(null),
                     100L);//load: STARTUP doesn't consider dependencies on load so i have to wait a bit (bukkit bug?)
         }

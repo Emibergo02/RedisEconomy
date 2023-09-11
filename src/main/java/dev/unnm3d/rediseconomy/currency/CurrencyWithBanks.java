@@ -263,7 +263,7 @@ public class CurrencyWithBanks extends Currency {
         if (RedisEconomyPlugin.getInstance().settings().debug) {
             Bukkit.getLogger().info("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
         }
-        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getReceiver(), -transaction.getAmount(), currencyName, "Revert #" + transactionId + ": " + transaction.getReason());
+        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getActor(), -transaction.getAmount(), currencyName, "Revert #" + transactionId + ": " + transaction.getReason());
     }
 
     private void setOwner(@NotNull String accountId, UUID ownerUUID) {

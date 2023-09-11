@@ -6,7 +6,7 @@
 
     <groupId>dev.unnm3d</groupId>
     <artifactId>RedisEconomy</artifactId>
-    <version>4.3.6.2-SNAPSHOT</version>
+    <version>4.3.7-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>RedisEconomy</name>
@@ -43,6 +43,10 @@
                                 <relocation>
                                     <pattern>net.kyori.adventure</pattern>
                                     <shadedPattern>net.kyori.adventure.shaded</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.tcoded.folialib</pattern>
+                                    <shadedPattern>dev.unnm3d.shaded</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -109,6 +113,10 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
+        <repository>
+            <id>devmart-other</id>
+            <url>https://nexuslite.gcnt.net/repos/other/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -156,6 +164,12 @@
             <groupId>com.github.Emibergo02</groupId>
             <artifactId>ConfigLib</artifactId>
             <version>master-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.tcoded</groupId>
+            <artifactId>FoliaLib</artifactId>
+            <version>0.2.5</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

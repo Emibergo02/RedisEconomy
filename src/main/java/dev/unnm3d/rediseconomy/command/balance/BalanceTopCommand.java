@@ -24,11 +24,16 @@ public class BalanceTopCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
 
+        final int page;
+        try {
+            page = Integer.parseInt(args[0]);
+        } catch (NumberFormatException e) {
+            plugin.langs().send(sender, plugin.langs().missingArguments);
+            return true;
+        }
+
         Currency baltopCurrency = args.length == 2 ? currenciesManager.getCurrencyByName(args[1]) : currenciesManager.getDefaultCurrency();
 
-        final int page = args.length != 0 && args.length < 3 ?
-                Integer.parseInt(args[0]) :
-                1;
         if (baltopCurrency == null) {
             plugin.langs().send(sender, plugin.langs().invalidCurrency);
             return true;

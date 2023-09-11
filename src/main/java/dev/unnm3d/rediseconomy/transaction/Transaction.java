@@ -14,7 +14,7 @@ import java.util.UUID;
 public class Transaction {
     private AccountID accountIdentifier = new AccountID(RedisKeys.getServerUUID());
     private long timestamp = 0;
-    private AccountID receiver = new AccountID(RedisKeys.getServerUUID());
+    private AccountID actor = new AccountID(RedisKeys.getServerUUID());
     @Setter
     private double amount = 0;
     private String currencyName = "";
@@ -43,6 +43,6 @@ public class Transaction {
 
     @Override
     public String toString() {
-        return accountIdentifier + ";" + timestamp + ";" + receiver + ";" + amount + ";" + currencyName + ";" + reason + (revertedWith == null ? "" : ";" + revertedWith);
+        return accountIdentifier + ";" + timestamp + ";" + actor + ";" + amount + ";" + currencyName + ";" + reason + (revertedWith == null ? "" : ";" + revertedWith);
     }
 }
