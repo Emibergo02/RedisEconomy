@@ -31,12 +31,12 @@ public class ArchiveTransactionsCommand implements CommandExecutor, TabCompleter
             plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
-        if(args[0].contains("..")||args[0].startsWith(File.pathSeparator)){
+        if (args[0].contains("..") || args[0].startsWith(File.pathSeparator)) {
             plugin.langs().send(sender, plugin.langs().invalidPath);
             return true;
         }
 
-        Path userPath= Path.of(plugin.getDataFolder().getAbsolutePath(), args[0]);
+        Path userPath = Path.of(plugin.getDataFolder().getAbsolutePath(), args[0]);
 
         CompletableFuture.runAsync(() -> {
             try (FileWriter fw = new FileWriter(userPath.normalize().toFile())) {
