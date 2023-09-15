@@ -14,7 +14,6 @@ import org.bukkit.event.Listener;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class ConfigManager {
     private final RedisEconomyPlugin plugin;
@@ -90,7 +89,7 @@ public class ConfigManager {
                 if (future.isDone()) {
                     return;
                 }
-                plugin.getPlatformAdapter().getImpl().runLaterAsync(() -> sendServerIdRequest(event.getPlayer()), 1, TimeUnit.SECONDS);
+                plugin.getScheduler().runTaskLaterAsynchronously(() -> sendServerIdRequest(event.getPlayer()), 20L);
             }
         };
         if (plugin.getServer().getOnlinePlayers().size() > 0) {
