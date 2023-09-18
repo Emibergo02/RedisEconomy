@@ -6,16 +6,21 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.jetbrains.annotations.NotNull;
 
-@AllArgsConstructor
 @Getter
 @Setter
 public class TransactionEvent extends Event {
     private static final HandlerList HANDLERS = new HandlerList();
     private Transaction transaction;
 
+    public TransactionEvent(Transaction transaction){
+        super(true);
+        this.transaction=transaction;
+    }
+
     @Override
-    public HandlerList getHandlers() {
+    public @NotNull HandlerList getHandlers() {
         return HANDLERS;
     }
 
