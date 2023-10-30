@@ -6,7 +6,7 @@
 
     <groupId>dev.unnm3d</groupId>
     <artifactId>RedisEconomy</artifactId>
-    <version>4.3.7b-SNAPSHOT</version>
+    <version>4.3.7c-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>RedisEconomy</name>
@@ -39,15 +39,10 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <artifactSet>
-                                <includes>
-                                    <include>com.github.Anon8281:UniversalScheduler</include>
-                                </includes>
-                            </artifactSet>
                             <relocations>
                                 <relocation>
-                                    <pattern>net.kyori.adventure</pattern>
-                                    <shadedPattern>dev.unnm3d.shaded.adventure</shadedPattern>
+                                    <pattern>net.kyori</pattern>
+                                    <shadedPattern>dev.unnm3d.shaded.kyori</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.github.Anon8281.universalScheduler</pattern>
