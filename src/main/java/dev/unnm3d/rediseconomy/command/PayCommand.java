@@ -71,7 +71,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             plugin.langs().send(sender, plugin.langs().invalidAmount);
             return;
         }
-        if (amount > plugin.settings().minPayAmount) {
+        if (amount < plugin.settings().minPayAmount) {
             plugin.langs().send(sender, plugin.langs().tooSmallAmount);
             return;
         }
