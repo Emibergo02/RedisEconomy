@@ -34,6 +34,10 @@ public class Settings {
     public int tab_complete_chars = 0;
     @Comment("Default currency name (must be the same as the currency name in the currencies list)")
     public String defaultCurrencyName = "vault";
+    @Comment("Cooldown between payments in milliseconds")
+    public int payCooldown = 500;
+    @Comment("Minimum amount of money that can be paid")
+    public double minPayAmount = 0.01;
     @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
     public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true, false), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false, false));
 

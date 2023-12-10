@@ -18,6 +18,8 @@ public final class Langs {
     public String missingArguments = "<red>Missing arguments!</red>";
     public String playerNotFound = "<red>Player not found!</red>";
     public String invalidAmount = "<red>Invalid amount!</red>";
+    public String tooSmallAmount = "<red>The amount is too small!</red>";
+    public String payCooldown = "<red>Your previous payment is still in progress! Wait please</red>";
     public String invalidCurrency = "<red>Invalid currency!</red>";
     public String insufficientFunds = "<red>You do not have enough money!</red>";
     public String balance = "<green>You have %balance%!</green>";
