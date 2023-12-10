@@ -34,7 +34,7 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
 
         plugin.getCurrenciesManager().getExchange().getTransactions(accountID).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
-            if (transactions.size() == 0) {
+            if (transactions.isEmpty()) {
                 plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
                 return;
             }
@@ -82,7 +82,7 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
                 return List.of();
             return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
-            if (args[1].trim().equals(""))
+            if (args[1].trim().isEmpty())
                 return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
         }
         return List.of();
