@@ -1,31 +1,40 @@
 #Turkish language file by WinTone01
-noConsole: <red>Bu komutu kullanabilmek için oyunda olmalısınız!</red>
+noConsole: <red>Oyuncu olmalısınız, bu komutu kullanmak için!</red>
 noPermission: <red>Bu komutu kullanma izniniz yok!</red>
-missingArguments: <red>Komut için bazı parametreler eksik!</red>
+missingArguments: <red>Komut için eksik parametreler!</red>
 playerNotFound: <red>Oyuncu bulunamadı!</red>
 invalidAmount: <red>Girilen değer geçersiz!</red>
 invalidCurrency: <red>Geçersiz para birimi!</red>
-insufficientFunds: <red>Yeterli paranız yok!</red>
-balance: <green>Bakiyeniz: %balance%!</green>
-balanceSet: <green>%player% hesabının bakiyesi %balance% olarak ayarlandı!</green>
-balanceOther: <green>%player% adlı oyuncunun bakiyesi: %balance%!</green>
+insufficientFunds: <red>Yeterli bakiyeniz yok!</red>
+balance: <green>Bakiyeniz %balance%!</green>
+balanceSet: <green>%player% adlı oyuncunun hesabına %balance% eklediniz!</green>
+balanceOther: <green>%player%'in bakiyesi %balance%!</green>
 balanceTop: <green>En zengin oyuncular:</green><br>%prevpage%      %page%      %nextpage%
 balanceTopFormat: <aqua>%pos% - %player% %balance%</aqua>
 paySelf: <red>Kendinize ödeme yapamazsınız!</red>
-paySuccess: <green>%player% adlı oyuncuya %amount% ödediniz, %tax_percentage% vergi (%tax_applied% uygulandı)!</green>
+paySuccess: <green>%amount% tutarındaki ödemeyi %player% adlı oyuncuya yaptınız. Komisyon oranı %tax_percentage% (%tax_applied%)!</green>
 payFail: <red>Ödeme başarısız oldu!</red>
-payReceived: <green>%player% adlı oyuncudan %amount% aldınız!</green>
-purgeUserSuccess: <green>%player% adlı kullanıcı temizlendi!</green>
-switchCurrencySuccess: <green>%currency% para biriminden %switch-currency% para birimine geçildi.<br>Lütfen çakışmaları önlemek için her RedisEconomy örneğini yeniden başlatın!</green>
-noTransactionFound: <red>%player% için hiçbir işlem bulunamadı!</red>
-transactionsStart: <dark_aqua>%player% adlı oyuncunun işlemleri %after% - %before% arası!</dark_aqua>
-transactionsEnd: <dark_aqua>%player% adlı oyuncunun işlemlerinin sonu, %time% ms içinde tamamlandı</dark_aqua>
+payReceived: <green>%player% adlı oyuncudan %amount% tutarında ödeme aldınız!</green>
+purgeUserSuccess: <green>%player%'e eşleşen kullanıcı temizlendi!</green>
+switchCurrencySuccess: <green>%currency% başarıyla %switch-currency% ile değiştirildi. Lütfen çakışmaları önlemek için RedisEconomy'nin her örneğini yeniden başlatın!</green>
+noTransactionFound: <red>%player% adlı oyuncu için herhangi bir işlem bulunamadı!</red>
+transactionsStart: <dark_aqua>%player%'in işlemleri %after% - %before% arasında!</dark_aqua>
+transactionsEnd: <dark_aqua>%player%'in işlemleri %time% ms içinde sona erdi</dark_aqua>
 editMessageError: <red>Bu yapılandırma alanı mevcut değil veya bir dize değil!</red>
-editMessageClickHere: <click:open_url:%url%>%field%'yi düzenlemek için buraya tıklayın!</click>
-editMessageSuccess: <green>%field% başarıyla kaydedildi!
+editMessageClickHere: <click:open_url:%url%>%field% düzenlemek için buraya tıklayın!</click>
+editMessageSuccess: <green>%field% başarıyla kaydedildi!</green>
 transactionItem:
-  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Kopyalamak için tıklayın:</blue><br><aqua>%timestamp%</aqua>"><gold>[Zaman Damgası⌛]</hover></click> <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"İşlemi geri almak için tıklayın"><red>[←Geri Al]</hover></click><br><click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>Sebep: </yellow>%reason%'
-  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Kopyalamak için tıklayın:</blue><br><aqua>%timestamp%</aqua>"><gold>[Zaman Damgası⌛]</hover></click> <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"İşlemi geri almak için tıklayın"><red>[←Geri Al]</hover></click><br><click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Sebep: </yellow>%reason%'
+  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Kopyalamak için tıkla:</blue><br><aqua>%timestamp%</aqua>"><gold>[Zaman Damgası⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"İşlemi geri almak için tıkla"><red>[←Geri Al]</hover></click><br><click:run_command:/transaction
+    %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
+    <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>Neden:
+    </yellow>%reason%'
+  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Kopyalamak için tıkla:</blue><br><aqua>%timestamp%</aqua>"><gold>[Zaman Damgası⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"İşlemi geri almak için tıkla"><red>[←Geri Al]</hover></click><br><click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%
+    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Neden:
+    </yellow>%reason%'
 unitSymbols:
   thousand: k
   million: m
