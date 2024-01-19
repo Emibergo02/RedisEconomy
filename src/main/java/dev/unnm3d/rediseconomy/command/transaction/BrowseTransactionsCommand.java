@@ -26,15 +26,15 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
             plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
-        String target = args[0];
-        UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
-        AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
-        String afterDateString = args.length == 3 ? args[1] : "anytime";
-        String beforeDateString = args.length == 3 ? args[2] : "anytime";
+        final String target = args[0];
+        final UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
+        final AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
+        final String afterDateString = args.length == 3 ? args[1] : "anytime";
+        final String beforeDateString = args.length == 3 ? args[2] : "anytime";
 
         plugin.getCurrenciesManager().getExchange().getTransactions(accountID).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
-            if (transactions.size() == 0) {
+            if (transactions.isEmpty()) {
                 plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
                 return;
             }
@@ -82,7 +82,7 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
                 return List.of();
             return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
-            if (args[1].trim().equals(""))
+            if (args[1].trim().isEmpty())
                 return List.of("^ usage ^", convertTimeWithLocalTimeZome(System.currentTimeMillis() - 86400000) + " " + convertTimeWithLocalTimeZome(System.currentTimeMillis()), "<after the date...> <before the date...>");
         }
         return List.of();

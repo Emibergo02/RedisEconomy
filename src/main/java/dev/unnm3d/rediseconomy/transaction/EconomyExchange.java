@@ -108,8 +108,11 @@ public class EconomyExchange {
                 currency.getCurrencyName(),
                 reason,
                 null));
-        plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
-        plugin.getServer().getPluginManager().callEvent(transactionReceiverEvent);
+
+        plugin.getScheduler().runTask(() -> {
+            plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
+            plugin.getServer().getPluginManager().callEvent(transactionReceiverEvent);
+        });
 
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                         connection.<List<Integer>>eval(
@@ -156,7 +159,7 @@ public class EconomyExchange {
                             System.currentTimeMillis(),
                             target, //If target is null, it has been sent from the server
                             amount, currencyName, reason + getCallerPluginString(), null));
-                    plugin.getServer().getPluginManager().callEvent(transactionEvent);
+                    plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
 
                     return commands.eval(
                             "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
@@ -200,6 +203,7 @@ public class EconomyExchange {
                         return Integer.valueOf(transaction.getRevertedWith());
                     }
                     TransactionEvent revertTransactionEvent = new TransactionEvent(transaction);
+                    plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(revertTransactionEvent));
 
                     return currency.revertTransaction(transactionId, revertTransactionEvent.getTransaction())
                             .thenApply(newId -> {

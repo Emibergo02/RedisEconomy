@@ -13,10 +13,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
 
@@ -24,6 +21,7 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.MSG_CHANNEL;
 public class PayCommand implements CommandExecutor, TabCompleter {
     private final CurrenciesManager currenciesManager;
     private final RedisEconomyPlugin plugin;
+    private final HashMap<String, Long> cooldowns = new HashMap<>();
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -35,6 +33,15 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             plugin.langs().send(sender, plugin.langs().missingArguments);
             return true;
         }
+
+        if (cooldowns.getOrDefault(p.getName(), 0L) > System.currentTimeMillis() - plugin.settings().payCooldown) {
+            plugin.langs().send(sender, plugin.langs().payCooldown);
+            return true;
+        }
+        cooldowns.entrySet().removeIf(entry -> entry.getValue() < System.currentTimeMillis() - plugin.settings().payCooldown);
+        cooldowns.put(p.getName(), System.currentTimeMillis());
+
+
         if (args.length == 2) {
             payCurrency(p, currenciesManager.getDefaultCurrency(), args);
         } else {
@@ -58,10 +65,14 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             return;
         }
         long init = System.currentTimeMillis();
-        String target = args[0];
-        double amount = plugin.langs().formatAmountString(args[1]);
+        final String target = args[0];
+        final double amount = plugin.langs().formatAmountString(args[1]);
         if (amount <= 0) {
             plugin.langs().send(sender, plugin.langs().invalidAmount);
+            return;
+        }
+        if (amount < plugin.settings().minPayAmount) {
+            plugin.langs().send(sender, plugin.langs().tooSmallAmount);
             return;
         }
         if (target.equalsIgnoreCase(sender.getName())) {
