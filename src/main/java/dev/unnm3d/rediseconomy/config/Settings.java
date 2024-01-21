@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.config;
 
 import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
+import org.checkerframework.checker.units.qual.C;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +15,8 @@ public class Settings {
     public String serverId = String.valueOf(UUID.randomUUID());
     @Comment("Language file")
     public String lang = "en-US";
+    @Comment({"Formatting System","Types: MINIMESSAGE, MINEDOWN"})
+    public Langs.FormattingSystem formattingSystem = Langs.FormattingSystem.MINIMESSAGE;
     @Comment("Webeditor URL")
     public String webEditorUrl = "https://webui.advntr.dev/";
     @Comment("Activate this before reporting an issue")

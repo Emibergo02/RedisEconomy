@@ -2,10 +2,13 @@ package dev.unnm3d.rediseconomy.config;
 
 import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
+
+import de.themoep.minedown.MineDown;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
@@ -76,7 +79,11 @@ public final class Langs {
     }
 
     public void send(CommandSender sender, String text) {
-        audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text));
+        switch (RedisEconomyPlugin.getInstance().getConfigManager().getSettings().formattingSystem){
+            case MINIMESSAGE : audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text)); break;
+            case MINEDOWN: sender.spigot().sendMessage(MineDown.parse(text.replace("\\n", System.lineSeparator()))); break;
+        }
+
     }
 
     public double formatAmountString(String amount) {
@@ -114,5 +121,12 @@ public final class Langs {
         field.set(this, text);
         return true;
     }
+
+
+    public enum FormattingSystem {
+        MINIMESSAGE,
+        MINEDOWN
+    }
+
 
 }

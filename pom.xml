@@ -45,6 +45,10 @@
                                     <shadedPattern>dev.unnm3d.shaded.kyori</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>de.themoep.minedown</pattern>
+                                    <shadedPattern>dev.unnm3d.shaded.minedown</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>com.github.Anon8281.universalScheduler</pattern>
                                     <shadedPattern>dev.unnm3d.shaded.universalScheduler</shadedPattern>
                                 </relocation>
@@ -102,6 +106,11 @@
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
         <repository>
+            <id>minebench-repo</id>
+            <url>https://repo.minebench.de/</url>
+        </repository>
+
+        <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
@@ -123,8 +132,14 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.16.5-R0.1-SNAPSHOT</version>
+            <version>1.20.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.themoep</groupId>
+            <artifactId>minedown</artifactId>
+            <version>1.7.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.github.MilkBowl</groupId>
@@ -163,7 +178,7 @@
         <dependency>
             <groupId>com.github.Emibergo02</groupId>
             <artifactId>ConfigLib</artifactId>
-            <version>master-SNAPSHOT</version>
+            <version>4.2.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.Anon8281</groupId>

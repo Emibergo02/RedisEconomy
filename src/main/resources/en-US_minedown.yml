@@ -1,0 +1,55 @@
+noConsole: '&cYou must be in-game to use this command!'
+noPermission: '&cYou do not have permission to use this command!'
+missingArguments: '&cMissing arguments!'
+playerNotFound: '&cPlayer not found!'
+invalidAmount: '&cInvalid amount!'
+tooSmallAmount: '&cThe amount is too small!'
+payCooldown: '&cYour previous payment is still in progress! Wait please'
+invalidCurrency: '&cInvalid currency!'
+insufficientFunds: '&cYou do not have enough money!'
+balance: '&aYou have %balance%!'
+balanceSet: '&aYou set %player% account to %balance% !'
+balanceOther: '&a%player% has %balance% !'
+balanceTop: '&aTop richest players:\n &f[&2<--](run_command=/balancetop %prevpage%show_text=&2Previous page)      %page%      &f[&2-->](run_command=/balancetop %nextpage% show_text=&2Next Page)'
+blockedAccounts: '&aBlocked accounts:&f\n%list%'
+blockedAccountSuccess: '&aAccount %player% has been blocked!'
+unblockedAccountSuccess: '&aAccount %player% has been unblocked!'
+blockedPayment: '&cYour payments to %player% have been blocked!'
+balanceTopFormat: '&b%pos% - %player% %balance%'
+paySelf: '&cYou cannot pay yourself!'
+# Use %tax_percentage% for tax percentage and %tax_applied% for tax applied to the transaction.
+paySuccess: '&aYou paid %player% %amount%'
+payFail: '&cPayment failed!'
+payReceived: '&aYou received %amount% from %player%!'
+purgeUserSuccess: '&aUsers matching %player% have been purged!'
+purgeBalanceSuccess: '&aUsers matching %player% have been reset for currency %currency%!'
+switchCurrencySuccess: '&aSwitched %currency% to %switch-currency%.\n&aPlease restart
+  immediately every instance\n&awith RedisEconomy installed to avoid any overwrite!'
+noTransactionFound: '&cNo transaction found for %player%!'
+incorrectDate: '&cIncorrect Date formatting !'
+transactionsStart: '&3Transactions of player %player% from %after% to %before%!'
+transactionsEnd: '&3End of %player% transactions in %time% ms'
+transactionsArchiveCompleted: '&aArchived %size% transaction accounts to %file%'
+transactionsArchiveProgress: '&bArchiving progress: %progress%% '
+editMessageError: '&cThis config entry is not a String or doesnt exist!'
+editMessageClickHere: '[Click here to edit the message %field%](open_url=%url%>)'
+editMessageSuccess: &aSaved successfully %field%!
+transactionItem:
+  outgoingFunds: '&3#%id% 
+  [&6[Timestamp⌛]](show_text=&b%timestamp% \n&9Click to copy copy_to_clipboard=%timestamp%)
+  [&c[←Revert]](run_command=/transaction %account-owner% %id% revert show_text=&9Click to revert transaction)\n
+  [&2%account-owner%](run_command=/browse-transactions %account-owner% %afterbefore%) &7> &f%amount%%symbol% &7> [&a%other-account%](run_command=/browse-transactions %other-account% %afterbefore%)
+  \n&eReason: %reason%'
+  incomingFunds: '&3#%id%
+    [&6[Timestamp⌛]](show_text=&b%timestamp% \n&9Click to copy copy_to_clipboard=%timestamp%)
+    [&c[←Revert]](run_command=/transaction %account-owner% %id% revert show_text=&9Click to revert transaction)\n
+    [&a%other-account%](run_command=/browse-transactions %other-account% %afterbefore%) &7> &f%amount%%symbol% &7> [&2%account-owner%](run_command=/browse-transactions %account-owner% %afterbefore%)
+    \n&eReason: %reason%'
+unitSymbols:
+  thousand: k
+  million: m
+  billion: b
+  trillion: t
+  quadrillion: q
+backupRestoreFinished: &aBackup/restore file %file% finished!&a
+invalidPath: &cInvalid path!&c

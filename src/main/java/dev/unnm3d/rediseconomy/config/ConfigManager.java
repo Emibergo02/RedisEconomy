@@ -64,6 +64,7 @@ public class ConfigManager {
         File settingsFile = new File(plugin.getDataFolder(), settings.lang + ".yml");
         if (!settingsFile.exists()) {
             plugin.saveResource("it-IT.yml", false);//save default lang
+            plugin.saveResource("en-US_minedown.yml", false);//save default lang
         }
         langs = YamlConfigurations.update(
                 settingsFile.toPath(),
@@ -89,6 +90,7 @@ public class ConfigManager {
                 if (future.isDone()) {
                     return;
                 }
+
                 plugin.getScheduler().runTaskLaterAsynchronously(() -> sendServerIdRequest(event.getPlayer()), 20L);
             }
         };
