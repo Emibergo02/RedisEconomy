@@ -51,5 +51,5 @@ unitSymbols:
   billion: b
   trillion: t
   quadrillion: q
-backupRestoreFinished: &aBackup/restore file %file% finished!&a
-invalidPath: &cInvalid path!&c
+backupRestoreFinished: '&aBackup/restore file %file% finished!&a'
+invalidPath: '&cInvalid path!&c'
