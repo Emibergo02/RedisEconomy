@@ -18,13 +18,13 @@ public abstract class TransactionCommandAbstract {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
 
     void sendTransaction(CommandSender sender, int transactionId, Transaction transaction, String timestampArgument) {
-        String accountOwnerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
+        final String accountOwnerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
                 plugin.getCurrenciesManager().getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id
-        String otherAccount = transaction.getActor().isPlayer() ?
+        final String otherAccount = transaction.getActor().isPlayer() ?
                 plugin.getCurrenciesManager().getUsernameFromUUIDCache(transaction.getActor().getUUID()) :
                 transaction.getActor().toString();
-        Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.getCurrencyName());
+        final Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.getCurrencyName());
 
         String transactionMessage = plugin.langs().transactionItem.incomingFunds();
         if (transaction.getAmount() < 0) {

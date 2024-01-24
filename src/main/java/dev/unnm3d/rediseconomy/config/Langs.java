@@ -42,7 +42,7 @@ public final class Langs {
     public String noTransactionFound = "<red>No transaction found for %player%!</red>";
     public String incorrectDate = "<red>Incorrect Date formatting !</red>";
     public String transactionsStart = "<dark_aqua>Transactions of player %player% from %after% to %before%!</dark_aqua>";
-    public String transactionsEnd = "<dark_aqua>End of %player% transactions in %time% ms</dark_aqua>";
+    public String transactionsEnd = "<click:run_command:'/browse-transactions %player% %after% %before% %prev_page%'> << </click>  %page% / %total_pages% <click:run_command:'/browse-transactions %player% %after% %before% %next_page%'>  >></click>";
     public String transactionsArchiveCompleted = "<green>Archived %size% transaction accounts to %file%</green>";
     public String transactionsArchiveProgress = "<aqua>Archiving progress: %progress%% </aqua>";
     public String editMessageError = "<red>This config entry is not a String or doesn't exist!";
