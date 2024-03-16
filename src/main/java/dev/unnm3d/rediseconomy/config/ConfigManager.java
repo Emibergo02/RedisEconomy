@@ -11,8 +11,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.plugin.messaging.ChannelNotRegisteredException;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
 public class ConfigManager {
@@ -21,6 +23,19 @@ public class ConfigManager {
     private Settings settings;
     @Getter
     private Langs langs;
+
+    private static final YamlConfigurationProperties PROPERTIES = YamlConfigurationProperties.newBuilder()
+            .header(
+                    """
+                            ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+                            ┃      RedisEconomy Config     ┃
+                            ┃      Developed by Unnm3d     ┃
+                            ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+                                                    """
+            )
+            .footer("Authors: Unnm3d")
+            .charset(StandardCharsets.UTF_8)
+            .build();
 
     public ConfigManager(RedisEconomyPlugin plugin) {
         this.plugin = plugin;
@@ -36,28 +51,18 @@ public class ConfigManager {
     }
 
     public void loadSettingsConfig() {
-        YamlConfigurationProperties properties = YamlConfigurationProperties.newBuilder()
-                .header(
-                        """
-                                ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-                                ┃      RedisEconomy Config     ┃
-                                ┃      Developed by Unnm3d     ┃
-                                ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-                                                        """
-                )
-                .footer("Authors: Unnm3d")
-                .build();
+
         File settingsFile = new File(plugin.getDataFolder(), "config.yml");
         settings = YamlConfigurations.update(
                 settingsFile.toPath(),
                 Settings.class,
-                properties
+                PROPERTIES
         );
     }
 
     public void saveConfigs() {
-        YamlConfigurations.save(new File(plugin.getDataFolder(), "config.yml").toPath(), Settings.class, settings);
-        YamlConfigurations.save(new File(plugin.getDataFolder(), settings.lang + ".yml").toPath(), Langs.class, langs);
+        YamlConfigurations.save(new File(plugin.getDataFolder(), "config.yml").toPath(), Settings.class, settings, PROPERTIES);
+        YamlConfigurations.save(new File(plugin.getDataFolder(), settings.lang + ".yml").toPath(), Langs.class, langs, PROPERTIES);
     }
 
     public void loadLangs() {
@@ -67,7 +72,8 @@ public class ConfigManager {
         }
         langs = YamlConfigurations.update(
                 settingsFile.toPath(),
-                Langs.class
+                Langs.class,
+                PROPERTIES
         );
     }
 
@@ -92,8 +98,11 @@ public class ConfigManager {
                 plugin.getScheduler().runTaskLaterAsynchronously(() -> sendServerIdRequest(event.getPlayer()), 20L);
             }
         };
-        if (plugin.getServer().getOnlinePlayers().size() > 0) {
-            sendServerIdRequest(plugin.getServer().getOnlinePlayers().iterator().next());
+        if (!plugin.getServer().getOnlinePlayers().isEmpty()) {
+            try {
+                sendServerIdRequest(plugin.getServer().getOnlinePlayers().iterator().next());
+            } catch (ChannelNotRegisteredException ignored) {
+            }
         } else {
             plugin.getServer().getPluginManager().registerEvents(listener, plugin);
         }
@@ -107,7 +116,7 @@ public class ConfigManager {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private void sendServerIdRequest(Player p) {
+    private void sendServerIdRequest(Player p) throws ChannelNotRegisteredException {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("GetServer");
         p.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());//Request server name

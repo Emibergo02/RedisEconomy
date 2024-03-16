@@ -287,27 +287,25 @@ public class CurrencyWithBanks extends Currency {
         updateBankAccountLocal(accountId, balance);
     }
 
-    private void updateBankAccountCloudCache(@NotNull String accountId, double balance, int tries) {
-        try {
-            currenciesManager.getRedisManager().getConnectionPipeline(commands -> {
-                commands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
-                return commands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + accountId + ";;" + balance).thenAccept((result) -> {
-                    if (RedisEconomyPlugin.getInstance().settings().debug) {
-                        Bukkit.getLogger().info("01 Sent bank update account " + accountId + " to " + balance);
-                    }
-                });
+    private synchronized void updateBankAccountCloudCache(@NotNull String accountId, double balance, int tries) {
+        updateExecutor.submit(() -> {
+            currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
+                reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
+                reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + accountId + ";;" + balance);
+            }).ifPresentOrElse(result -> {
+                if (RedisEconomyPlugin.getInstance().settings().debug) {
+                    Bukkit.getLogger().info("01 Sent bank update accoun " + accountId + " to " + balance);
+                }
+            }, () -> {
+                if (tries < 3) {
+                    Bukkit.getLogger().severe("Player accounts are desynchronized");
+                    updateBankAccountCloudCache(accountId, balance, tries + 1);
+                } else {
+                    Bukkit.getLogger().severe("Failed to update account " + accountId + " after 3 tries");
+                    throw new RuntimeException("Bank accounts are desynchronized");
+                }
             });
-
-        } catch (Exception e) {
-            if (tries < 3) {
-                e.printStackTrace();
-                Bukkit.getLogger().severe("Failed to update bank account " + accountId + " after 3 tries");
-                Bukkit.getLogger().severe("Bank accounts are desynchronized");
-                updateBankAccountCloudCache(accountId, balance, tries + 1);
-            } else {
-                e.printStackTrace();
-            }
-        }
+        });
     }
 
     /**

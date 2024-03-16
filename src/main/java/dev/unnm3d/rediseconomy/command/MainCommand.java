@@ -7,6 +7,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
@@ -25,6 +26,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             plugin.getConfigManager().getLangs().send(sender, plugin.langs().missingArguments);
             return true;
         } else if (args.length == 1) {
+            if(args[0].equalsIgnoreCase("stress")){
+                stress();
+            }
             if (!args[0].equalsIgnoreCase("reload")) return true;
             if (!sender.hasPermission("rediseconomy.admin")) return true;
             String serverId = plugin.getConfigManager().getSettings().serverId; //Keep serverId
@@ -77,6 +81,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
         return true;
+    }
+
+    private void stress() {
+        Player p=plugin.getServer().getPlayer("Unnm3d");
+        for(int i=0;i<1000;i++){
+            if(i==400)plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), "balance Unnm3d vault set 0");
+            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), "balance Unnm3d vault give 1");
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                plugin.getCurrenciesManager().getDefaultCurrency().depositPlayer(p, 1);
+            });
+        }
+
     }
 
 
