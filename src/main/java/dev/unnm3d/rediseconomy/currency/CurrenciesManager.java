@@ -70,7 +70,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put(currencySettings.currencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, 0.0, true, false)));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY,0.0, true,true, false)));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();

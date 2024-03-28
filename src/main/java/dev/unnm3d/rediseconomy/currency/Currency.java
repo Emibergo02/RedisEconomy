@@ -32,6 +32,7 @@ public class Currency implements Economy {
     @Getter
     protected final String currencyName;
     private final ConcurrentHashMap<UUID, Double> accounts;
+
     private boolean enabled;
     @Getter
     private String currencySingular;
@@ -40,7 +41,10 @@ public class Currency implements Economy {
     @Getter
     private final DecimalFormat decimalFormat;
     @Getter
-    private double startingBalance;
+    private final double startingBalance;
+    @Getter
+    private final double maxBalance;
+    private boolean saveTransactions;
     @Getter
     private double transactionTax;
     @Getter
@@ -63,6 +67,8 @@ public class Currency implements Economy {
         this.currencySingular = currencySettings.currencySingle();
         this.currencyPlural = currencySettings.currencyPlural();
         this.startingBalance = currencySettings.startingBalance();
+        this.maxBalance = currencySettings.maxBalance() == 0.0d ? Double.POSITIVE_INFINITY : currencySettings.maxBalance();
+        this.saveTransactions = currencySettings.saveTransactions();
         this.transactionTax = currencySettings.payTax();
         this.taxOnlyPay = currencySettings.taxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();
@@ -73,7 +79,7 @@ public class Currency implements Economy {
         getOrderedAccounts(-1).thenApply(result -> {
                     result.forEach(t ->
                             accounts.put(UUID.fromString(t.getValue()), t.getScore()));
-                    if (RedisEconomyPlugin.getInstance().settings().debug && accounts.size() > 0) {
+                    if (RedisEconomyPlugin.getInstance().settings().debug && !accounts.isEmpty()) {
                         Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
                     }
                     return result;
@@ -112,6 +118,14 @@ public class Currency implements Economy {
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public boolean shouldSaveTransactions() {
+        return saveTransactions;
+    }
+
+    public void setShouldSaveTransactions(boolean saveTransactions) {
+        this.saveTransactions = saveTransactions;
     }
 
     @Override
@@ -337,7 +351,7 @@ public class Currency implements Economy {
         if (hasAccount(playerUUID))
             return false;
         updateAccount(playerUUID, playerName, startingBalance);
-        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), startingBalance, currencyName, "Account creation");
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), startingBalance, this, "Account creation");
         return true;
     }
 
@@ -370,7 +384,7 @@ public class Currency implements Economy {
             return new EconomyResponse(amountToWithdraw, getBalance(playerUUID), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
 
         updateAccount(playerUUID, playerName, getBalance(playerUUID) - amountToWithdraw);
-        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -amountToWithdraw, currencyName, reason == null ? "Withdraw" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -amountToWithdraw, this, reason == null ? "Withdraw" : reason);
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -391,10 +405,13 @@ public class Currency implements Economy {
         if (!has(sender, amountToWithdraw))
             return new EconomyResponse(0, getBalance(sender), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
 
+        if (getBalance(receiver) + amount > maxBalance)
+            return new EconomyResponse(0, getBalance(receiver), EconomyResponse.ResponseType.FAILURE, "The receiver has reached the maximum balance");
+
         updateAccount(sender, senderName, getBalance(sender) - amountToWithdraw);
-        currenciesManager.getExchange().saveTransaction(new AccountID(sender), new AccountID(receiver), -amountToWithdraw, currencyName, reason == null ? "Payment" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(sender), new AccountID(receiver), -amountToWithdraw, this, reason == null ? "Payment" : reason);
         updateAccount(sender, receiverName, getBalance(receiver) + amount);
-        currenciesManager.getExchange().saveTransaction(new AccountID(receiver), new AccountID(sender), amount, currencyName, reason == null ? "Payment" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(receiver), new AccountID(sender), amount, this, reason == null ? "Payment" : reason);
 
         return new EconomyResponse(amount, getBalance(sender), EconomyResponse.ResponseType.SUCCESS, null);
     }
@@ -414,7 +431,10 @@ public class Currency implements Economy {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
 
         if (!has(senderName, amountToWithdraw))
-            return new EconomyResponse(0, getBalance(senderName), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
+            return new EconomyResponse(0, getBalance(sender), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
+
+        if (getBalance(receiver) + amount > maxBalance)
+            return new EconomyResponse(0, getBalance(receiver), EconomyResponse.ResponseType.FAILURE, "The receiver has reached the maximum balance");
 
         updateAccount(sender, senderName, getBalance(sender) - amountToWithdraw);
         updateAccount(receiver, receiverName, getBalance(receiver) + amount);
@@ -445,8 +465,8 @@ public class Currency implements Economy {
         if (amount == Double.POSITIVE_INFINITY || amount == Double.NEGATIVE_INFINITY || Double.isNaN(amount))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
         updateAccount(playerUUID, playerName, amount);
-        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -getBalance(playerUUID), currencyName, "Reset balance");
-        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, currencyName, "Set balance");
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), -getBalance(playerUUID), this, "Reset balance");
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, this, "Set balance");
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -467,7 +487,7 @@ public class Currency implements Economy {
         if (RedisEconomyPlugin.getInstance().settings().debug) {
             Bukkit.getLogger().info("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
         }
-        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getActor(), -transaction.getAmount(), currencyName, "Revert #" + transactionId + ": " + transaction.getReason());
+        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getActor(), -transaction.getAmount(), this, "Revert #" + transactionId + ": " + transaction.getReason());
     }
 
     /**
@@ -498,8 +518,11 @@ public class Currency implements Economy {
         if (amount == Double.POSITIVE_INFINITY || amount == Double.NEGATIVE_INFINITY || Double.isNaN(amount))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
 
+        if (getBalance(playerUUID) + amount > maxBalance)
+            return new EconomyResponse(0, getBalance(playerUUID), EconomyResponse.ResponseType.FAILURE, "The player has reached the maximum balance");
+
         updateAccount(playerUUID, playerName, getBalance(playerUUID) + amount);
-        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, currencyName, reason == null ? "Deposit" : reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(playerUUID), new AccountID(), amount, this, reason == null ? "Deposit" : reason);
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -512,7 +535,6 @@ public class Currency implements Economy {
     protected void updateAccount(@NotNull UUID uuid, @Nullable String playerName, double balance) {
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
-
     }
 
     private synchronized void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
@@ -595,4 +617,6 @@ public class Currency implements Economy {
     public final Map<UUID, Double> getAccounts() {
         return Collections.unmodifiableMap(accounts);
     }
+
+
 }

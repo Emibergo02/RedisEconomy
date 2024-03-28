@@ -123,7 +123,7 @@ public class CurrencyWithBanks extends Currency {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Bank account already exists");
         setOwner(accountId, playerOwner);
         updateBankAccount(accountId, 0);
-        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(playerOwner), 0, currencyName, reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(playerOwner), 0, this, reason);
         return new EconomyResponse(0, 0, EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -146,7 +146,7 @@ public class CurrencyWithBanks extends Currency {
             if (RedisEconomyPlugin.getInstance().settings().debug) {
                 Bukkit.getLogger().info("Deleted bank account " + accountId + " with result " + result);
             }
-            currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), 0, currencyName, "Bank account deletion");
+            currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), 0, this, "Bank account deletion");
         });
         return new EconomyResponse(0, 0, EconomyResponse.ResponseType.SUCCESS, null);
     }
@@ -184,7 +184,7 @@ public class CurrencyWithBanks extends Currency {
             return hasAmountResponse;
         }
         updateBankAccount(accountId, hasAmountResponse.balance);//Balance is the new balance with subtracted amount
-        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), -amount, currencyName, reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), -amount, this, reason);
         return new EconomyResponse(amount, hasAmountResponse.balance, EconomyResponse.ResponseType.SUCCESS, null);
 
     }
@@ -208,7 +208,7 @@ public class CurrencyWithBanks extends Currency {
         }
         EconomyResponse balanceResponse = bankBalance(accountId);
         updateBankAccount(accountId, balanceResponse.balance + amount);//Balance is the new balance with subtracted amount
-        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), amount, currencyName, reason);
+        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), amount, this, reason);
         return new EconomyResponse(amount, balanceResponse.balance + amount, EconomyResponse.ResponseType.SUCCESS, null);
     }
 
@@ -263,7 +263,7 @@ public class CurrencyWithBanks extends Currency {
         if (RedisEconomyPlugin.getInstance().settings().debug) {
             Bukkit.getLogger().info("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
         }
-        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getActor(), -transaction.getAmount(), currencyName, "Revert #" + transactionId + ": " + transaction.getReason());
+        return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getActor(), -transaction.getAmount(), this, "Revert #" + transactionId + ": " + transaction.getReason());
     }
 
     private void setOwner(@NotNull String accountId, UUID ownerUUID) {

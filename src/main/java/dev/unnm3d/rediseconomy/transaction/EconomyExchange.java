@@ -88,6 +88,8 @@ public class EconomyExchange {
      * @return List of ids: the first one is the id of the transaction on the sender side, the second one is the id of the transaction on the target side
      */
     public CompletionStage<List<Integer>> savePaymentTransaction(@NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
+        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(List.of(-1, -1));
+
         final CompletableFuture<List<Integer>> future = new CompletableFuture<>();
         long init = System.currentTimeMillis();
 
@@ -145,11 +147,12 @@ public class EconomyExchange {
      * @param accountOwner The id of the account, could be a UUID or a bank id (string)
      * @param target       The id of the target account, could be a UUID or a bank id (string)
      * @param amount       The amount of money transferred
-     * @param currencyName The name of the currency
+     * @param currency     The currency of the transaction
      * @param reason       The reason of the transaction
      * @return The transaction id
      */
-    public CompletionStage<Integer> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull String currencyName, @NotNull String reason) {
+    public CompletionStage<Integer> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull Currency currency, @NotNull String reason) {
+        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(-1);
         final CompletableFuture<Integer> future = new CompletableFuture<>();
         long init = System.currentTimeMillis();
 
@@ -158,9 +161,9 @@ public class EconomyExchange {
                     accountOwner,
                     System.currentTimeMillis(),
                     target, //If target is null, it has been sent from the server
-                    amount, currencyName, reason + getCallerPluginString(), null));
+                    amount, currency.getCurrencyName(), reason + getCallerPluginString(), null));
             plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
-            Long longResult=plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
+            Long longResult = plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
                     "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
                             "redis.call('hset', KEYS[1], currentId, ARGV[1]);" + //Add the new transaction
                             "return currentId;", //Return the id of the new transaction
