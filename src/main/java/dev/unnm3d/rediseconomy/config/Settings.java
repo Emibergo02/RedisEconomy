@@ -10,7 +10,7 @@ import java.util.UUID;
 @Configuration
 public class Settings {
     @Comment({"This is automatically generated on server startup",
-            "Change it only if you have disabled plugin messages on the proxy"})
+            "You need to have a different serverId for each server!!!"})
     public String serverId = String.valueOf(UUID.randomUUID());
     @Comment("Language file")
     public String lang = "en-US";
