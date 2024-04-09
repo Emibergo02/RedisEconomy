@@ -13,9 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
 
@@ -23,6 +21,7 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
 public class EconomyExchange {
 
     private final RedisEconomyPlugin plugin;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     /**
      * Get transactions from an account id
@@ -50,7 +49,7 @@ public class EconomyExchange {
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection -> {
                     try {
                         List<String> keys = connection.keys(NEW_TRANSACTIONS + "*").get();
-                        if (keys.size() == 0) {
+                        if (keys.isEmpty()) {
                             return CompletableFuture.completedFuture(0L);
                         }
                         return connection.del(keys.toArray(new String[0]));
@@ -89,54 +88,56 @@ public class EconomyExchange {
      * @return List of ids: the first one is the id of the transaction on the sender side, the second one is the id of the transaction on the target side
      */
     public CompletionStage<List<Integer>> savePaymentTransaction(@NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
+        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(List.of(-1, -1));
+
+        final CompletableFuture<List<Integer>> future = new CompletableFuture<>();
         long init = System.currentTimeMillis();
-        reason += getCallerPluginString();
 
-        TransactionEvent transactionSenderEvent = new TransactionEvent(new Transaction(
-                new AccountID(sender),
-                System.currentTimeMillis(),
-                new AccountID(target),
-                -amount,
-                currency.getCurrencyName(),
-                reason,
-                null));
-        TransactionEvent transactionReceiverEvent = new TransactionEvent(new Transaction(
-                new AccountID(target),
-                System.currentTimeMillis(),
-                new AccountID(sender),
-                amount,
-                currency.getCurrencyName(),
-                reason,
-                null));
+        executorService.submit(() -> {
+            final String finalReason = reason + getCallerPluginString();
+            TransactionEvent transactionSenderEvent = new TransactionEvent(new Transaction(
+                    new AccountID(sender),
+                    System.currentTimeMillis(),
+                    new AccountID(target),
+                    -amount,
+                    currency.getCurrencyName(),
+                    finalReason,
+                    null));
+            TransactionEvent transactionReceiverEvent = new TransactionEvent(new Transaction(
+                    new AccountID(target),
+                    System.currentTimeMillis(),
+                    new AccountID(sender),
+                    amount,
+                    currency.getCurrencyName(),
+                    finalReason,
+                    null));
 
-        plugin.getScheduler().runTask(() -> {
-            plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
-            plugin.getServer().getPluginManager().callEvent(transactionReceiverEvent);
+            plugin.getScheduler().runTask(() -> {
+                plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
+                plugin.getServer().getPluginManager().callEvent(transactionReceiverEvent);
+            });
+            future.complete(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
+                    connection.eval(
+                            "local senderCurrentId=redis.call('hlen', KEYS[1]);" +
+                                    "local receiverCurrentId=redis.call('hlen', KEYS[2]);" +
+                                    "redis.call('hset', KEYS[1], senderCurrentId, ARGV[1]);" +
+                                    "redis.call('hset', KEYS[2], receiverCurrentId, ARGV[2]);" +
+                                    "return {senderCurrentId,receiverCurrentId};", //Return the id of the new transaction
+                            ScriptOutputType.MULTI,
+                            new String[]{
+                                    NEW_TRANSACTIONS + sender.toString(),
+                                    NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
+                            transactionSenderEvent.getTransaction().toString(),
+                            transactionReceiverEvent.getTransaction().toString())));
+
         });
-
-        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
-                        connection.<List<Integer>>eval(
-                                "local senderCurrentId=redis.call('hlen', KEYS[1]);" +
-                                        "local receiverCurrentId=redis.call('hlen', KEYS[2]);" +
-                                        "redis.call('hset', KEYS[1], senderCurrentId, ARGV[1]);" +
-                                        "redis.call('hset', KEYS[2], receiverCurrentId, ARGV[2]);" +
-                                        "return {senderCurrentId,receiverCurrentId};", //Return the id of the new transaction
-                                ScriptOutputType.MULTI,
-                                new String[]{
-                                        NEW_TRANSACTIONS + sender.toString(),
-                                        NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
-                                transactionSenderEvent.getTransaction().toString(),
-                                transactionReceiverEvent.getTransaction().toString()))
-                .thenApply(response -> {
-                    if (RedisEconomyPlugin.getInstance().settings().debug) {
-                        Bukkit.getLogger().info("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
-                        Bukkit.getLogger().info("03payment Transaction for " + target + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(1) + " !");
-                    }
-                    return response;
-                }).exceptionally(throwable -> {
-                    throwable.printStackTrace();
-                    return null;
-                });
+        return future.thenApply(response -> {
+            if (RedisEconomyPlugin.getInstance().settings().debug) {
+                Bukkit.getLogger().info("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
+                Bukkit.getLogger().info("03payment Transaction for " + target + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(1) + " !");
+            }
+            return response;
+        });
     }
 
 
@@ -146,38 +147,37 @@ public class EconomyExchange {
      * @param accountOwner The id of the account, could be a UUID or a bank id (string)
      * @param target       The id of the target account, could be a UUID or a bank id (string)
      * @param amount       The amount of money transferred
-     * @param currencyName The name of the currency
+     * @param currency     The currency of the transaction
      * @param reason       The reason of the transaction
      * @return The transaction id
      */
-    public CompletionStage<Integer> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull String currencyName, @NotNull String reason) {
+    public CompletionStage<Integer> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull Currency currency, @NotNull String reason) {
+        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(-1);
+        final CompletableFuture<Integer> future = new CompletableFuture<>();
         long init = System.currentTimeMillis();
-        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(commands -> {
 
-                    TransactionEvent transactionEvent = new TransactionEvent(new Transaction(
-                            accountOwner,
-                            System.currentTimeMillis(),
-                            target, //If target is null, it has been sent from the server
-                            amount, currencyName, reason + getCallerPluginString(), null));
-                    plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
-
-                    return commands.eval(
-                            "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
-                                    "redis.call('hset', KEYS[1], currentId, ARGV[1]);" + //Add the new transaction
-                                    "return currentId;", //Return the id of the new transaction
-                            ScriptOutputType.INTEGER,
-                            new String[]{NEW_TRANSACTIONS + accountOwner.toString()}, //Key rediseco:transactions:playerUUID
-                            transactionEvent.getTransaction().toString()).thenApply(response -> {
-                        if (RedisEconomyPlugin.getInstance().settings().debug) {
-                            Bukkit.getLogger().info("03 Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response + " !");
-                        }
-                        return ((Long) response).intValue();
-                    }).exceptionally(throwable -> {
-                        throwable.printStackTrace();
-                        return null;
-                    });
-                }
-        );
+        executorService.submit(() -> {
+            TransactionEvent transactionEvent = new TransactionEvent(new Transaction(
+                    accountOwner,
+                    System.currentTimeMillis(),
+                    target, //If target is null, it has been sent from the server
+                    amount, currency.getCurrencyName(), reason + getCallerPluginString(), null));
+            plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
+            Long longResult = plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
+                    "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
+                            "redis.call('hset', KEYS[1], currentId, ARGV[1]);" + //Add the new transaction
+                            "return currentId;", //Return the id of the new transaction
+                    ScriptOutputType.INTEGER,
+                    new String[]{NEW_TRANSACTIONS + accountOwner.toString()}, //Key rediseco:transactions:playerUUID
+                    transactionEvent.getTransaction().toString()));
+            future.complete(longResult.intValue());
+        });
+        return future.thenApply(response -> {
+            if (RedisEconomyPlugin.getInstance().settings().debug) {
+                Bukkit.getLogger().info("03 Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response + " !");
+            }
+            return response;
+        });
     }
 
     /**

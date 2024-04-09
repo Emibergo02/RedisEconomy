@@ -6,7 +6,8 @@ load: STARTUP
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.2.4.RELEASE
+  - io.lettuce:lettuce-core:6.3.2.RELEASE
+  - de.exlll:configlib-yaml:4.5.0
 softdepend:
   - PlaceholderAPI
   - Essentials
@@ -17,6 +18,7 @@ softdepend:
   - BetterEconomy
   - ArcaneEconomy
   - EasyConomy
+  - Towny
 folia-supported: true
 commands:
   pay:

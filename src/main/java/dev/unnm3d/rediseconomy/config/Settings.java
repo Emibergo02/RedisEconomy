@@ -10,7 +10,7 @@ import java.util.UUID;
 @Configuration
 public class Settings {
     @Comment({"This is automatically generated on server startup",
-            "Change it only if you have disabled plugin messages on the proxy"})
+            "You need to have a different serverId for each server!!!"})
     public String serverId = String.valueOf(UUID.randomUUID());
     @Comment("Language file")
     public String lang = "en-US";
@@ -39,11 +39,12 @@ public class Settings {
     @Comment("Minimum amount of money that can be paid")
     public double minPayAmount = 0.01;
     @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 0, true, false), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 0, false, false));
+    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, Double.POSITIVE_INFINITY, 0, true, true, false), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, Double.POSITIVE_INFINITY, 0, false, false, false));
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
                                    String decimalFormat, String languageTag,
-                                   double startingBalance, double payTax, boolean bankEnabled, boolean taxOnlyPay) {
+                                   double startingBalance, double maxBalance, double payTax,
+                                   boolean saveTransactions, boolean bankEnabled, boolean taxOnlyPay) {
     }
 
     public record RedisSettings(String host, int port, String user, String password, int database, int timeout,

@@ -10,6 +10,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.DecimalFormat;
 import java.util.*;
 
 
@@ -109,43 +110,47 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
         updatePlaceholdersCache();
 
-        if (splitted.get(0).equals("totsupply")) {
-
-            return parseParams(totalSupplyCache.get(currency), splitted, currency);
-        } else if (splitted.get(0).equals("top")) {
-
-
-            if (splitted.size() < 3) return null; //Insufficient parameters
-
-            List<String[]> user_balance_strings = baltopCache.get(currency);
-            if (user_balance_strings == null) return null;
-
-            if (splitted.get(1).equals("position")) {//rediseco_top_position_<currency>
-                for (int i = 0; i < user_balance_strings.size(); i++) {
-                    if (user_balance_strings.get(i)[2].equals(player.getName())) {
-                        return String.valueOf(i + 1);
-                    }
-                }
-                return "10+";
+        switch (splitted.get(0)) {
+            case "totsupply" -> {
+                return parseParams(totalSupplyCache.get(currency), splitted, currency);
             }
+            case "maxbal" -> {
+                return String.valueOf(currency.getMaxBalance());
+            }
+            case "top" -> {
 
-            int position = Integer.parseInt(splitted.get(1));
-            if (position < 1 || position > 10) return "N/A"; //Invalid positions
-            if (user_balance_strings.size() < position) return "N/A";
+                if (splitted.size() < 3) return null; //Insufficient parameters
 
-            switch (splitted.get(2)) {
-                case "playerprefix" -> {
-                    return user_balance_strings.get(position - 1)[0];
+                List<String[]> user_balance_strings = baltopCache.get(currency);
+                if (user_balance_strings == null) return null;
+
+                if (splitted.get(1).equals("position")) {//rediseco_top_position_<currency>
+                    for (int i = 0; i < user_balance_strings.size(); i++) {
+                        if (user_balance_strings.get(i)[2].equals(player.getName())) {
+                            return String.valueOf(i + 1);
+                        }
+                    }
+                    return "10+";
                 }
-                case "playersuffix" -> {
-                    return user_balance_strings.get(position - 1)[1];
-                }
-                case "name" -> {
-                    return user_balance_strings.get(position - 1)[2];
-                }
-                case "bal" -> {
-                    double balance = Double.parseDouble(user_balance_strings.get(position - 1)[3]);
-                    return parseParams(balance, splitted, currency);
+
+                int position = Integer.parseInt(splitted.get(1));
+                if (position < 1 || position > 10) return "N/A"; //Invalid positions
+                if (user_balance_strings.size() < position) return "N/A";
+
+                switch (splitted.get(2)) {
+                    case "playerprefix" -> {
+                        return user_balance_strings.get(position - 1)[0];
+                    }
+                    case "playersuffix" -> {
+                        return user_balance_strings.get(position - 1)[1];
+                    }
+                    case "name" -> {
+                        return user_balance_strings.get(position - 1)[2];
+                    }
+                    case "bal" -> {
+                        double balance = Double.parseDouble(user_balance_strings.get(position - 1)[3]);
+                        return parseParams(balance, splitted, currency);
+                    }
                 }
             }
         }
@@ -158,15 +163,24 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
         if (splitted.contains("short")) {
             if (amount >= 1000000000000.0) {
-                formattedNumber = currency.format(amount / 1000000000000.0) + langs.unitSymbols.trillion();
+                formattedNumber = currency.getDecimalFormat().format(amount / 1000000000000.0) + langs.unitSymbols.trillion();
             } else if (amount >= 1000000000.0) {
-                formattedNumber = currency.format(amount / 1000000000.0) + langs.unitSymbols.billion();
+                formattedNumber = currency.getDecimalFormat().format(amount / 1000000000.0) + langs.unitSymbols.billion();
             } else if (amount >= 1000000.0) {
-                formattedNumber = currency.format(amount / 1000000.0) + langs.unitSymbols.million();
+                formattedNumber = currency.getDecimalFormat().format(amount / 1000000.0) + langs.unitSymbols.million();
             } else if (amount >= 1000.0) {
-                formattedNumber = currency.format(amount / 1000.0) + langs.unitSymbols.thousand();
+                formattedNumber = currency.getDecimalFormat().format(amount / 1000.0) + langs.unitSymbols.thousand();
             }
         }
+
+        formattedNumber = splitted.stream()
+                .filter(s -> s.startsWith("decformat"))
+                .findFirst()
+                .map(s -> s.split("decformat"))
+                .filter(splittedFormat -> splittedFormat.length > 1)
+                .map(splittedFormat -> new DecimalFormat(splittedFormat[1]).format(amount))
+                .orElse(formattedNumber);
+
         if (splitted.contains("formatted")) {
             if (amount == 1)
                 formattedNumber += currency.getCurrencySingular();

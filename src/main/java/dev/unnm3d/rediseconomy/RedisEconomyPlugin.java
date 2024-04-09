@@ -34,8 +34,8 @@ import java.util.concurrent.TimeUnit;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
 
+    @Getter
     private static RedisEconomyPlugin instance;
-    //private EzRedisMessenger ezRedisMessenger;
     @Getter
     private ConfigManager configManager;
     @Getter
@@ -43,6 +43,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private RedisManager redisManager;
     @Getter
     private TaskScheduler scheduler;
+    @Getter
+    private Plugin vaultPlugin;
 
 
     public Settings settings() {
@@ -51,10 +53,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     public Langs langs() {
         return configManager.getLangs();
-    }
-
-    public static RedisEconomyPlugin getInstance() {
-        return instance;
     }
 
     @Override
@@ -67,27 +65,32 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getLogger().severe("Disabling: redis server unreachable!");
             this.getLogger().severe("Please setup a redis server before running this plugin!");
             this.getServer().getPluginManager().disablePlugin(this);
-            return;
         } else {
             this.getLogger().info("Redis server connected!");
-        }
-
-        if (!setupVault()) { //creates currenciesManager and exchange
-            this.getLogger().severe("Disabled due to no Vault dependency found!");
-            this.getServer().getPluginManager().disablePlugin(this);
-        } else {
-            this.getLogger().info("Hooked into Vault!");
         }
     }
 
     @Override
     public void onEnable() {
+        if (redisManager == null) return;
+
         this.scheduler = UniversalScheduler.getScheduler(this);
         this.configManager.postStartupLoad();
+        this.vaultPlugin = getServer().getPluginManager().getPlugin("Vault");
+        if (this.vaultPlugin == null) { //creates currenciesManager and exchange
+            this.getLogger().severe("Disabled due to no Vault dependency found!");
+            this.getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        this.currenciesManager = new CurrenciesManager(redisManager, this, configManager);
+        this.getLogger().info("Hooked into Vault!");
+
         if (settings().migrationEnabled) {
             scheduler.runTaskLater(() ->
-                            currenciesManager.getCompleteMigration().complete(null),
-                    100L);//load: STARTUP doesn't consider dependencies on load so i have to wait a bit (bukkit bug?)
+                    currenciesManager.migrateFromOfflinePlayers(getServer().getOfflinePlayers()), 100L);
+        } else {
+            currenciesManager.loadDefaultCurrency(this.vaultPlugin);
         }
 
         getServer().getPluginManager().registerEvents(currenciesManager, this);
@@ -124,7 +127,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        redisManager.close();
+        if (redisManager != null)
+            redisManager.close();
         if (currenciesManager != null)
             this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
         this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
@@ -143,16 +147,16 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             if (configManager.getSettings().redis.user().equals("changecredentials"))
                 getLogger().warning("You are using default redis credentials. Please change them in the config.yml file!");
             //Authentication params
-            redisURIBuilder = configManager.getSettings().redis.password().equals("") ?
+            redisURIBuilder = configManager.getSettings().redis.password().isEmpty() ?
                     redisURIBuilder :
-                    configManager.getSettings().redis.user().equals("") ?
+                    configManager.getSettings().redis.user().isEmpty() ?
                             redisURIBuilder.withPassword(configManager.getSettings().redis.password().toCharArray()) :
                             redisURIBuilder.withAuthentication(configManager.getSettings().redis.user(), configManager.getSettings().redis.password());
 
             getLogger().info("Connecting to redis server " + redisURIBuilder.build().toString() + "...");
             this.redisManager = new RedisManager(RedisClient.create(redisURIBuilder.build()));
             redisManager.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
-            if (!configManager.getSettings().clusterId.equals(""))
+            if (!configManager.getSettings().clusterId.isEmpty())
                 RedisKeys.setClusterId(configManager.getSettings().clusterId);
             return true;
         } catch (Exception e) {
@@ -164,14 +168,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
     }
 
-    private boolean setupVault() {
-        Plugin vault = getServer().getPluginManager().getPlugin("Vault");
-        if (vault == null)
-            return false;
-        this.currenciesManager = new CurrenciesManager(redisManager, this, configManager);
-        currenciesManager.loadDefaultCurrency(vault);
-        return true;
-    }
 
     private void loadCommand(String cmdName, CommandExecutor executor, TabCompleter tabCompleter) {
         PluginCommand cmd = getServer().getPluginCommand(cmdName);
