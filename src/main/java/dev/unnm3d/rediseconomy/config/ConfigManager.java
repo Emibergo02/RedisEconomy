@@ -60,7 +60,8 @@ public class ConfigManager {
     public void loadLangs() {
         File settingsFile = new File(plugin.getDataFolder(), settings.lang + ".yml");
         if (!settingsFile.exists()) {
-            plugin.saveResource("it-IT.yml", false);//save default lang
+            plugin.saveResource("it-IT.yml", false);
+            plugin.saveResource("de-DE.yml", false);
         }
         langs = YamlConfigurations.update(
                 settingsFile.toPath(),

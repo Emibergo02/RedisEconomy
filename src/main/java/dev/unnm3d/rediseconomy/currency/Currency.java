@@ -421,8 +421,11 @@ public class Currency implements Economy {
             return new EconomyResponse(amount, getBalance(senderName), EconomyResponse.ResponseType.FAILURE, "Account not found");
         if (!hasAccount(receiverName))
             return new EconomyResponse(amount, getBalance(receiverName), EconomyResponse.ResponseType.FAILURE, "Account not found");
-        UUID sender = currenciesManager.getUUIDFromUsernameCache(senderName);
-        UUID receiver = currenciesManager.getUUIDFromUsernameCache(receiverName);
+
+        final UUID sender = currenciesManager.getUUIDFromUsernameCache(senderName);
+        final UUID receiver = currenciesManager.getUUIDFromUsernameCache(receiverName);
+
+        //Calculate the amount to withdraw with the transaction tax
         double amountToWithdraw = amount + (amount * transactionTax);
         if (sender == null || receiver == null)
             return new EconomyResponse(amount, getBalance(senderName), EconomyResponse.ResponseType.FAILURE, "Account not found");

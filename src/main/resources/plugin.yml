@@ -73,6 +73,9 @@ permissions:
   rediseconomy.pay:
     description: Allows to use /pay
     default: true
+  rediseconomy.payall:
+    description: Allows to use /pay *
+    default: false
   rediseconomy.toggle-payments:
     description: Allows to use /toggle-payments
     default: true
@@ -107,8 +110,10 @@ permissions:
     description: Allows to use /transaction
     default: false
   rediseconomy.pay.*:
-      description: Allows to use /pay all currencies
-      default: op
+    description: Allows to use /pay all currencies
+    default: op
+    children:
+      rediseconomy.payall: true
   rediseconomy.balance.*:
     description: Allows to use /balance with other currencies
     default: op
