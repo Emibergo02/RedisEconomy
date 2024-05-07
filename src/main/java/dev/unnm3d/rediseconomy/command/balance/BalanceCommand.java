@@ -36,7 +36,7 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
             selfBalancePlayer(sender, defaultCurrency);
             return true;
         }
-        String target = economy.getCaseSensitiveName(args[0]);
+        final String target = economy.getCaseSensitiveName(args[0]);
         if (args.length == 1) {
             balancePlayer(sender, defaultCurrency, target);
         } else if (args.length == 2) {
@@ -62,7 +62,7 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 plugin.langs().send(sender, plugin.langs().invalidCurrency);
                 return true;
             }
-            double amount = plugin.langs().formatAmountString(args[3]);
+            double amount = plugin.getCurrenciesManager().formatAmountString(target, currency, args[3]);
             if (amount < 0) {
                 plugin.langs().send(sender, plugin.langs().invalidAmount);
                 return true;

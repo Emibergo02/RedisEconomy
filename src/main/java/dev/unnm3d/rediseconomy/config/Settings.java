@@ -23,6 +23,8 @@ public class Settings {
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
+    @Comment("Allow paying with percentage (ex: /pay player 10% sends 'player' 10% of the sender balance)")
+    public boolean allowPercentagePayments = true;
     @Comment({"Leave password or user empty if you don't have a password or user",
             "Don't use the default credentials in production!! Generate new credentials on RedisLabs -> https://github.com/Emibergo02/RedisEconomy/wiki/Install-redis",
             "Default credentials lead to a non-persistent redis server, only for testing!!",

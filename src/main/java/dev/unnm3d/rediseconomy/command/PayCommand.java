@@ -66,7 +66,7 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         }
         long init = System.currentTimeMillis();
         final String target = args[0];
-        final double amount = plugin.langs().formatAmountString(args[1]);
+        final double amount = currenciesManager.formatAmountString(sender.getName(), currency, args[1]);
         if (amount <= 0) {
             plugin.langs().send(sender, plugin.langs().invalidAmount);
             return;
