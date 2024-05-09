@@ -27,13 +27,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 1) {
             if (!args[0].equalsIgnoreCase("reload")) return true;
             if (!sender.hasPermission("rediseconomy.admin")) return true;
-            String serverId = plugin.getConfigManager().getSettings().serverId; //Keep serverId
             plugin.getConfigManager().loadSettingsConfig();//Reload configs
-            plugin.getConfigManager().loadLangs();
-            plugin.getConfigManager().getSettings().serverId = serverId; //Restore serverId
+            plugin.getConfigManager().loadLangs(); //Reload langs
             plugin.getConfigManager().saveConfigs(); //Save configs
             this.adventureWebuiEditorAPI = new AdventureWebuiEditorAPI(plugin.getConfigManager().getSettings().webEditorUrl);
-            sender.sendMessage("§aReloaded successfully " + plugin.getConfigManager().getSettings().serverId + "!");
+            sender.sendMessage("§aReloaded successfully!");
             return true;
         }
         String langField = args[1];

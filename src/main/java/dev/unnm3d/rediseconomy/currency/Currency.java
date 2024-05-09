@@ -99,7 +99,7 @@ public class Currency implements Economy {
                     Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
                     return;
                 }
-                if (split[0].equals(RedisEconomyPlugin.getInstance().settings().serverId)) return;
+                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
                 UUID uuid = UUID.fromString(split[1]);
                 String playerName = split[2];
                 double balance = Double.parseDouble(split[3]);
@@ -547,7 +547,7 @@ public class Currency implements Economy {
                 if (playerName != null)
                     reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
                 reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
-                        RedisEconomyPlugin.getInstance().settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance);
+                        RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
             }).ifPresentOrElse(result -> {
 
                 if (RedisEconomyPlugin.getInstance().settings().debug) {

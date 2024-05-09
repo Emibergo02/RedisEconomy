@@ -30,6 +30,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public final class RedisEconomyPlugin extends JavaPlugin {
@@ -45,6 +46,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private TaskScheduler scheduler;
     @Getter
     private Plugin vaultPlugin;
+    @Getter
+    private static UUID instanceUUID;
 
 
     public Settings settings() {
@@ -58,6 +61,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Override
     public void onLoad() {
         instance = this;
+        //Generate a unique instance id to not send redis updates to itself
+        instanceUUID = UUID.randomUUID();
 
         this.configManager = new ConfigManager(this);
 
@@ -75,7 +80,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         if (redisManager == null) return;
 
         this.scheduler = UniversalScheduler.getScheduler(this);
-        this.configManager.postStartupLoad();
+        this.configManager.loadLangs();
         this.vaultPlugin = getServer().getPluginManager().getPlugin("Vault");
         if (this.vaultPlugin == null) { //creates currenciesManager and exchange
             this.getLogger().severe("Disabled due to no Vault dependency found!");

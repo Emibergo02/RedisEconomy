@@ -34,14 +34,14 @@ public class CurrencyWithBanks extends Currency {
             for (ScoredValue<String> scoredValue : list) {
                 bankAccounts.put(scoredValue.getValue(), scoredValue.getScore());
             }
-            if (RedisEconomyPlugin.getInstance().settings().debug && bankAccounts.size() > 0) {
+            if (RedisEconomyPlugin.getInstance().settings().debug && !bankAccounts.isEmpty()) {
                 Bukkit.getLogger().info("start1bank Loaded " + bankAccounts.size() + " accounts for currency " + currencyName);
             }
             return list;
         }).toCompletableFuture().join();
         getRedisBankOwners().thenApply(map -> {
             map.forEach((k, v) -> bankOwners.put(k, UUID.fromString(v)));
-            if (RedisEconomyPlugin.getInstance().settings().debug && bankOwners.size() > 0) {
+            if (RedisEconomyPlugin.getInstance().settings().debug && !bankOwners.isEmpty()) {
                 Bukkit.getLogger().info("start1bankb Loaded " + bankOwners.size() + " accounts owners for currency " + currencyName);
             }
             return map;
@@ -60,7 +60,7 @@ public class CurrencyWithBanks extends Currency {
                     Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
                     return;
                 }
-                if (split[0].equals(RedisEconomyPlugin.getInstance().settings().serverId)) return;
+                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
                 String accountId = split[1];
                 UUID owner = UUID.fromString(split[2]);
                 bankOwners.put(accountId, owner);
@@ -85,7 +85,7 @@ public class CurrencyWithBanks extends Currency {
                     Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
                     return;
                 }
-                if (split[0].equals(RedisEconomyPlugin.getInstance().settings().serverId)) return;
+                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
                 String accountId = split[1];
                 double balance = Double.parseDouble(split[2]);
                 updateBankAccountLocal(accountId, balance);
@@ -269,7 +269,7 @@ public class CurrencyWithBanks extends Currency {
     private void setOwner(@NotNull String accountId, UUID ownerUUID) {
         currenciesManager.getRedisManager().getConnectionPipeline(connection -> {
             connection.hset(BANK_OWNERS.toString(), accountId, ownerUUID.toString());
-            return connection.publish(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + accountId + ";;" + ownerUUID);
+            return connection.publish(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + ownerUUID);
         }).thenAccept((result) -> {
             if (RedisEconomyPlugin.getInstance().settings().debug) {
                 Bukkit.getLogger().info("Set owner of bank " + accountId + " to " + ownerUUID + " with result " + result);
@@ -291,7 +291,7 @@ public class CurrencyWithBanks extends Currency {
         updateExecutor.submit(() -> {
             currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
                 reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
-                reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstance().settings().serverId + ";;" + accountId + ";;" + balance);
+                reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
             }).ifPresentOrElse(result -> {
                 if (RedisEconomyPlugin.getInstance().settings().debug) {
                     Bukkit.getLogger().info("01 Sent bank update accoun " + accountId + " to " + balance);

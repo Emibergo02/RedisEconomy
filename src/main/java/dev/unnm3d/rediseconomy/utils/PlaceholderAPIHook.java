@@ -30,7 +30,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
         this.langs = redisEconomyPlugin.langs();
         this.totalSupplyCache = new HashMap<>();
         this.baltopCache = new HashMap<>();
-        this.updateCachePeriod = 1000 * 20; // 1 minute
+        this.updateCachePeriod = 1000 * 5; // 5 secs
         this.lastUpdateTimestamp = 0;
         this.plugin = redisEconomyPlugin;
         this.prefixProvider = redisEconomyPlugin.getServer().getServicesManager().getRegistration(net.milkbowl.vault.chat.Chat.class);

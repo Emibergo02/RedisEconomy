@@ -7,7 +7,6 @@ import lombok.Getter;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 public class ConfigManager {
     private final RedisEconomyPlugin plugin;
@@ -34,16 +33,7 @@ public class ConfigManager {
         loadSettingsConfig();
     }
 
-    public void postStartupLoad() {
-        loadLangs();
-        if (settings.serverId == null || settings.serverId.isEmpty()) {
-            settings.serverId = String.valueOf(UUID.randomUUID());
-            saveConfigs();
-        }
-    }
-
     public void loadSettingsConfig() {
-
         File settingsFile = new File(plugin.getDataFolder(), "config.yml");
         settings = YamlConfigurations.update(
                 settingsFile.toPath(),
