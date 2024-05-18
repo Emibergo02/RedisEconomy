@@ -4,15 +4,15 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Settings;
+import dev.unnm3d.rediseconomy.currency.migration.OfflinePlayerCurrencyMigration;
+import dev.unnm3d.rediseconomy.currency.migration.SqlCurrencyMigration;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
-import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -92,39 +92,15 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     /**
      * Migrates the balances from the existent economy provider to the new one
-     * using the offline players
-     *
-     * @param offlinePlayers the offline players to migrate
      */
-    public void migrateFromOfflinePlayers(OfflinePlayer[] offlinePlayers) {
-        final Currency defaultCurrency = getDefaultCurrency();
-        RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
-        if (existentProvider == null) {
-            plugin.getLogger().severe("Vault economy provider not found!");
-            return;
+    public void migrate() {
+        final CurrencyMigration migration;
+        if (configManager.getSettings().migrationSql.enabled()) {
+            migration = new SqlCurrencyMigration(plugin, getDefaultCurrency());
+        } else {
+            migration = new OfflinePlayerCurrencyMigration(plugin, getDefaultCurrency());
         }
-        plugin.getLogger().info("§aMigrating from " + existentProvider.getProvider().getName() + "...");
-
-        final List<ScoredValue<String>> balances = new ArrayList<>();
-        final Map<String, String> nameUniqueIds = new HashMap<>();
-        for (int i = 0; i < offlinePlayers.length; i++) {
-            final OfflinePlayer offlinePlayer = offlinePlayers[i];
-            try {
-                double bal = existentProvider.getProvider().getBalance(offlinePlayer);
-                balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
-                if (offlinePlayer.getName() != null)
-                    nameUniqueIds.put(offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
-                defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            if (i % 100 == 0) {
-                plugin.getLogger().info("Progress: " + i + "/" + offlinePlayers.length);
-            }
-        }
-        defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
-        plugin.getLogger().info("§aMigration completed!");
-        plugin.getLogger().info("§aRestart the server to apply the changes.");
+        migration.migrate();
         configManager.getSettings().migrationEnabled = false;
         configManager.saveConfigs();
     }

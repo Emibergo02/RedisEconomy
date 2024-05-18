@@ -23,6 +23,9 @@ public class Settings {
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
+    @Comment({"if enabled, the plugin will migrate economy data from sql database",
+            "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
+    public SqlMigrateSettings migrationSql = new SqlMigrateSettings(false, "com.mysql.cj.jdbc.Driver", "jdbc:mysql://localhost:3306/database?useSSL=false", "root", "password", "economy", "name", "uuid", "money");
     @Comment("Allow paying with percentage (ex: /pay player 10% sends 'player' 10% of the sender balance)")
     public boolean allowPercentagePayments = true;
     @Comment({"Leave password or user empty if you don't have a password or user",
@@ -52,4 +55,7 @@ public class Settings {
     public record RedisSettings(String host, int port, String user, String password, int database, int timeout,
                                 String clientName) {
     }
+
+    public record SqlMigrateSettings(boolean enabled, String driver, String url, String username, String password, String table, String nameColumn, String uuidColumn, String moneyColumn) {
+    };
 }
