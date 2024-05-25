@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class OfflinePlayerCurrencyMigration extends CurrencyMigration {
 
-    RegisteredServiceProvider<Economy> existentProvider;
+    private RegisteredServiceProvider<Economy> existentProvider;
 
     public OfflinePlayerCurrencyMigration(RedisEconomyPlugin plugin, Currency currency) {
         super(plugin, currency);
@@ -50,7 +50,7 @@ public class OfflinePlayerCurrencyMigration extends CurrencyMigration {
                 balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
                 if (offlinePlayer.getName() != null)
                     nameUniqueIds.put(offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
-                currency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
+                updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
             } catch (Exception e) {
                 e.printStackTrace();
             }

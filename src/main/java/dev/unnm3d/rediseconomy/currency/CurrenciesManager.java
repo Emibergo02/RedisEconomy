@@ -95,7 +95,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
      */
     public void migrate() {
         final CurrencyMigration migration;
-        if (configManager.getSettings().migrationSql.enabled()) {
+        if (configManager.getSettings().sqlMigration.enabled()) {
             migration = new SqlCurrencyMigration(plugin, getDefaultCurrency());
         } else {
             migration = new OfflinePlayerCurrencyMigration(plugin, getDefaultCurrency());

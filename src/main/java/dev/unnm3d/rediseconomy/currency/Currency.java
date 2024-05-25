@@ -529,7 +529,7 @@ public class Currency implements Economy {
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
-    public void updateAccountLocal(@NotNull UUID uuid, @Nullable String playerName, double balance) {
+    void updateAccountLocal(@NotNull UUID uuid, @Nullable String playerName, double balance) {
         if (playerName != null)
             currenciesManager.updateNameUniqueId(playerName, uuid);
         accounts.put(uuid, balance);

@@ -26,7 +26,7 @@ public class SqlCurrencyMigration extends CurrencyMigration {
 
     @Override
     protected boolean setup() {
-        sql = plugin.getConfigManager().getSettings().migrationSql;
+        sql = plugin.getConfigManager().getSettings().sqlMigration;
         try {
             Class.forName(sql.driver());
         } catch (ClassNotFoundException e) {
@@ -73,7 +73,7 @@ public class SqlCurrencyMigration extends CurrencyMigration {
                     balances.add(ScoredValue.just(money, uuid));
                     if (name != null)
                         nameUniqueIds.put(name, uuid);
-                    currency.updateAccountLocal(UUID.fromString(uuid), name == null ? uuid : name, money);
+                    updateAccountLocal(UUID.fromString(uuid), name == null ? uuid : name, money);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

@@ -25,7 +25,7 @@ public class Settings {
     public boolean migrationEnabled = false;
     @Comment({"if enabled, the plugin will migrate economy data from sql database",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
-    public SqlMigrateSettings migrationSql = new SqlMigrateSettings(false, "com.mysql.cj.jdbc.Driver", "jdbc:mysql://localhost:3306/database?useSSL=false", "root", "password", "economy", "name", "uuid", "money");
+    public SqlMigrateSettings sqlMigration = new SqlMigrateSettings(false, "com.mysql.cj.jdbc.Driver", "jdbc:mysql://localhost:3306/database?useSSL=false", "root", "password", "economy", "name", "uuid", "money");
     @Comment("Allow paying with percentage (ex: /pay player 10% sends 'player' 10% of the sender balance)")
     public boolean allowPercentagePayments = true;
     @Comment({"Leave password or user empty if you don't have a password or user",
@@ -56,6 +56,24 @@ public class Settings {
                                 String clientName) {
     }
 
-    public record SqlMigrateSettings(boolean enabled, String driver, String url, String username, String password, String table, String nameColumn, String uuidColumn, String moneyColumn) {
+    public record SqlMigrateSettings(
+            @Comment("Enable or not SQL migration")
+            boolean enabled,
+            @Comment("Sql driver to use, this is not mandatory due just make a safe-check before initializing the connection")
+            String driver,
+            @Comment("Connection URL, replace 'localhost:3306' and 'database' with your database information")
+            String url,
+            @Comment("Connection username")
+            String username,
+            @Comment("Connection password")
+            String password,
+            @Comment("This is the table on SQL database to get data from")
+            String table,
+            @Comment("Column name inside provided table to get player name")
+            String nameColumn,
+            @Comment("Column name inside provided table to get player unique id")
+            String uuidColumn,
+            @Comment("Column name inside provided table to get player balance")
+            String moneyColumn) {
     };
 }
