@@ -10,12 +10,12 @@ import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
@@ -288,24 +288,45 @@ public class CurrencyWithBanks extends Currency {
     }
 
     private synchronized void updateBankAccountCloudCache(@NotNull String accountId, double balance, int tries) {
-        updateExecutor.submit(() -> {
-            currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
-                reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
-            }).ifPresentOrElse(result -> {
+        try {
+            updateExecutor.submit(() -> {
                 if (RedisEconomyPlugin.getInstance().settings().debug) {
-                    Bukkit.getLogger().info("01 Sent bank update accoun " + accountId + " to " + balance);
+                    Bukkit.getLogger().info("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
                 }
-            }, () -> {
-                if (tries < 3) {
-                    Bukkit.getLogger().severe("Player accounts are desynchronized");
-                    updateBankAccountCloudCache(accountId, balance, tries + 1);
-                } else {
-                    Bukkit.getLogger().severe("Failed to update account " + accountId + " after 3 tries");
-                    throw new RuntimeException("Bank accounts are desynchronized");
+                try {
+                    currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
+                        reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
+                        reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
+                        if (RedisEconomyPlugin.getInstance().settings().debug) {
+                            RedisEconomyPlugin.getInstance().getLogger().info("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
+                        }
+                    }).ifPresentOrElse(result -> {
+                        if (RedisEconomyPlugin.getInstance().settings().debug) {
+                            Bukkit.getLogger().info("01c Sent bank update account " + accountId + " to " + balance);
+                        }
+                    }, () -> handleException(accountId, balance, tries, null));
+                } catch (Exception e) {
+                    handleException(accountId, balance, tries, e);
                 }
-            });
-        });
+            }).get(RedisEconomyPlugin.getInstance().settings().redis.timeout(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+            handleException(accountId, balance, tries, e);
+        }
+    }
+
+    private void handleException(@NotNull String accountId, double balance, int tries, @Nullable Exception e) {
+        final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
+        if (tries < plugin.settings().redis.tryAgainCount()) {
+            plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
+            if (e != null)
+                plugin.getLogger().warning(e.getMessage());
+            updateBankAccountCloudCache(accountId, balance, tries + 1);
+        } else {
+            plugin.getLogger().severe("Failed to update bank account " + accountId + " after " + tries + " tries");
+            currenciesManager.getRedisManager().printPool();
+            if (e != null)
+                throw new RuntimeException(e);
+        }
     }
 
     /**

@@ -36,6 +36,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
         String langField = args[1];
 
+        if (args[0].equalsIgnoreCase("expandpool")) {
+            if (!sender.hasPermission("rediseconomy.admin.expandpool")) {
+                plugin.getConfigManager().getLangs().send(sender, plugin.getConfigManager().getLangs().noPermission);
+                return true;
+            }
+            try {
+                plugin.getCurrenciesManager().getRedisManager().expandPool(Integer.parseInt(args[1]));
+                plugin.getConfigManager().getLangs().send(sender, "§aPool expanded successfully!");
+            } catch (Exception e) {
+                plugin.getConfigManager().getLangs().send(sender, "§cError expanding pool: " + e.getMessage());
+            }
+            return true;
+        }
+
         if (!sender.hasPermission("rediseconomy.admin.editmessage")) {
             plugin.getConfigManager().getLangs().send(sender, plugin.getConfigManager().getLangs().noPermission);
             return true;
@@ -81,7 +95,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("reload", "editmessage");
+            return List.of("reload", "editmessage", "expandpool");
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("expandpool")) {
+            return List.of("1", "2", "3", "4", "5");
         } else if (args.length == 2 && sender.hasPermission("rediseconomy.admin.editmessage")) {
             return Arrays.stream(plugin.getConfigManager().getLangs().getClass().getFields()).filter(field -> field.getType().equals(String.class)).map(Field::getName).toList();
         }

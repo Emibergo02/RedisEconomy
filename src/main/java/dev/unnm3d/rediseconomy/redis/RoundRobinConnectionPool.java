@@ -41,6 +41,21 @@ public class RoundRobinConnectionPool<K, V> {
         return connection;
     }
 
+    public String printPool() {
+        StringBuilder sb = new StringBuilder();
+        for (StatefulRedisConnection<K, V> element : elements) {
+            sb.append("Open: ")
+                    .append(element.isOpen())
+                    .append(", multi: ")
+                    .append(element.isMulti())
+                    .append(", hash")
+                    .append(element.hashCode())
+                    .append("\n");
+        }
+        return sb.toString();
+    }
+
+
     public void close() {
         for (StatefulRedisConnection<K, V> element : elements) {
             element.closeAsync();

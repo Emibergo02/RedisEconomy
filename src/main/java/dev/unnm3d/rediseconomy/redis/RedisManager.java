@@ -1,5 +1,6 @@
 package dev.unnm3d.rediseconomy.redis;
 
+import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.TransactionResult;
@@ -25,9 +26,9 @@ public class RedisManager {
     private final List<StatefulRedisPubSubConnection<String, String>> pubSubConnections;
     protected RedisClient lettuceRedisClient;
 
-    public RedisManager(RedisClient lettuceRedisClient) {
+    public RedisManager(RedisClient lettuceRedisClient, int poolSize) {
         this.lettuceRedisClient = lettuceRedisClient;
-        this.roundRobinConnectionPool = new RoundRobinConnectionPool<>(lettuceRedisClient::connect, 5);
+        this.roundRobinConnectionPool = new RoundRobinConnectionPool<>(lettuceRedisClient::connect, poolSize);
         pubSubConnections = new CopyOnWriteArrayList<>();
     }
 
@@ -59,6 +60,14 @@ public class RedisManager {
         StatefulRedisPubSubConnection<String, String> pubSubConnection = lettuceRedisClient.connectPubSub();
         pubSubConnections.add(pubSubConnection);
         return pubSubConnection;
+    }
+
+    public void expandPool(int expandBy) {
+        roundRobinConnectionPool.expandPool(expandBy);
+    }
+
+    public void printPool() {
+        RedisEconomyPlugin.getInstance().getLogger().warning(roundRobinConnectionPool.printPool());
     }
 
     public void close() {
