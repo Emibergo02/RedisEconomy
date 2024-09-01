@@ -22,7 +22,7 @@ public class ConfigManager {
                             ┃      RedisEconomy Config     ┃
                             ┃      Developed by Unnm3d     ┃
                             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-                                                    """
+                            """
             )
             .footer("Authors: Unnm3d")
             .charset(StandardCharsets.UTF_8)
@@ -40,6 +40,8 @@ public class ConfigManager {
                 Settings.class,
                 PROPERTIES
         );
+        if (settings.redis.tryAgainCount() < 2 || settings.redis.poolSize() < 2)
+            plugin.getLogger().severe("Please regenerate the redis configuration section. New settings have been added.");
     }
 
     public void saveConfigs() {
