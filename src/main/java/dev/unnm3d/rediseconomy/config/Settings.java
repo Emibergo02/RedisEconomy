@@ -18,6 +18,8 @@ public class Settings {
     public String webEditorUrl = "https://webui.advntr.dev/";
     @Comment("Activate this before reporting an issue")
     public boolean debug = false;
+    @Comment("A specific debug for cache update")
+    public boolean debugUpdateCache = false;
     @Comment("If true, the plugin registers who's calling it's methods inside transactions")
     public boolean registerCalls = false;
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",

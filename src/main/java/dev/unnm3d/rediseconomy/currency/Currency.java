@@ -18,7 +18,10 @@ import org.jetbrains.annotations.Nullable;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
@@ -539,43 +542,43 @@ public class Currency implements Economy {
 
     private synchronized void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
         final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
-        try {
-            updateExecutor.submit(() -> {
-                try {
-                    if (plugin.settings().debug) {
-                        Bukkit.getLogger().info("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
-                    }
-                    currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                        reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
-                        if (playerName != null)
-                            reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                        reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
-                                RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
-                        if (plugin.settings().debug) {
-                            plugin.getLogger().info("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
-                        }
-                    }).ifPresentOrElse(result -> {
-                        if (RedisEconomyPlugin.getInstance().settings().debug) {
-                            plugin.getLogger().info("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
-                        }
-                    }, () -> handleException(uuid, playerName, balance, tries, null));
-                } catch (Exception e) {
-                    handleException(uuid, playerName, balance, tries, e);
+        updateExecutor.submit(() -> {
+            try {
+                if (plugin.settings().debugUpdateCache) {
+                    Bukkit.getLogger().info("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
                 }
-            }).get(plugin.settings().redis.timeout(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            handleException(uuid, playerName, balance, tries, e);
-        }
+                currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
+                    reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
+                    if (playerName != null)
+                        reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
+                    reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
+                            RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
+                    if (plugin.settings().debugUpdateCache) {
+                        plugin.getLogger().info("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
+                    }
+                }).ifPresentOrElse(result -> {
+                    if (RedisEconomyPlugin.getInstance().settings().debugUpdateCache) {
+                        plugin.getLogger().info("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
+                    }
+                }, () -> handleException(uuid, playerName, balance, tries, null));
+            } catch (Exception e) {
+                handleException(uuid, playerName, balance, tries, e);
+            }
+        });
     }
 
     private void handleException(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries, @Nullable Exception e) {
         final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
         if (tries < plugin.settings().redis.tryAgainCount()) {
-            plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
-            if (e != null)
-                plugin.getLogger().warning(e.getMessage());
+            if (plugin.settings().debugUpdateCache) {
+                plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
+                if (e != null)
+                    plugin.getLogger().warning(e.getMessage());
+            }
             updateAccountCloudCache(uuid, playerName, balance, tries + 1);
-        } else {
+            return;
+        }
+        if (plugin.settings().debugUpdateCache) {
             plugin.getLogger().severe("Failed to update account " + playerName + " after " + tries + " tries");
             currenciesManager.getRedisManager().printPool();
             if (e != null)
