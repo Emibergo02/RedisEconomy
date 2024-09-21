@@ -7,6 +7,8 @@ import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 public class BalanceSubCommands extends BalanceCommand {
 
     public BalanceSubCommands(CurrenciesManager economy, RedisEconomyPlugin plugin) {
@@ -72,4 +74,16 @@ public class BalanceSubCommands extends BalanceCommand {
             plugin.langs().send(sender, plugin.langs().balanceSet.replace("%balance%", currency.format(er.balance)).replace("%player%", target));
         else sender.sendMessage(er.errorMessage);
     }
+
+    @Override
+    protected void setPlayerMaxBalance(CommandSender sender, Currency currency, double amount, String target) {
+        final UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
+        if (targetUUID == null) {
+            plugin.langs().send(sender, plugin.langs().playerNotFound);
+            return;
+        }
+        currency.setPlayerMaxBalance(targetUUID, amount);
+        plugin.langs().send(sender, plugin.langs().maxBalanceSet.replace("%player%", target).replace("%amount%", currency.format(amount)));
+    }
+
 }

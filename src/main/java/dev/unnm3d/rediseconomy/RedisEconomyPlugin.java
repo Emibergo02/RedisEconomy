@@ -159,7 +159,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                             redisURIBuilder.withAuthentication(configManager.getSettings().redis.user(), configManager.getSettings().redis.password());
 
             getLogger().info("Connecting to redis server " + redisURIBuilder.build().toString() + "...");
-            this.redisManager = new RedisManager(RedisClient.create(redisURIBuilder.build()), configManager.getSettings().redis.poolSize());
+            this.redisManager = new RedisManager(RedisClient.create(redisURIBuilder.build()), configManager.getSettings().redis.getPoolSize());
             redisManager.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
             if (!configManager.getSettings().clusterId.isEmpty())
                 RedisKeys.setClusterId(configManager.getSettings().clusterId);

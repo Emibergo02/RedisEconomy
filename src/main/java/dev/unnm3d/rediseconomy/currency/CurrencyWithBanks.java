@@ -316,7 +316,7 @@ public class CurrencyWithBanks extends Currency {
 
     private void handleException(@NotNull String accountId, double balance, int tries, @Nullable Exception e) {
         final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
-        if (tries < plugin.settings().redis.tryAgainCount()) {
+        if (tries < plugin.settings().redis.getTryAgainCount()) {
             plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
             if (e != null)
                 plugin.getLogger().warning(e.getMessage());

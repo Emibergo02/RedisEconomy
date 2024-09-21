@@ -53,5 +53,13 @@ public class Settings {
 
     public record RedisSettings(String host, int port, String user, String password, int database, int timeout,
                                 String clientName, int poolSize, int tryAgainCount) {
+        //Those checks are for new config files, if the user doesn't have the new settings
+        public int getPoolSize() {
+            return poolSize == 0 ? 5 : poolSize;
+        }
+
+        public int getTryAgainCount() {
+            return tryAgainCount == 0 ? 3 : tryAgainCount;
+        }
     }
 }

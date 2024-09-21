@@ -84,6 +84,9 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
 
             } else if (args[2].equalsIgnoreCase("set")) {
                 setPlayer(sender, currency, amount, target);
+
+            } else if (args[2].equalsIgnoreCase("set-max")) {
+                setPlayerMaxBalance(sender, currency, amount, target);
             }
         }
         if (plugin.settings().debug)
@@ -105,6 +108,8 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
 
     protected abstract void setPlayer(CommandSender sender, Currency currency, double amount, String target);
 
+    protected abstract void setPlayerMaxBalance(CommandSender sender, Currency currency, double amount, String target);
+
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
@@ -118,7 +123,7 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 2)
             return economy.getCurrencies().stream().map(Currency::getCurrencyName).filter(name -> name.startsWith(args[1]) && sender.hasPermission("rediseconomy.balance." + args[1])).toList();
         else if (args.length == 3)
-            return List.of("give", "take", "set");
+            return List.of("give", "take", "set", "set-max");
         else if (args.length == 4)
             return List.of("69");
         return List.of();

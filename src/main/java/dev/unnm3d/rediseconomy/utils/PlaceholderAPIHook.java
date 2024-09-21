@@ -115,7 +115,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
                 return parseParams(totalSupplyCache.get(currency), splitted, currency);
             }
             case "maxbal" -> {
-                return String.valueOf(currency.getMaxBalance());
+                return String.valueOf(currency.getPlayerMaxBalance(player.getUniqueId()));
             }
             case "top" -> {
 

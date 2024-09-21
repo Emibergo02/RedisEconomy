@@ -5,10 +5,12 @@ import java.util.UUID;
 public enum RedisKeys {
 
     NAME_UUID("rediseco:nameuuid"),
+    MAX_PLAYER_BALANCES("rediseco:max_bals"),
     BALANCE_PREFIX("rediseco:balances_"),
     BALANCE_BANK_PREFIX("rediseco:b_balances_"),
     BANK_OWNERS("rediseco:b_owners"),
     UPDATE_PLAYER_CHANNEL_PREFIX("rediseco:update_"),
+    UPDATE_MAX_BAL_PREFIX("rediseco:update_"),
     UPDATE_BANK_CHANNEL_PREFIX("rediseco:b_update_"),
     UPDATE_BANK_OWNER_CHANNEL_PREFIX("rediseco:b_owner_update_"),
     MSG_CHANNEL("rediseco:paymsg"),
