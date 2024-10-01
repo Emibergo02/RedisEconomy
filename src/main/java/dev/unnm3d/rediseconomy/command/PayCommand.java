@@ -45,8 +45,10 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2) {
             payCurrency(p, currenciesManager.getDefaultCurrency(), args);
         } else {
-            if (!sender.hasPermission("rediseconomy.pay." + args[2]))
+            if (!sender.hasPermission("rediseconomy.pay." + args[2])) {
                 plugin.langs().send(sender, plugin.langs().noPermission);
+                return true;
+            }
             Currency currency = currenciesManager.getCurrencyByName(args[2]);
             if (currency == null) {
                 plugin.langs().send(sender, plugin.langs().invalidCurrency);
