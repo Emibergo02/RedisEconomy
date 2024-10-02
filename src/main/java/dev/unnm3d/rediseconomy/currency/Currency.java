@@ -125,9 +125,9 @@ public class Currency implements Economy {
                         Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
                     }
                 } else if (channel.equals(UPDATE_MAX_BAL_PREFIX + currencyName)) {
-                    setPlayerMaxBalanceLocal(uuid, maxBalance);
+                    setPlayerMaxBalanceLocal(uuid, balance);
                     if (RedisEconomyPlugin.getInstance().settings().debug) {
-                        Bukkit.getLogger().info("01b Received max balance update " + uuid + " to " + maxBalance);
+                        Bukkit.getLogger().info("01b Received max balance update " + uuid + " to " + balance);
                     }
                 }
             }
