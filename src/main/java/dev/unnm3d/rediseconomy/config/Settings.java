@@ -9,9 +9,6 @@ import java.util.UUID;
 @SuppressWarnings("unused")
 @Configuration
 public class Settings {
-    @Comment({"This is automatically generated on server startup",
-            "You need to have a different serverId for each server!!!"})
-    public String serverId = String.valueOf(UUID.randomUUID());
     @Comment("Language file")
     public String lang = "en-US";
     @Comment("Webeditor URL")
