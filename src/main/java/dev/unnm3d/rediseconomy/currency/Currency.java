@@ -574,8 +574,7 @@ public class Currency implements Economy {
                     reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
                     if (playerName != null)
                         reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                    reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
-                            RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
+                    reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid /*+ ";;" + playerName*/ + ";;" + balance);
                     if (plugin.settings().debugUpdateCache) {
                         plugin.getLogger().info("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
                     }
