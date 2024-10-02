@@ -45,6 +45,10 @@
                                     <shadedPattern>dev.unnm3d.shaded.kyori</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>de.exlll.configlib</pattern>
+                                    <shadedPattern>dev.unnm3d.shaded.configlib</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>com.github.Anon8281.universalScheduler</pattern>
                                     <shadedPattern>dev.unnm3d.shaded.universalScheduler</shadedPattern>
                                 </relocation>

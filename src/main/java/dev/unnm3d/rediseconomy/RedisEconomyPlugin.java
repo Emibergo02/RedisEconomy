@@ -136,8 +136,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             redisManager.close();
         if (currenciesManager != null)
             this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
-        this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
-        this.getServer().getMessenger().unregisterIncomingPluginChannel(this);
         getLogger().info("RedisEconomy disabled successfully!");
     }
 

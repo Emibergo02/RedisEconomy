@@ -106,7 +106,7 @@ public class Currency implements Economy {
             @Override
             public void message(String channel, String message) {
                 String[] split = message.split(";;");
-                if (split.length != 3) {
+                if (split.length < 3) {
                     Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
                     return;
                 }
