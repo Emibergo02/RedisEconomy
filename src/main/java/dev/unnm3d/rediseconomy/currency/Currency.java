@@ -108,14 +108,14 @@ public class Currency implements Economy {
                 String[] split = message.split(";;");
                 if (split.length < 3) {
                     Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
-                    return;
                 }
-                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
 
-                UUID uuid = UUID.fromString(split[1]);
-                double balance = Double.parseDouble(split[2]);
+                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
+                final UUID uuid = UUID.fromString(split[1]);
+
                 if (channel.equals(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName)) {
-                    String playerName = currenciesManager.getUsernameFromUUIDCache(uuid);
+                    String playerName = split[2];
+                    double balance = Double.parseDouble(split[3]);
                     if (playerName == null) {
                         Bukkit.getLogger().severe("Player name not found for UUID " + uuid);
                         return;
@@ -125,9 +125,10 @@ public class Currency implements Economy {
                         Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
                     }
                 } else if (channel.equals(UPDATE_MAX_BAL_PREFIX + currencyName)) {
-                    setPlayerMaxBalanceLocal(uuid, balance);
+                    double maxBal = Double.parseDouble(split[2]);
+                    setPlayerMaxBalanceLocal(uuid, maxBal);
                     if (RedisEconomyPlugin.getInstance().settings().debug) {
-                        Bukkit.getLogger().info("01b Received max balance update " + uuid + " to " + balance);
+                        Bukkit.getLogger().info("01b Received max balance update " + uuid + " to " + maxBal);
                     }
                 }
             }
