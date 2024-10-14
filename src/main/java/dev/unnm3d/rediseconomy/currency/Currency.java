@@ -597,7 +597,7 @@ public class Currency implements Economy {
             if (plugin.settings().debugUpdateCache) {
                 plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
                 if (e != null)
-                    plugin.getLogger().warning(e.getMessage());
+                    e.printStackTrace();
             }
             updateAccountCloudCache(uuid, playerName, balance, tries + 1);
             return;
