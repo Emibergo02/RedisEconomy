@@ -13,13 +13,15 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @AllArgsConstructor
 public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
+    private static final long MAX_MEMORY_USAGE = 10L * 1024 * 1024 * 1024;
+    private static final int MEMORY_CHUNK_USAGE = 3;
+    private static final int LINE_SIZE_ESTIMATE = 130;
+
     private final CurrenciesManager currenciesManager;
     private final RedisEconomyPlugin plugin;
 
@@ -37,20 +39,51 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
             Path userPath = Path.of(plugin.getDataFolder().getAbsolutePath(), args[0]);
             switch (label) {
                 case "backup-economy" -> {
-                    try (FileWriter fw = new FileWriter(userPath.normalize().toFile())) {
-                        StringBuilder sb = new StringBuilder();
-                        currenciesManager.getCurrencies().forEach(currency ->
-                                currency.getAccounts().forEach((uuid, balance) ->
-                                        sb.append(currency.getCurrencyName())
-                                                .append(";")
-                                                .append(uuid.toString())
-                                                .append(";")
-                                                .append(currenciesManager.getUsernameFromUUIDCache(uuid))
-                                                .append(";")
-                                                .append(balance)
-                                                .append(System.getProperty("line.separator"))
-                                ));
-                        fw.write(sb.toString());// currency;uuid;name;balance
+                    final Map<UUID, String> names = new HashMap<>();
+                    for (Map.Entry<String, UUID> entry : currenciesManager.getNameUniqueIds().entrySet()) {
+                        names.put(entry.getValue(), entry.getKey());
+                    }
+
+                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(userPath.normalize().toFile(), true))) {
+                        long memory = Math.min(Runtime.getRuntime().freeMemory(), MAX_MEMORY_USAGE);
+                        int chunkSize = (int) (memory / MEMORY_CHUNK_USAGE) / LINE_SIZE_ESTIMATE;
+
+                        for (Currency currency : currenciesManager.getCurrencies()) {
+                            Map<UUID, Double> accounts = currency.getAccounts();
+                            plugin.getLogger().info("[" + currency.getCurrencyName() + "] Total accounts: " + accounts.size());
+                            if (accounts.isEmpty()) {
+                                continue;
+                            }
+
+                            final Iterator<Map.Entry<UUID, Double>> iterator = accounts.entrySet().iterator();
+                            int i;
+                            for (i = 0; i < accounts.size(); i += chunkSize) {
+                                final StringBuilder chunk = new StringBuilder();
+
+                                int end = Math.min(i + chunkSize, accounts.size());
+                                for (int j = i; j < end; j++) {
+                                    final Map.Entry<UUID, Double> entry = iterator.next();
+                                    final UUID uuid = entry.getKey();
+                                    final double balance = entry.getValue();
+                                    // currency;uuid;name;balance
+                                    chunk.append(currency.getCurrencyName())
+                                            .append(";")
+                                            .append(uuid.toString())
+                                            .append(";")
+                                            .append(names.getOrDefault(uuid, "null"))
+                                            .append(";")
+                                            .append(balance)
+                                            .append(System.lineSeparator());
+                                }
+
+                                writer.write(chunk.toString());
+                                writer.flush();
+
+                                plugin.getLogger().info("[" + currency.getCurrencyName() + "] Progress: " + i + "/" + accounts.size());
+                            }
+
+                            plugin.getLogger().info("[" + currency.getCurrencyName() + "] Progress: " + Math.min(i + chunkSize, accounts.size()) + "/" + accounts.size());
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
