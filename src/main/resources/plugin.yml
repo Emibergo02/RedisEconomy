@@ -6,7 +6,7 @@ load: STARTUP
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.3.2.RELEASE
+  - io.lettuce:lettuce-core:6.4.0.RELEASE
   - de.exlll:configlib-yaml:4.5.0
 softdepend:
   - PlaceholderAPI
@@ -73,6 +73,9 @@ permissions:
   rediseconomy.pay:
     description: Allows to use /pay
     default: true
+  rediseconomy.payall:
+    description: Allows to use /pay *
+    default: false
   rediseconomy.toggle-payments:
     description: Allows to use /toggle-payments
     default: true
@@ -106,9 +109,14 @@ permissions:
   rediseconomy.admin.transaction:
     description: Allows to use /transaction
     default: false
+  rediseconomy.admin.expandpool:
+    description: Allows to expand the pool
+    default: false
   rediseconomy.pay.*:
-      description: Allows to use /pay all currencies
-      default: op
+    description: Allows to use /pay all currencies
+    default: op
+    children:
+      rediseconomy.payall: true
   rediseconomy.balance.*:
     description: Allows to use /balance with other currencies
     default: op
@@ -123,3 +131,4 @@ permissions:
       rediseconomy.admin.editmessage: true
       rediseconomy.admin.backup-restore: true
       rediseconomy.admin.archive-transactions: true
+      rediseconomy.admin.expandpool: true

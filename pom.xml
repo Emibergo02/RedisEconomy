@@ -6,7 +6,7 @@
 
     <groupId>dev.unnm3d</groupId>
     <artifactId>RedisEconomy</artifactId>
-    <version>4.3.11-SNAPSHOT</version>
+    <version>4.3.19</version>
     <packaging>jar</packaging>
 
     <name>RedisEconomy</name>
@@ -43,6 +43,10 @@
                                 <relocation>
                                     <pattern>net.kyori</pattern>
                                     <shadedPattern>dev.unnm3d.shaded.kyori</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>de.exlll.configlib</pattern>
+                                    <shadedPattern>dev.unnm3d.shaded.configlib</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.github.Anon8281.universalScheduler</pattern>
@@ -113,6 +117,11 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
+        <repository>
+            <id>maven_central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -131,18 +140,18 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
+            <version>1.18.34</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-minimessage</artifactId>
-            <version>4.16.0</version>
+            <version>4.17.0</version>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-platform-bukkit</artifactId>
-            <version>4.3.2</version>
+            <version>4.3.3</version>
         </dependency>
         <dependency>
             <groupId>me.clip</groupId>
@@ -153,7 +162,7 @@
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
-            <version>6.3.2.RELEASE</version>
+            <version>6.4.0.RELEASE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

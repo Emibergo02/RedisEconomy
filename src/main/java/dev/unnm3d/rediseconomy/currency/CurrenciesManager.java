@@ -70,7 +70,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put(currencySettings.currencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY,0.0, true,true, false)));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, true, false)));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -193,6 +193,15 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
      */
     public HashMap<String, UUID> resetBalanceNamePattern(String namePattern, Currency currencyReset) {
         HashMap<String, UUID> removed = new HashMap<>();
+        currencyReset.getOrderedAccounts(Integer.MAX_VALUE).thenAccept(accounts -> {
+            for (ScoredValue<String> account : accounts) {
+                UUID uuid = UUID.fromString(account.getValue());
+                if (!nameUniqueIds.containsValue(uuid)) {
+                    currencyReset.setPlayerBalance(uuid, null, 0.0);
+                }
+            }
+        });
+
         for (Map.Entry<String, UUID> entry : nameUniqueIds.entrySet()) {
             if (entry.getKey().matches(namePattern)) {
                 removed.put(entry.getKey(), entry.getValue());
@@ -413,6 +422,35 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public boolean isAccountLocked(UUID uuid, UUID target) {
         return getLockedAccounts(uuid).contains(target) ||
                 getLockedAccounts(uuid).contains(RedisKeys.getAllAccountUUID());
+    }
+
+    /**
+     * Formats the amount string to a double
+     * Parses suffixes (10k, 10M for 10 thousand and 10 million)
+     * Parses percentages ("10%" for 10% of the accountOwner balance)
+     *
+     * @param targetName The account that has to be modified
+     * @param currency   the currency to format the amount
+     * @param amount     the amount to format
+     * @return the formatted amount
+     */
+    public double formatAmountString(String targetName, Currency currency, String amount) {
+        try {
+            //Check if last char of amount is number
+            if (Character.isDigit(amount.charAt(amount.length() - 1))) {
+                return Double.parseDouble(amount);
+            }
+            double parsedAmount = Double.parseDouble(amount.substring(0, amount.length() - 1));
+            return amount.endsWith("%") && plugin.settings().allowPercentagePayments ?
+                    //Percentage 20%
+                    parsedAmount / 100 * currency.getBalance(targetName) :
+                    //Parse suffixes from map
+                    parsedAmount * plugin.langs().getSuffixes()
+                            .getOrDefault(amount.substring(amount.length() - 1), -1L);
+        } catch (NumberFormatException e) {
+            plugin.langs().send(Bukkit.getConsoleSender(), plugin.langs().invalidAmount);
+        }
+        return -1;
     }
 
     public List<UUID> getLockedAccounts(UUID uuid) {

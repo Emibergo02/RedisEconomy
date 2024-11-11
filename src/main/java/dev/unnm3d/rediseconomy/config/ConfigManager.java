@@ -7,7 +7,6 @@ import lombok.Getter;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 public class ConfigManager {
     private final RedisEconomyPlugin plugin;
@@ -23,7 +22,7 @@ public class ConfigManager {
                             ┃      RedisEconomy Config     ┃
                             ┃      Developed by Unnm3d     ┃
                             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-                                                    """
+                            """
             )
             .footer("Authors: Unnm3d")
             .charset(StandardCharsets.UTF_8)
@@ -34,22 +33,15 @@ public class ConfigManager {
         loadSettingsConfig();
     }
 
-    public void postStartupLoad() {
-        loadLangs();
-        if (settings.serverId == null || settings.serverId.isEmpty()) {
-            settings.serverId = String.valueOf(UUID.randomUUID());
-            saveConfigs();
-        }
-    }
-
     public void loadSettingsConfig() {
-
         File settingsFile = new File(plugin.getDataFolder(), "config.yml");
         settings = YamlConfigurations.update(
                 settingsFile.toPath(),
                 Settings.class,
                 PROPERTIES
         );
+        if (settings.redis.tryAgainCount() < 2 || settings.redis.poolSize() < 2)
+            plugin.getLogger().severe("Please regenerate the redis configuration section. New settings have been added.");
     }
 
     public void saveConfigs() {
@@ -60,7 +52,8 @@ public class ConfigManager {
     public void loadLangs() {
         File settingsFile = new File(plugin.getDataFolder(), settings.lang + ".yml");
         if (!settingsFile.exists()) {
-            plugin.saveResource("it-IT.yml", false);//save default lang
+            plugin.saveResource("it-IT.yml", false);
+            plugin.saveResource("de-DE.yml", false);
         }
         langs = YamlConfigurations.update(
                 settingsFile.toPath(),

@@ -1,0 +1,66 @@
+noConsole: <red>Der Befehl muss inGame eingegeben werden!</red>
+noPermission: <red>Du hast keine berechtigung, den Befehl zu nutzen!</red>
+missingArguments: <red>Zu wenig! Argumente</red>
+playerNotFound: <red>Spieler nicht gefunden!</red>
+invalidAmount: <red>Ungültiger Betrag!</red>
+tooSmallAmount: <red>Der Betrag ist zu klein!</red>
+payCooldown: <red>Deine vorherige Zahlung ist noch in Bearbeitung! Bitte warten</red>
+invalidCurrency: <red>Ungültige Währung!</red>
+insufficientFunds: <red>Du hast nicht genügend Geld!</red>
+balance: <green>Du hast %balance%!</green>
+balanceSet: <green>Du hast das Geld von %player% auf %balance% gesetzt!</green>
+balanceOther: <green>%player% hat %balance% !</green>
+balanceTop: <green>Die reichsten Spieler:</green><br>%prevpage%      %page%      %nextpage%
+blockedAccounts: <green>Gesperrte Accounts:</green><br>%list%
+blockedAccountSuccess: <green>Account %player% ist gesperrt!</green>
+unblockedAccountSuccess: <green>Account %player% wurde entsperrt!</green>
+blockedPayment: <red>Deine Zahlung an %player% wurde gesperrt!</red>
+balanceTopFormat: <aqua>%pos% - %player% %balance%</aqua>
+paySelf: <red>Du kannst nichts an dich selbst zahlen!</red>
+# Use %tax_percentage% for tax percentage and %tax_applied% for tax applied to the transaction.
+paySuccess: <green>Du hast %player% %amount% gezahlt</green>
+payFail: <red>Zahlung fehlgeschlagen!</red>
+payReceived: <green>Du hast %amount% from %player%!</green>
+purgeUserSuccess: <green>%player% wurde gelöscht!</green>
+purgeBalanceSuccess: <green>Die Währung von %player% wurde auf %currency% zurückgesetzt!</green>
+switchCurrencySuccess: <green>%currency% zu %switch-currency%. gewechselt<br> Bitte
+  starten Sie jeden Server mit<br> installiertem RedisEconomy neu, um ein Überschreiben
+  zu vermeiden!</green>
+noTransactionFound: <red>Keine Transaktion von %player% gefunden!</red>
+incorrectDate: <red>Falsches Datumsformat !</red>
+transactionsStart: <dark_aqua>Transactionen von Spieler %player% von %after% bis %before%!</dark_aqua>
+transactionsEnd: <dark_aqua>Die Prüfung von %player%'s Transactionen dauerte %time%
+  ms</dark_aqua>
+transactionsArchiveCompleted: <green>Archiviere %size% Transactiosdaten nach %file%</green>
+transactionsArchiveProgress: '<aqua>Archivierungsstatus: %progress%% </aqua>'
+editMessageError: <red>Dieser Config-Eintrag ist keine Zeichenfolge oder existiert
+  nicht!
+editMessageClickHere: <click:open_url:%url%>Klicke hier um die Nachricht zu bearbeiten
+  %field%!</click>
+editMessageSuccess: <green>Erfolgreich gespeichert %field%!
+transactionItem:
+  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Click
+    to copy:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Click
+    to revert transaction"><red>[←Revert]</hover></click><br><click:run_command:/transaction
+    %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
+    <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>Reason:
+    </yellow>%reason%'
+  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Click
+    to copy:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Click
+    to revert transaction"><red>[←Revert]</hover></click><br><click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%
+    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Reason:
+    </yellow>%reason%'
+unitSymbols:
+  thousand: k
+  million: m
+  billion: b
+  trillion: t
+  quadrillion: q
+backupRestoreFinished: <green>Backup/restore der Datei %file% beendet!</green>
+invalidPath: <red>Ungültiger Pfad!</red>
+
+# Authors: Unnm3d

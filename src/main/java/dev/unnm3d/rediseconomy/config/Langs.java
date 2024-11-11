@@ -9,6 +9,8 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 @Configuration
 public final class Langs {
@@ -24,6 +26,7 @@ public final class Langs {
     public String insufficientFunds = "<red>You do not have enough money!</red>";
     public String balance = "<green>You have %balance%!</green>";
     public String balanceSet = "<green>You set %player% account to %balance% !</green>";
+    public String maxBalanceSet = "<green>You set %player% max balance to %amount% !</green>";
     public String balanceOther = "<green>%player% has %balance% !</green>";
     public String balanceTop = "<green>Top richest players:</green><br>%prevpage%      %page%      %nextpage%";
     public String blockedAccounts = "<green>Blocked accounts:</green><br>%list%";
@@ -75,27 +78,19 @@ public final class Langs {
     ) {
     }
 
-    public void send(CommandSender sender, String text) {
-        audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text));
+    public NavigableMap<String, Long> getSuffixes() {
+        return new TreeMap<>() {{
+            put(unitSymbols.thousand(), 1_000L);
+            put(unitSymbols.million(), 1_000_000L);
+            put(unitSymbols.billion(), 1_000_000_000L);
+            put(unitSymbols.trillion(), 1_000_000_000_000L);
+            put(unitSymbols.quadrillion(), 1_000_000_000_000_000L);
+        }};
+
     }
 
-    public double formatAmountString(String amount) {
-        try {
-            if (amount.endsWith(unitSymbols.quadrillion())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.quadrillion().length())) * 1_000_000_000_000_000D;
-            } else if (amount.endsWith(unitSymbols.trillion())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.trillion().length())) * 1_000_000_000_000D;
-            } else if (amount.endsWith(unitSymbols.billion())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.billion().length())) * 1_000_000_000D;
-            } else if (amount.endsWith(unitSymbols.million())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.million().length())) * 1_000_000D;
-            } else if (amount.endsWith(unitSymbols.thousand())) {
-                return Double.parseDouble(amount.substring(0, amount.length() - unitSymbols.thousand().length())) * 1_000D;
-            }
-            return Double.parseDouble(amount);
-        } catch (NumberFormatException e) {
-            return -1;
-        }
+    public void send(CommandSender sender, String text) {
+        audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text));
     }
 
     public @Nullable Field getStringField(String name) throws NoSuchFieldException {

@@ -44,13 +44,11 @@ public class PurgeUserCommand implements CommandExecutor, TabCompleter {
             nameUUIDs = currenciesManager.removeNamePattern(target, !onlyNameUUID);
             successMsg = plugin.langs().purgeUserSuccess.replace("%player%", target);
         }
-        if (nameUUIDs.size() == 0) {
+        if (nameUUIDs.isEmpty()) {
             plugin.langs().send(sender, plugin.langs().playerNotFound);
             return true;
         }
         plugin.langs().send(sender, successMsg);
-
-
         return true;
     }
 

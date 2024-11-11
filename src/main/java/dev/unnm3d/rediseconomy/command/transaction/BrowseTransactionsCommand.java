@@ -63,8 +63,6 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
 
                 sendTransaction(sender, i, transactions.get(i), afterDateString + " " + beforeDateString);
 
-                if (plugin.settings().debug)
-                    sender.sendMessage("Time: " + (System.currentTimeMillis() - init));
             }
 
             plugin.langs().send(sender, plugin.langs().transactionsEnd

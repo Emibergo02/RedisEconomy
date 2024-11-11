@@ -32,6 +32,7 @@ public class Currency implements Economy {
     @Getter
     protected final String currencyName;
     private final ConcurrentHashMap<UUID, Double> accounts;
+    private final ConcurrentHashMap<UUID, Double> maxPlayerBalances;
 
     private boolean enabled;
     @Getter
@@ -72,19 +73,29 @@ public class Currency implements Economy {
         this.transactionTax = currencySettings.payTax();
         this.taxOnlyPay = currencySettings.taxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();
+        this.maxPlayerBalances = new ConcurrentHashMap<>();
         this.decimalFormat = new DecimalFormat(
                 currencySettings.decimalFormat() != null ? currencySettings.decimalFormat() : "#.##",
                 new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.languageTag() != null ? currencySettings.languageTag() : "en-US"))
         );
+
         getOrderedAccounts(-1).thenApply(result -> {
-                    result.forEach(t ->
-                            accounts.put(UUID.fromString(t.getValue()), t.getScore()));
-                    if (RedisEconomyPlugin.getInstance().settings().debug && !accounts.isEmpty()) {
-                        Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
-                    }
-                    return result;
-                }
-        ).toCompletableFuture().join(); //Wait to avoid API calls before accounts are loaded
+            result.forEach(t ->
+                    accounts.put(UUID.fromString(t.getValue()), t.getScore()));
+            if (RedisEconomyPlugin.getInstance().settings().debug && !accounts.isEmpty()) {
+                Bukkit.getLogger().info("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
+            }
+            return result;
+        }).toCompletableFuture().join(); //Wait to avoid API calls before accounts are loaded
+
+        getPlayerMaxBalances().thenApply(result -> {
+            maxPlayerBalances.putAll(result);
+            if (RedisEconomyPlugin.getInstance().settings().debug && !maxPlayerBalances.isEmpty()) {
+                Bukkit.getLogger().info("start1 Loaded " + maxPlayerBalances.size() + " max balances for currency " + currencyName);
+            }
+            return result;
+        }); //Not as critical as accounts, so we don't wait
+
         registerUpdateListener();
     }
 
@@ -95,21 +106,34 @@ public class Currency implements Economy {
             @Override
             public void message(String channel, String message) {
                 String[] split = message.split(";;");
-                if (split.length != 4) {
+                if (split.length < 3) {
                     Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
-                    return;
                 }
-                if (split[0].equals(RedisEconomyPlugin.getInstance().settings().serverId)) return;
-                UUID uuid = UUID.fromString(split[1]);
-                String playerName = split[2];
-                double balance = Double.parseDouble(split[3]);
-                updateAccountLocal(uuid, playerName, balance);
-                if (RedisEconomyPlugin.getInstance().settings().debug) {
-                    Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
+
+                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
+                final UUID uuid = UUID.fromString(split[1]);
+
+                if (channel.equals(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName)) {
+                    String playerName = split[2];
+                    double balance = Double.parseDouble(split[3]);
+                    if (playerName == null) {
+                        Bukkit.getLogger().severe("Player name not found for UUID " + uuid);
+                        return;
+                    }
+                    updateAccountLocal(uuid, playerName, balance);
+                    if (RedisEconomyPlugin.getInstance().settings().debug) {
+                        Bukkit.getLogger().info("01b Received balance update " + playerName + " to " + balance);
+                    }
+                } else if (channel.equals(UPDATE_MAX_BAL_PREFIX + currencyName)) {
+                    double maxBal = Double.parseDouble(split[2]);
+                    setPlayerMaxBalanceLocal(uuid, maxBal);
+                    if (RedisEconomyPlugin.getInstance().settings().debug) {
+                        Bukkit.getLogger().info("01b Received max balance update " + uuid + " to " + maxBal);
+                    }
                 }
             }
         });
-        connection.async().subscribe(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
+        connection.async().subscribe(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, UPDATE_MAX_BAL_PREFIX + currencyName);
         if (RedisEconomyPlugin.getInstance().settings().debug) {
             Bukkit.getLogger().info("start1b Listening to RedisEco channel " + UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
         }
@@ -405,7 +429,7 @@ public class Currency implements Economy {
         if (!has(sender, amountToWithdraw))
             return new EconomyResponse(0, getBalance(sender), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
 
-        if (getBalance(receiver) + amount > maxBalance)
+        if (getBalance(receiver) + amount > getPlayerMaxBalance(receiver))
             return new EconomyResponse(0, getBalance(receiver), EconomyResponse.ResponseType.FAILURE, "The receiver has reached the maximum balance");
 
         updateAccount(sender, senderName, getBalance(sender) - amountToWithdraw);
@@ -421,8 +445,11 @@ public class Currency implements Economy {
             return new EconomyResponse(amount, getBalance(senderName), EconomyResponse.ResponseType.FAILURE, "Account not found");
         if (!hasAccount(receiverName))
             return new EconomyResponse(amount, getBalance(receiverName), EconomyResponse.ResponseType.FAILURE, "Account not found");
-        UUID sender = currenciesManager.getUUIDFromUsernameCache(senderName);
-        UUID receiver = currenciesManager.getUUIDFromUsernameCache(receiverName);
+
+        final UUID sender = currenciesManager.getUUIDFromUsernameCache(senderName);
+        final UUID receiver = currenciesManager.getUUIDFromUsernameCache(receiverName);
+
+        //Calculate the amount to withdraw with the transaction tax
         double amountToWithdraw = amount + (amount * transactionTax);
         if (sender == null || receiver == null)
             return new EconomyResponse(amount, getBalance(senderName), EconomyResponse.ResponseType.FAILURE, "Account not found");
@@ -433,7 +460,7 @@ public class Currency implements Economy {
         if (!has(senderName, amountToWithdraw))
             return new EconomyResponse(0, getBalance(sender), EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
 
-        if (getBalance(receiver) + amount > maxBalance)
+        if (getBalance(receiver) + amount > getPlayerMaxBalance(receiver))
             return new EconomyResponse(0, getBalance(receiver), EconomyResponse.ResponseType.FAILURE, "The receiver has reached the maximum balance");
 
         updateAccount(sender, senderName, getBalance(sender) - amountToWithdraw);
@@ -518,7 +545,7 @@ public class Currency implements Economy {
         if (amount == Double.POSITIVE_INFINITY || amount == Double.NEGATIVE_INFINITY || Double.isNaN(amount))
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
 
-        if (getBalance(playerUUID) + amount > maxBalance)
+        if (getBalance(playerUUID) + amount > getPlayerMaxBalance(playerUUID))
             return new EconomyResponse(0, getBalance(playerUUID), EconomyResponse.ResponseType.FAILURE, "The player has reached the maximum balance");
 
         updateAccount(playerUUID, playerName, getBalance(playerUUID) + amount);
@@ -538,29 +565,51 @@ public class Currency implements Economy {
     }
 
     private synchronized void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
+        final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
         updateExecutor.submit(() -> {
-            currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
-                if (playerName != null)
-                    reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
-                        RedisEconomyPlugin.getInstance().settings().serverId + ";;" + uuid + ";;" + playerName + ";;" + balance);
-            }).ifPresentOrElse(result -> {
-
-                if (RedisEconomyPlugin.getInstance().settings().debug) {
-                    Bukkit.getLogger().info("01 Sent update account " + playerName + " to " + balance + " currency " + currencyName);
+            try {
+                if (plugin.settings().debugUpdateCache) {
+                    Bukkit.getLogger().info("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
                 }
-            }, () -> {
-                if (tries < 3) {
-                    Bukkit.getLogger().severe("Player accounts are desynchronized");
-                    updateAccountCloudCache(uuid, playerName, balance, tries + 1);
-                } else {
-                    Bukkit.getLogger().severe("Failed to update account " + playerName + " after 3 tries");
-                    throw new RuntimeException("Player accounts are desynchronized");
-                }
-            });
+                currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
+                    reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
+                    if (playerName != null)
+                        reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
+                    reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
+                            RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
+                    if (plugin.settings().debugUpdateCache) {
+                        plugin.getLogger().info("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
+                    }
+                }).ifPresentOrElse(result -> {
+                    if (RedisEconomyPlugin.getInstance().settings().debugUpdateCache) {
+                        plugin.getLogger().info("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
+                    }
+                }, () -> handleException(uuid, playerName, balance, tries, null));
+            } catch (Exception e) {
+                handleException(uuid, playerName, balance, tries, e);
+            }
         });
     }
+
+    private void handleException(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries, @Nullable Exception e) {
+        final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
+        if (tries < plugin.settings().redis.getTryAgainCount()) {
+            if (plugin.settings().debugUpdateCache) {
+                plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
+                if (e != null)
+                    e.printStackTrace();
+            }
+            updateAccountCloudCache(uuid, playerName, balance, tries + 1);
+            return;
+        }
+        if (plugin.settings().debugUpdateCache) {
+            plugin.getLogger().severe("Failed to update account " + playerName + " after " + tries + " tries");
+            currenciesManager.getRedisManager().printPool();
+            if (e != null)
+                throw new RuntimeException(e);
+        }
+    }
+
 
     /**
      * Update the balances of all players and their nameuuids
@@ -596,6 +645,40 @@ public class Currency implements Economy {
         return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
                 accounts.zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, limit));
 
+    }
+
+    public double getPlayerMaxBalance(UUID uuid) {
+        return maxPlayerBalances.getOrDefault(uuid, maxBalance);
+    }
+
+    public void setPlayerMaxBalance(UUID uuid, double amount) {
+        setPlayerMaxBalanceCloud(uuid, amount);
+        setPlayerMaxBalanceLocal(uuid, amount);
+    }
+
+    public void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
+        maxPlayerBalances.put(uuid, amount);
+    }
+
+    public void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
+        currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
+            if(amount == maxBalance) {
+                asyncCommands.hdel(MAX_PLAYER_BALANCES + currencyName, uuid.toString());
+            } else {
+                asyncCommands.hset(MAX_PLAYER_BALANCES + currencyName, uuid.toString(), String.valueOf(amount));
+            }
+            return asyncCommands.publish(UPDATE_MAX_BAL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + amount);
+        });
+    }
+
+    public CompletionStage<Map<UUID, Double>> getPlayerMaxBalances() {
+        return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
+                        accounts.hgetall(MAX_PLAYER_BALANCES + currencyName))
+                .thenApply(result -> {
+                    final Map<UUID, Double> maxBalances = new HashMap<>();
+                    result.forEach((key, value) -> maxBalances.put(UUID.fromString(key), Double.parseDouble(value)));
+                    return maxBalances;
+                });
     }
 
     /**

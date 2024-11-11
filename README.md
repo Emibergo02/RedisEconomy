@@ -38,7 +38,7 @@ dependencies {
 }
 ```
 ## API usage
-
+YOU PROBABLY DON'T NEED TO USE REDISECONOMY API: USE VAULT API https://github.com/MilkBowl/VaultAPI
 ```java
 // Access Point
 RedisEconomyAPI api = RedisEconomyAPI.getAPI();
@@ -53,7 +53,7 @@ api.getCurrencyBySymbol("€");//Gets the currency by symbol
 //Currency is a Vault Economy https://github.com/MilkBowl/VaultAPI/blob/master/src/main/java/net/milkbowl/vault/economy/Economy.java, 
 //same methods and everything
 currency.getBalance(offlinePlayer);
-currency.withdrawPlayer(offlinePlayer, 100);
+currency.withdrawPlayer(offlinePlayer, 100, "Reason of withdrawal");
 
 //Modify a player balance (default currency)
 api.getDefaultCurrency().setPlayerBalance(player.getUniqueId(), 1000);
