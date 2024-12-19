@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.command.balance;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.utils.DecimalUtils;
 import io.lettuce.core.ScoredValue;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
@@ -65,6 +66,9 @@ public class BalanceTopCommand implements CommandExecutor, TabCompleter {
                         plugin.langs().send(sender, plugin.langs().balanceTopFormat
                                 .replace("%pos%", String.valueOf((pageData.pageNumber - 1) * 10 + i))
                                 .replace("%player%", username == null ? tuple.getValue() + "-Unknown" : username)
+                                .replace("%balance_short%",
+                                        DecimalUtils.shortAmount(tuple.getScore(), baltopCurrency.getDecimalFormat()) +
+                                                (tuple.getScore() == 1 ? baltopCurrency.getCurrencySingular() : baltopCurrency.getCurrencyPlural()))
                                 .replace("%balance%", baltopCurrency.format(tuple.getScore())));
                         i++;
                     }

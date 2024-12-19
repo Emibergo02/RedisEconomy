@@ -4,7 +4,6 @@ import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
 
 import java.util.List;
-import java.util.UUID;
 
 @SuppressWarnings("unused")
 @Configuration
@@ -40,7 +39,7 @@ public class Settings {
     @Comment("Minimum amount of money that can be paid")
     public double minPayAmount = 0.01;
     @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, Double.POSITIVE_INFINITY, 0, true, true, false), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, Double.POSITIVE_INFINITY, 0, false, false, false));
+    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, true, false), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, false, false));
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
                                    String decimalFormat, String languageTag,

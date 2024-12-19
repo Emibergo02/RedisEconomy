@@ -164,7 +164,7 @@ public class Currency implements Economy {
 
     @Override
     public int fractionalDigits() {
-        return 0;
+        return decimalFormat.getMaximumFractionDigits();
     }
 
     @Override
