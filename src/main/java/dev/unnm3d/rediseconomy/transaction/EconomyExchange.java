@@ -9,10 +9,7 @@ import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
@@ -92,16 +89,16 @@ public class EconomyExchange {
 
         final CompletableFuture<List<Integer>> future = new CompletableFuture<>();
         long init = System.currentTimeMillis();
+        final String stackTrace = getCallerPluginString();
 
         executorService.submit(() -> {
-            final String finalReason = reason + getCallerPluginString();
             TransactionEvent transactionSenderEvent = new TransactionEvent(new Transaction(
                     new AccountID(sender),
                     System.currentTimeMillis(),
                     new AccountID(target),
                     -amount,
                     currency.getCurrencyName(),
-                    finalReason,
+                    reason + stackTrace,
                     null));
             TransactionEvent transactionReceiverEvent = new TransactionEvent(new Transaction(
                     new AccountID(target),
@@ -109,7 +106,7 @@ public class EconomyExchange {
                     new AccountID(sender),
                     amount,
                     currency.getCurrencyName(),
-                    finalReason,
+                    reason + stackTrace,
                     null));
 
             plugin.getScheduler().runTask(() -> {
@@ -156,12 +153,13 @@ public class EconomyExchange {
         final CompletableFuture<Integer> future = new CompletableFuture<>();
         long init = System.currentTimeMillis();
 
+        final String stackTrace = getCallerPluginString();
         executorService.submit(() -> {
             TransactionEvent transactionEvent = new TransactionEvent(new Transaction(
                     accountOwner,
                     System.currentTimeMillis(),
                     target, //If target is null, it has been sent from the server
-                    amount, currency.getCurrencyName(), reason + getCallerPluginString(), null));
+                    amount, currency.getCurrencyName(), reason + stackTrace, null));
             plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
             Long longResult = plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
                     "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
@@ -244,16 +242,12 @@ public class EconomyExchange {
 
     public String getCallerPluginString() {
         if (!plugin.settings().registerCalls) return "";
-        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        for (int i = 3; i < stackTraceElements.length; i++) {
-            if (!stackTraceElements[i].getClassName().startsWith("org.bukkit") &&
-                    !stackTraceElements[i].getClassName().startsWith("dev.unnm3d.rediseconomy") &&
-                    !stackTraceElements[i].getClassName().startsWith("com.mojang")
-            ) {
-                return "\nCall: " + stackTraceElements[i].getClassName() + ":" + stackTraceElements[i].getMethodName();
-            }
-        }
-        return "";
+        return Arrays.stream(Thread.currentThread().getStackTrace())
+                .skip(3)
+                .filter(s -> plugin.settings().callBlacklistRegex.stream().noneMatch(blRegex -> s.getClassName().matches(blRegex)))
+                .findFirst()
+                .map(ste -> "\nCall: " + ste.getClassName() + ":" + ste.getMethodName())
+                .orElse("");
     }
 
 }

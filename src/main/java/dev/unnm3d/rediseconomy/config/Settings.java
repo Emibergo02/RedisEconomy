@@ -18,6 +18,8 @@ public class Settings {
     public boolean debugUpdateCache = false;
     @Comment("If true, the plugin registers who's calling it's methods inside transactions")
     public boolean registerCalls = false;
+    @Comment("List of regex to be excluded from the registerCalls")
+    public List<String> callBlacklistRegex = List.of("^org\\.bukkit.*", "^dev\\.unnm3d\\.rediseconomy.*","^com\\.mojang.*");
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
