@@ -92,8 +92,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         this.getLogger().info("Hooked into Vault!");
 
         if (settings().migrationEnabled) {
-            scheduler.runTaskLater(() ->
-                    currenciesManager.migrateFromOfflinePlayers(getServer().getOfflinePlayers()), 100L);
+            scheduler.runTaskLaterAsynchronously(() ->
+                    currenciesManager.migrate(), 100L);
         } else {
             currenciesManager.loadDefaultCurrency(this.vaultPlugin);
         }
