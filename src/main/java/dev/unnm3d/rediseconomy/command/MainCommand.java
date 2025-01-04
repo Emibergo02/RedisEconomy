@@ -98,8 +98,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return List.of("reload", "editmessage", "expandpool");
         } else if (args.length == 2 && args[0].equalsIgnoreCase("expandpool")) {
             return List.of("1", "2", "3", "4", "5");
-        } else if (args.length == 2 && sender.hasPermission("rediseconomy.admin.editmessage")) {
-            return Arrays.stream(plugin.getConfigManager().getLangs().getClass().getFields()).filter(field -> field.getType().equals(String.class)).map(Field::getName).toList();
+        } else if (args.length == 2 && sender.hasPermission("rediseconomy.admin.editmessage") && args[0].equalsIgnoreCase("editmessage")) {
+            return Arrays.stream(plugin.getConfigManager().getLangs().getClass().getFields())
+                    .filter(field -> field.getType().equals(String.class))
+                    .map(Field::getName)
+                    .filter(name -> name.startsWith(args[1]))
+                    .toList();
         }
         return List.of();
     }

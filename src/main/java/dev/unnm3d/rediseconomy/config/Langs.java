@@ -24,16 +24,16 @@ public final class Langs {
     public String payCooldown = "<red>Your previous payment is still in progress! Wait please</red>";
     public String invalidCurrency = "<red>Invalid currency!</red>";
     public String insufficientFunds = "<red>You do not have enough money!</red>";
-    public String balance = "<green>You have %balance%!</green>";
+    public String balance = "<green>You have %balance_short%!</green>";
     public String balanceSet = "<green>You set %player% account to %balance% !</green>";
     public String maxBalanceSet = "<green>You set %player% max balance to %amount% !</green>";
-    public String balanceOther = "<green>%player% has %balance% !</green>";
+    public String balanceOther = "<green>%player% has %balance_short% !</green>";
     public String balanceTop = "<green>Top richest players:</green><br>%prevpage%      %page%      %nextpage%";
     public String blockedAccounts = "<green>Blocked accounts:</green><br>%list%";
     public String blockedAccountSuccess = "<green>Account %player% has been blocked!</green>";
     public String unblockedAccountSuccess = "<green>Account %player% has been unblocked!</green>";
     public String blockedPayment = "<red>Your payments to %player% have been blocked!</red>";
-    public String balanceTopFormat = "<aqua>%pos% - %player% %balance%</aqua>";
+    public String balanceTopFormat = "<aqua>%pos% - %player% %balance_short%</aqua>";
     public String paySelf = "<red>You cannot pay yourself!</red>";
     @Comment("Use %tax_percentage% for tax percentage and %tax_applied% for tax applied to the transaction.")
     public String paySuccess = "<green>You paid %player% %amount%</green>";

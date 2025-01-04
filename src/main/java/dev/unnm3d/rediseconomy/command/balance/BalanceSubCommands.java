@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.command.balance;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.utils.DecimalUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -21,7 +22,12 @@ public class BalanceSubCommands extends BalanceCommand {
             plugin.langs().send(sender, plugin.langs().playerNotFound);
             return;
         }
-        plugin.langs().send(sender, plugin.langs().balanceOther.replace("%balance%", String.valueOf(currency.format(currency.getBalance(target)))).replace("%player%", target));
+        double currentBalance = currency.getBalance(target);
+        plugin.langs().send(sender, plugin.langs().balanceOther
+                .replace("%balance%", String.valueOf(currency.format(currentBalance)))
+                .replace("%balance_short%", DecimalUtils.shortAmount(currentBalance, currency.getDecimalFormat()) +
+                        (currentBalance == 1 ? currency.getCurrencySingular() : currency.getCurrencyPlural()))
+                .replace("%player%", target));
     }
 
     @Override
@@ -30,7 +36,11 @@ public class BalanceSubCommands extends BalanceCommand {
             plugin.langs().send(sender, plugin.langs().noConsole);
             return;
         }
-        plugin.langs().send(sender, plugin.langs().balance.replace("%balance%", String.valueOf(currency.format(currency.getBalance(p)))));
+
+        plugin.langs().send(sender, plugin.langs().balance.replace("%balance_short%",
+                        DecimalUtils.shortAmount(currency.getBalance(p), currency.getDecimalFormat()) +
+                                (currency.getBalance(p) == 1 ? currency.getCurrencySingular() : currency.getCurrencyPlural()))
+                .replace("%balance%", String.valueOf(currency.format(currency.getBalance(p)))));
     }
 
     @Override
