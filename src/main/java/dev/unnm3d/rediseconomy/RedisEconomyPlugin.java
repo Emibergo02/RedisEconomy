@@ -102,8 +102,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         //Commands
         PayCommand payCommand = new PayCommand(currenciesManager, this);
         loadCommand("pay", payCommand, payCommand);
-        BlockPaymentsCommand blockPaymentsCommand = new BlockPaymentsCommand(this);
-        loadCommand("toggle-payments", blockPaymentsCommand, blockPaymentsCommand);
+        TogglePaymentsCommand togglePaymentsCommand = new TogglePaymentsCommand(this);
+        loadCommand("toggle-payments", togglePaymentsCommand, togglePaymentsCommand);
         BalanceCommand balanceCommand = new BalanceSubCommands(currenciesManager, this);
         loadCommand("balance", balanceCommand, balanceCommand);
         BalanceTopCommand balanceTopCommand = new BalanceTopCommand(currenciesManager, this);

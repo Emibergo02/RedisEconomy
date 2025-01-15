@@ -16,7 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @AllArgsConstructor
-public class BlockPaymentsCommand implements CommandExecutor, TabCompleter {
+public class TogglePaymentsCommand implements CommandExecutor, TabCompleter {
     private final RedisEconomyPlugin plugin;
 
     @Override

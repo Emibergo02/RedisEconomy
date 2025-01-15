@@ -5,8 +5,10 @@ import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.clip.placeholderapi.expansion.Relational;
 import net.milkbowl.vault.chat.Chat;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,7 +16,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 
-public class PlaceholderAPIHook extends PlaceholderExpansion {
+public class PlaceholderAPIHook extends PlaceholderExpansion implements Relational {
 
     private final CurrenciesManager currenciesManager;
     private final Langs langs;
@@ -188,5 +190,23 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
                 formattedNumber += currency.getCurrencyPlural();
         }
         return formattedNumber;
+    }
+
+    // %rel_rediseco_is_pay_blocking%
+    // %rel_rediseco_is_pay_blocked%
+    @Override
+    public String onPlaceholderRequest(Player one, Player two, String params) {
+        if (params.equalsIgnoreCase("is_pay_blocking")) {
+            if (plugin.getCurrenciesManager().getLockedAccounts(one.getUniqueId()).contains(two.getUniqueId())) {
+                return "true";
+            }
+            return "false";
+        }else if (params.equalsIgnoreCase("is_pay_blocked")) {
+            if (plugin.getCurrenciesManager().getLockedAccounts(two.getUniqueId()).contains(one.getUniqueId())) {
+                return "true";
+            }
+            return "false";
+        }
+        return onRequest(one, params);
     }
 }
