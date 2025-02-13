@@ -115,11 +115,7 @@ public class EconomyExchange {
             });
             future.complete(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                     connection.eval(
-                            "local senderCurrentId=redis.call('hlen', KEYS[1]);" +
-                                    "local receiverCurrentId=redis.call('hlen', KEYS[2]);" +
-                                    "redis.call('hset', KEYS[1], senderCurrentId, ARGV[1]);" +
-                                    "redis.call('hset', KEYS[2], receiverCurrentId, ARGV[2]);" +
-                                    "return {senderCurrentId,receiverCurrentId};", //Return the id of the new transaction
+                            "local a=redis.call('hlen',KEYS[1])local b=redis.call('hlen',KEYS[2])redis.call('hset',KEYS[1],a,ARGV[1])redis.call('hset',KEYS[2],b,ARGV[2])return{a,b}", //Return the id of the new transaction
                             ScriptOutputType.MULTI,
                             new String[]{
                                     NEW_TRANSACTIONS + sender.toString(),
@@ -162,9 +158,7 @@ public class EconomyExchange {
                     amount, currency.getCurrencyName(), reason + stackTrace, null));
             plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
             Long longResult = plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
-                    "local currentId=redis.call('hlen', KEYS[1]);" + //Get the current size of the hash
-                            "redis.call('hset', KEYS[1], currentId, ARGV[1]);" + //Add the new transaction
-                            "return currentId;", //Return the id of the new transaction
+                    "local a=redis.call('hlen',KEYS[1])redis.call('hset',KEYS[1],a,ARGV[1])return a", //Return the id of the new transaction
                     ScriptOutputType.INTEGER,
                     new String[]{NEW_TRANSACTIONS + accountOwner.toString()}, //Key rediseco:transactions:playerUUID
                     transactionEvent.getTransaction().toString()));
