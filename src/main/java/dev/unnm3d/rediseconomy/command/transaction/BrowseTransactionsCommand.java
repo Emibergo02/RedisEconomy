@@ -32,7 +32,7 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
         final String afterDateString = args.length == 3 ? args[1] : "anytime";
         final String beforeDateString = args.length == 3 ? args[2] : "anytime";
 
-        plugin.getCurrenciesManager().getExchange().getTransactions(accountID).thenAccept(transactions -> {
+        plugin.getCurrenciesManager().getExchange().getTransactions(accountID,Integer.MAX_VALUE).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
             if (transactions.isEmpty()) {
                 plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
@@ -62,7 +62,6 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
                     if (!transactionDate.before(beforeDate)) continue;
 
                 sendTransaction(sender, i, transactions.get(i), afterDateString + " " + beforeDateString);
-
             }
 
             plugin.langs().send(sender, plugin.langs().transactionsEnd

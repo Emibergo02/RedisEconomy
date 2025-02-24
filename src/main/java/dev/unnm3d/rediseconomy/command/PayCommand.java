@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.command;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.utils.DecimalUtils;
 import lombok.AllArgsConstructor;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
@@ -113,6 +114,8 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         plugin.langs().send(sender,
                 plugin.langs().paySuccess
                         .replace("%amount%", currency.format(amount))
+                        .replace("%amount_short%", DecimalUtils.shortAmount(amount, currency.getDecimalFormat()) +
+                                (amount == 1 ? currency.getCurrencySingular() : currency.getCurrencyPlural()))
                         .replace("%player%", target)
                         .replace("%tax_percentage%", (currency.getTransactionTax() * 100) + "%")
                         .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
@@ -161,6 +164,8 @@ public class PayCommand implements CommandExecutor, TabCompleter {
             plugin.langs().send(sender,
                     plugin.langs().paySuccess
                             .replace("%amount%", currency.format(amount))
+                            .replace("%amount_short%", DecimalUtils.shortAmount(amount, currency.getDecimalFormat()) +
+                                    (amount == 1 ? currency.getCurrencySingular() : currency.getCurrencyPlural()))
                             .replace("%player%", onlinePlayer.getName())
                             .replace("%tax_percentage%", (currency.getTransactionTax() * 100) + "%")
                             .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))

@@ -58,6 +58,13 @@ public final class Langs {
             "<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:\"<blue>Click to copy:</blue><br><aqua>%timestamp%</aqua>\"><gold>[Timestamp⌛]</hover></click> <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:\"Click to revert transaction\"><red>[←Revert]</hover></click><br>" +
                     "<click:run_command:/transaction %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br>" +
                     "<yellow>Reason: </yellow>%reason%");
+    public TransactionItem playerTransactionItem = new TransactionItem(
+            "<dark_aqua>#%id%</dark_aqua> <hover:show_text:\"<aqua>%timestamp%</aqua>\"><gold>[Timestamp⌛]</hover><br>" +
+                    "<dark_green>%account-owner%</dark_green> <grey>> <white>%amount%%symbol%</white> ></grey> <green>%other-account%</green><br>" +
+                    "<yellow>Reason: </yellow>%reason%",
+            "<dark_aqua>#%id%</dark_aqua> <hover:show_text:\"<aqua>%timestamp%</aqua>\"><gold>[Timestamp⌛]</hover><br>" +
+                    "<dark_green>%other-account%</dark_green> <grey>> <white>%amount%%symbol%</white> ></grey> <green>%account-owner%</green><br>" +
+                    "<yellow>Reason: </yellow>%reason%");
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
     public String backupRestoreFinished = "<green>Backup/restore file %file% finished!</green>";
     public String invalidPath = "<red>Invalid path!</red>";

@@ -46,7 +46,7 @@ public class ArchiveTransactionsCommand implements CommandExecutor, TabCompleter
                     progress++;
                     try {
                         AccountID accountID = new AccountID(entry.getValue());
-                        Collection<Transaction> transactions = plugin.getCurrenciesManager().getExchange().getTransactions(accountID)
+                        Collection<Transaction> transactions = plugin.getCurrenciesManager().getExchange().getTransactions(accountID,Integer.MAX_VALUE)
                                 .toCompletableFuture().get()
                                 .values();
                         if (transactions.isEmpty())

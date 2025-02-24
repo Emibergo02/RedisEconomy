@@ -7,6 +7,7 @@ import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
+import dev.unnm3d.rediseconomy.utils.DecimalUtils;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
@@ -337,7 +338,9 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 Player online = plugin.getServer().getPlayer(target);
                 if (online != null) {
                     if (online.isOnline()) {
-                        configManager.getLangs().send(online, configManager.getLangs().payReceived.replace("%player%", sender).replace("%amount%", currencyAmount));
+                        configManager.getLangs().send(online, configManager.getLangs().payReceived
+                                .replace("%player%", sender)
+                                .replace("%amount%", currencyAmount));
                         if (configManager.getSettings().debug) {
                             plugin.getLogger().info("02b Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
                         }

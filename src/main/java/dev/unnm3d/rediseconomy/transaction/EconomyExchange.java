@@ -26,10 +26,18 @@ public class EconomyExchange {
      * @param accountId Account id
      * @return Map of transaction ids and transactions
      */
-    public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId) {
+    public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId, int limit) {
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
-                        .thenApply(this::getTransactionsFromSerialized)
+                        .thenApply(transactions -> {
+                            if (transactions == null||transactions.isEmpty()) return new HashMap<Integer, Transaction>();
+                            final Map<Integer, Transaction> transactionsMap = new HashMap<>();
+                            transactions.entrySet().stream()
+                                    .sorted(Comparator.comparingInt(entryO -> Integer.parseInt(((Map.Entry<String,String>)entryO).getKey())).reversed())
+                                    .limit(limit)
+                                    .forEach(entry -> transactionsMap.put(Integer.parseInt(entry.getKey()), Transaction.fromString(entry.getValue())));
+                            return transactionsMap;
+                        })
                         .exceptionally(exc -> {
                             exc.printStackTrace();
                             return null;

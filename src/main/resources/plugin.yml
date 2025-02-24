@@ -6,7 +6,7 @@ load: STARTUP
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.4.0.RELEASE
+  - io.lettuce:lettuce-core:6.5.4.RELEASE
   - de.exlll:configlib-yaml:4.5.0
 softdepend:
   - PlaceholderAPI
@@ -43,6 +43,10 @@ commands:
     description: Show transactions
     usage: /browse-transactions <player> [timestamp]
     permission: rediseconomy.admin.browse-transactions
+  last-transactions:
+    description: Show last transactions
+    usage: /last-transactions
+    permission: rediseconomy.last-transactions
   archive-transactions:
     description: Archive transactions
     usage: /archive-transactions <file>
@@ -84,6 +88,9 @@ permissions:
     default: true
   rediseconomy.balancetop:
     description: Allows to use /balancetop
+    default: true
+  rediseconomy.last-transactions:
+    description: Allows to use /last-transactions
     default: true
   rediseconomy.admin:
     description: Allows to use admin commands
