@@ -29,6 +29,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -43,6 +44,9 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Getter
     private CurrenciesManager currenciesManager;
     private RedisManager redisManager;
+    @Nullable
+    @Getter
+    private PlayerListManager playerListManager;
     @Getter
     private TaskScheduler scheduler;
     @Getter
@@ -88,6 +92,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        loadPlayerList();
 
         this.currenciesManager = new CurrenciesManager(redisManager, this, configManager);
         this.getLogger().info("Hooked into Vault!");
@@ -135,11 +140,25 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (playerListManager != null)
+            playerListManager.stop();
         if (redisManager != null)
             redisManager.close();
         if (currenciesManager != null)
             this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
         getLogger().info("RedisEconomy disabled successfully!");
+    }
+
+    /**
+     * Load the player list manager if the tabOnlinePlayers setting is enabled
+     */
+    public void loadPlayerList() {
+        if (configManager.getSettings().tabOnlinePlayers) {
+            this.playerListManager = new PlayerListManager(this.redisManager, this);
+        } else if (playerListManager != null) {
+            playerListManager.stop();
+            playerListManager = null;
+        }
     }
 
     private boolean setupRedis() {

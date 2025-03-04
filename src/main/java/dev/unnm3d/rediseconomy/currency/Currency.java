@@ -102,7 +102,7 @@ public class Currency implements Economy {
 
     private void registerUpdateListener() {
         StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
-        connection.addListener(new RedisCurrencyListener() {
+        connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
                 String[] split = message.split(";;");

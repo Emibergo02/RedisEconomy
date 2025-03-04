@@ -30,6 +30,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             plugin.getConfigManager().loadSettingsConfig();//Reload configs
             plugin.getConfigManager().loadLangs(); //Reload langs
             plugin.getConfigManager().saveConfigs(); //Save configs
+            plugin.loadPlayerList();
             this.adventureWebuiEditorAPI = new AdventureWebuiEditorAPI(plugin.getConfigManager().getSettings().webEditorUrl);
             sender.sendMessage("§aReloaded successfully!");
             return true;

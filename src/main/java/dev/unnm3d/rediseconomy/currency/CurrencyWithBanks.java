@@ -52,7 +52,7 @@ public class CurrencyWithBanks extends Currency {
 
     private void registerBankOwnerListener() {
         StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
-        connection.addListener(new RedisCurrencyListener() {
+        connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
                 String[] split = message.split(";;");
@@ -77,7 +77,7 @@ public class CurrencyWithBanks extends Currency {
 
     private void registerBankAccountListener() {
         StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
-        connection.addListener(new RedisCurrencyListener() {
+        connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
                 String[] split = message.split(";;");

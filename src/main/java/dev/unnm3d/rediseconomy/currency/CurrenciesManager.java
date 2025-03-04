@@ -7,7 +7,6 @@ import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
-import dev.unnm3d.rediseconomy.utils.DecimalUtils;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
@@ -328,7 +327,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     private void registerPayMsgChannel() {
         StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
-        connection.addListener(new RedisCurrencyListener() {
+        connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
                 String[] args = message.split(";;");
@@ -462,7 +461,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     private void registerBlockAccountChannel() {
         StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
-        connection.addListener(new RedisCurrencyListener() {
+        connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
                 String[] args = message.split(",");
