@@ -34,6 +34,8 @@ public class Settings {
     public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})
     public int tab_complete_chars = 0;
+    @Comment("If true, the tab completion will show only online players. tab_complete_chars is applied")
+    public boolean tabOnlinePLayers= false;
     @Comment("Default currency name (must be the same as the currency name in the currencies list)")
     public String defaultCurrencyName = "vault";
     @Comment("Cooldown between payments in milliseconds")

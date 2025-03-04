@@ -184,6 +184,11 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
+            if(plugin.settings().tabOnlinePLayers){
+                return plugin.getServer().getOnlinePlayers().stream().map(Player::getName)
+                        .filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase()))
+                        .toList();
+            }
             return currenciesManager.getNameUniqueIds().keySet().stream()
                     .filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase()))
                     .toList();

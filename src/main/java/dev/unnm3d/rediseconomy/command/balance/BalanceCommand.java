@@ -9,6 +9,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -115,6 +116,11 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
+            if(plugin.settings().tabOnlinePLayers){
+                return plugin.getServer().getOnlinePlayers().stream().map(Player::getName)
+                        .filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase()))
+                        .toList();
+            }
             long init = System.currentTimeMillis();
             List<String> players = economy.getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
             if (plugin.settings().debug)
