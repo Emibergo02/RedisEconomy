@@ -30,7 +30,7 @@ public class TogglePaymentsCommand implements CommandExecutor, TabCompleter {
             List<UUID> localLocked = plugin.getCurrenciesManager().getLockedAccounts(p.getUniqueId());
             if (localLocked.contains(RedisKeys.getAllAccountUUID())) {
                 plugin.langs().send(sender, plugin.langs().blockedAccounts
-                        .replace("%list%", "all"));
+                        .replace("%list%", plugin.langs().allPlayersPlaceholder));
                 return true;
             }
             plugin.langs().send(sender, plugin.langs().blockedAccounts
@@ -43,7 +43,7 @@ public class TogglePaymentsCommand implements CommandExecutor, TabCompleter {
         }
 
         UUID targetUUID = RedisKeys.getAllAccountUUID();
-        if (!args[0].equals("*") && !args[0].equals("all")) {
+        if (!args[0].equals("*") && !args[0].equals(plugin.langs().allPlayersPlaceholder)) {
             targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(args[0]);
         }
         if (targetUUID == null) {
@@ -70,7 +70,13 @@ public class TogglePaymentsCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
-            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
+            if (plugin.settings().tabOnlinePlayers && plugin.getPlayerListManager() != null) {
+                return plugin.getPlayerListManager().getOnlinePlayers().stream()
+                        .filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase()))
+                        .toList();
+            }
+            return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream()
+                    .filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         }
 
         return List.of();

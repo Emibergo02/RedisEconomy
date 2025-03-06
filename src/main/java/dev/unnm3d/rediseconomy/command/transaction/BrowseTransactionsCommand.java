@@ -77,6 +77,11 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
         if (args.length == 1) {
             if (args[0].length() < plugin.settings().tab_complete_chars)
                 return List.of();
+            if (plugin.settings().tabOnlinePlayers && plugin.getPlayerListManager() != null) {
+                return plugin.getPlayerListManager().getOnlinePlayers().stream()
+                        .filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase()))
+                        .toList();
+            }
             return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
             if (args[1].trim().isEmpty())

@@ -15,6 +15,7 @@ import java.util.TreeMap;
 @Configuration
 public final class Langs {
     private final BukkitAudiences audiences = BukkitAudiences.create(RedisEconomyPlugin.getInstance());
+
     public String noConsole = "<red>You must be in-game to use this command!</red>";
     public String noPermission = "<red>You do not have permission to use this command!</red>";
     public String missingArguments = "<red>Missing arguments!</red>";
@@ -68,6 +69,7 @@ public final class Langs {
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
     public String backupRestoreFinished = "<green>Backup/restore file %file% finished!</green>";
     public String invalidPath = "<red>Invalid path!</red>";
+    public String allPlayersPlaceholder = "_ALL_";
 
 
     public record TransactionItem(
