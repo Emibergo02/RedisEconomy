@@ -139,3 +139,4 @@ permissions:
       rediseconomy.admin.backup-restore: true
       rediseconomy.admin.archive-transactions: true
       rediseconomy.admin.expandpool: true
+      rediseconomy.admin.test: true

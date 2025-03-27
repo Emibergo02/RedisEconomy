@@ -13,6 +13,7 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,15 +36,15 @@ public class CurrencyWithBanks extends Currency {
             for (ScoredValue<String> scoredValue : list) {
                 bankAccounts.put(scoredValue.getValue(), scoredValue.getScore());
             }
-            if (RedisEconomyPlugin.getInstance().settings().debug && !bankAccounts.isEmpty()) {
-                Bukkit.getLogger().info("start1bank Loaded " + bankAccounts.size() + " accounts for currency " + currencyName);
+            if (!bankAccounts.isEmpty()) {
+                RedisEconomyPlugin.debug("start1bank Loaded " + bankAccounts.size() + " accounts for currency " + currencyName);
             }
             return list;
         }).toCompletableFuture().join();
         getRedisBankOwners().thenApply(map -> {
             map.forEach((k, v) -> bankOwners.put(k, UUID.fromString(v)));
-            if (RedisEconomyPlugin.getInstance().settings().debug && !bankOwners.isEmpty()) {
-                Bukkit.getLogger().info("start1bankb Loaded " + bankOwners.size() + " accounts owners for currency " + currencyName);
+            if (!bankOwners.isEmpty()) {
+                RedisEconomyPlugin.debug("start1bankb Loaded " + bankOwners.size() + " accounts owners for currency " + currencyName);
             }
             return map;
         }).toCompletableFuture().join();
@@ -65,15 +66,12 @@ public class CurrencyWithBanks extends Currency {
                 String accountId = split[1];
                 UUID owner = UUID.fromString(split[2]);
                 bankOwners.put(accountId, owner);
-                if (RedisEconomyPlugin.getInstance().settings().debug) {
-                    Bukkit.getLogger().info("01d Received bank owner update " + accountId + " to " + owner);
-                }
+                RedisEconomyPlugin.debug("01d Received bank owner update " + accountId + " to " + owner);
             }
         });
         connection.async().subscribe(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName);
-        if (RedisEconomyPlugin.getInstance().settings().debug) {
-            Bukkit.getLogger().info("start1d Listening to RedisEco channel " + UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName);
-        }
+        RedisEconomyPlugin.debug("start1d Listening to RedisEco channel " + UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName);
+
     }
 
     private void registerBankAccountListener() {
@@ -90,15 +88,13 @@ public class CurrencyWithBanks extends Currency {
                 String accountId = split[1];
                 double balance = Double.parseDouble(split[2]);
                 updateBankAccountLocal(accountId, balance);
-                if (RedisEconomyPlugin.getInstance().settings().debug) {
-                    Bukkit.getLogger().info("01c Received bank balance update " + accountId + " to " + balance);
-                }
+                RedisEconomyPlugin.debug("01c Received bank balance update " + accountId + " to " + balance);
+
             }
         });
         connection.async().subscribe(UPDATE_BANK_CHANNEL_PREFIX + currencyName);
-        if (RedisEconomyPlugin.getInstance().settings().debug) {
-            Bukkit.getLogger().info("start1c Listening to RedisEco channel " + UPDATE_BANK_CHANNEL_PREFIX + currencyName);
-        }
+        RedisEconomyPlugin.debug("start1c Listening to RedisEco channel " + UPDATE_BANK_CHANNEL_PREFIX + currencyName);
+
     }
 
     @Override
@@ -144,9 +140,8 @@ public class CurrencyWithBanks extends Currency {
             return redisAsyncCommands.hdel(BANK_OWNERS.toString(), accountId);
         }).thenAccept(result -> {
             bankAccounts.remove(accountId);
-            if (RedisEconomyPlugin.getInstance().settings().debug) {
-                Bukkit.getLogger().info("Deleted bank account " + accountId + " with result " + result);
-            }
+                    RedisEconomyPlugin.debug("Deleted bank account " + accountId + " with result " + result);
+
             currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), 0, this, "Bank account deletion");
         });
         return new EconomyResponse(0, 0, EconomyResponse.ResponseType.SUCCESS, null);
@@ -261,9 +256,8 @@ public class CurrencyWithBanks extends Currency {
         } else {//Update bank account
             updateBankAccount(transaction.getAccountIdentifier().toString(), bankBalance(transaction.getAccountIdentifier().toString()).balance - transaction.getAmount());
         }
-        if (RedisEconomyPlugin.getInstance().settings().debug) {
-            Bukkit.getLogger().info("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
-        }
+        RedisEconomyPlugin.debug("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
+
         return currenciesManager.getExchange().saveTransaction(transaction.getAccountIdentifier(), transaction.getActor(), -transaction.getAmount(), this, "Revert #" + transactionId + ": " + transaction.getReason());
     }
 
@@ -272,9 +266,8 @@ public class CurrencyWithBanks extends Currency {
             connection.hset(BANK_OWNERS.toString(), accountId, ownerUUID.toString());
             return connection.publish(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + ownerUUID);
         }).thenAccept((result) -> {
-            if (RedisEconomyPlugin.getInstance().settings().debug) {
-                Bukkit.getLogger().info("Set owner of bank " + accountId + " to " + ownerUUID + " with result " + result);
-            }
+                    RedisEconomyPlugin.debug("Set owner of bank " + accountId + " to " + ownerUUID + " with result " + result);
+
             bankOwners.put(accountId, ownerUUID);
         });
     }
@@ -290,21 +283,18 @@ public class CurrencyWithBanks extends Currency {
 
     private synchronized void updateBankAccountCloudCache(@NotNull String accountId, double balance, int tries) {
         try {
-            updateExecutor.submit(() -> {
-                if (RedisEconomyPlugin.getInstance().settings().debug) {
-                    Bukkit.getLogger().info("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
-                }
+            getExecutor(accountId.getBytes()[0]).submit(() -> {
+                RedisEconomyPlugin.debug("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
+
                 try {
                     currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
                         reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
                         reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
-                        if (RedisEconomyPlugin.getInstance().settings().debug) {
-                            RedisEconomyPlugin.getInstance().getLogger().info("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
-                        }
+                        RedisEconomyPlugin.debug("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
+
                     }).ifPresentOrElse(result -> {
-                        if (RedisEconomyPlugin.getInstance().settings().debug) {
-                            Bukkit.getLogger().info("01c Sent bank update account " + accountId + " to " + balance);
-                        }
+                        RedisEconomyPlugin.debug("01c Sent bank update account " + accountId + " to " + balance);
+
                     }, () -> handleException(accountId, balance, tries, null));
                 } catch (Exception e) {
                     handleException(accountId, balance, tries, e);

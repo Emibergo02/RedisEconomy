@@ -19,7 +19,7 @@ public class Settings {
     @Comment("If true, the plugin registers who's calling it's methods inside transactions")
     public boolean registerCalls = false;
     @Comment("List of regex to be excluded from the registerCalls")
-    public List<String> callBlacklistRegex = List.of("^org\\.bukkit.*","^io\\.papermc.*", "^dev\\.unnm3d\\.rediseconomy.*","^com\\.mojang.*");
+    public List<String> callBlacklistRegex = List.of("^org\\.bukkit.*", "^io\\.papermc.*", "^dev\\.unnm3d\\.rediseconomy.*", "^com\\.mojang.*");
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
             "During the migration, the plugin will be disabled. Restart all RedisEconomy instances after the migration."})
     public boolean migrationEnabled = false;
@@ -43,12 +43,13 @@ public class Settings {
     @Comment("Minimum amount of money that can be paid")
     public double minPayAmount = 0.01;
     @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, true, false), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, false, false));
+    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, true, false,2), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, false, false,2));
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
                                    String decimalFormat, String languageTag,
                                    double startingBalance, double maxBalance, double payTax,
-                                   boolean saveTransactions, boolean bankEnabled, boolean taxOnlyPay) {
+                                   boolean saveTransactions, boolean bankEnabled, boolean taxOnlyPay,
+                                   int executorThreads) {
     }
 
     public record RedisSettings(String host, int port, String user, String password, int database, int timeout,

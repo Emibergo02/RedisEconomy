@@ -70,7 +70,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put(currencySettings.currencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, true, false)));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new Settings.CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, true, false,2)));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -226,8 +226,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElseGet(() -> {
-                    if (plugin.settings().debug)
-                        Bukkit.getLogger().warning("Couldn't find username for UUID " + uuid + " in cache!");
+                    RedisEconomyPlugin.debug("Couldn't find username for UUID " + uuid + " in cache!");
                     return null;
                 });
     }
@@ -255,10 +254,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         getCurrencies().forEach(currency ->
                 currency.getAccountRedis(e.getPlayer().getUniqueId())
                         .thenAccept(balance -> {
-                            //DEBUG
-                            if (configManager.getSettings().debug) {
-                                Bukkit.getLogger().info("00 Loaded " + e.getPlayer().getName() + "'s balance of " + balance + " " + currency.getCurrencyName());
-                            }
+                            RedisEconomyPlugin.debug("00 Loaded " + e.getPlayer().getName() + "'s balance of " + balance + " " + currency.getCurrencyName());
+
                             if (balance == null) {
                                 currency.createPlayerAccount(e.getPlayer());
                             } else {
@@ -285,9 +282,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                         .thenApply(result -> {
                             ConcurrentHashMap<String, UUID> nameUUIDs = new ConcurrentHashMap<>();
                             result.forEach((name, uuid) -> nameUUIDs.put(name, UUID.fromString(uuid)));
-                            if (configManager.getSettings().debug) {
-                                Bukkit.getLogger().info("start0 Loaded " + nameUUIDs.size() + " name-uuid pairs");
-                            }
+                            RedisEconomyPlugin.debug("start0 Loaded " + nameUUIDs.size() + " name-uuid pairs");
                             return nameUUIDs;
                         })
         );
@@ -319,9 +314,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         }
         redisManager.getConnectionAsync(connection ->
                 connection.hdel(NAME_UUID.toString(), toRemoveArray).thenAccept(integer -> {
-                    if (configManager.getSettings().debug) {
-                        Bukkit.getLogger().info("purge0 Removed " + integer + " name-uuid pairs");
-                    }
+                    RedisEconomyPlugin.debug("purge0 Removed " + integer + " name-uuid pairs");
+
                 }));
     }
 
@@ -340,17 +334,15 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                         configManager.getLangs().send(online, configManager.getLangs().payReceived
                                 .replace("%player%", sender)
                                 .replace("%amount%", currencyAmount));
-                        if (configManager.getSettings().debug) {
-                            plugin.getLogger().info("02b Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
-                        }
+                        RedisEconomyPlugin.debug("02b Received pay message to " + online.getName() + " timestamp: " + System.currentTimeMillis());
+
                     }
                 }
             }
         });
         connection.async().subscribe(MSG_CHANNEL.toString());
-        if (configManager.getSettings().debug) {
-            Bukkit.getLogger().info("start2 Registered pay message channel");
-        }
+        RedisEconomyPlugin.debug("start2 Registered pay message channel");
+
     }
 
     /**
@@ -362,19 +354,16 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public void switchCurrency(Currency currency, Currency newCurrency) {
         redisManager.getConnectionPipeline(asyncCommands -> {
             asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup").thenAccept(success -> {
-                if (configManager.getSettings().debug) {
-                    Bukkit.getLogger().info("Switch0 - Backup currency accounts: " + success);
-                }
+                RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success);
+
             });
             asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success -> {
-                if (configManager.getSettings().debug) {
-                    Bukkit.getLogger().info("Switch1 - Overwrite new currency key with the old one: " + success);
-                }
+                RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success);
+
             });
             asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup", RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success -> {
-                if (configManager.getSettings().debug) {
-                    Bukkit.getLogger().info("Switch2 - Write the backup on the new currency key: " + success);
-                }
+                RedisEconomyPlugin.debug("Switch2 - Write the backup on the new currency key: " + success);
+
             });
             return null;
         });
@@ -408,9 +397,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                     );
                     connection.publish(UPDATE_LOCKED_ACCOUNTS.toString(), uuid + "," + redisString)
                             .thenAccept(integer -> {
-                                if (configManager.getSettings().debug) {
-                                    Bukkit.getLogger().info("Lock0 - Published update locked accounts message: " + integer);
-                                }
+                                RedisEconomyPlugin.debug("Lock0 - Published update locked accounts message: " + integer);
+
                                 lockedAccounts.put(uuid, locked);
                                 future.complete(!isLocked);
                             });
@@ -476,18 +464,16 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                         newLockedAccounts.add(UUID.fromString(args[i]));
                     }
                     lockedAccounts.put(account, newLockedAccounts);
-                    if (configManager.getSettings().debug) {
-                        Bukkit.getLogger().info("Lockupdate Registered locked accounts for " + account);
-                    }
+                    RedisEconomyPlugin.debug("Lockupdate Registered locked accounts for " + account);
+
                 } catch (IllegalArgumentException e) {
                     Bukkit.getLogger().warning("Lockupdate Received invalid uuid: " + args[0]);
                 }
             }
         });
         connection.async().subscribe(UPDATE_LOCKED_ACCOUNTS.toString());
-        if (configManager.getSettings().debug) {
-            Bukkit.getLogger().info("Lockch Registered locked accounts channel");
-        }
+        RedisEconomyPlugin.debug("Lockch Registered locked accounts channel");
+
     }
 
 }

@@ -30,10 +30,11 @@ public class EconomyExchange {
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
                         .thenApply(transactions -> {
-                            if (transactions == null||transactions.isEmpty()) return new HashMap<Integer, Transaction>();
+                            if (transactions == null || transactions.isEmpty())
+                                return new HashMap<Integer, Transaction>();
                             final Map<Integer, Transaction> transactionsMap = new HashMap<>();
                             transactions.entrySet().stream()
-                                    .sorted(Comparator.comparingInt(entryO -> Integer.parseInt(((Map.Entry<String,String>)entryO).getKey())).reversed())
+                                    .sorted(Comparator.comparingInt(entryO -> Integer.parseInt(((Map.Entry<String, String>) entryO).getKey())).reversed())
                                     .limit(limit)
                                     .forEach(entry -> transactionsMap.put(Integer.parseInt(entry.getKey()), Transaction.fromString(entry.getValue())));
                             return transactionsMap;
@@ -133,10 +134,9 @@ public class EconomyExchange {
 
         });
         return future.thenApply(response -> {
-            if (RedisEconomyPlugin.getInstance().settings().debug) {
-                Bukkit.getLogger().info("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
-                Bukkit.getLogger().info("03payment Transaction for " + target + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(1) + " !");
-            }
+            RedisEconomyPlugin.debug("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
+            RedisEconomyPlugin.debug("03payment Transaction for " + target + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(1) + " !");
+
             return response;
         });
     }
@@ -173,9 +173,8 @@ public class EconomyExchange {
             future.complete(longResult.intValue());
         });
         return future.thenApply(response -> {
-            if (RedisEconomyPlugin.getInstance().settings().debug) {
-                Bukkit.getLogger().info("03 Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response + " !");
-            }
+            RedisEconomyPlugin.debug("03 Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response + " !");
+
             return response;
         });
     }
@@ -197,9 +196,8 @@ public class EconomyExchange {
                     }
                     if (transaction.getRevertedWith() != null) {
                         //already cancelled
-                        if (RedisEconomyPlugin.getInstance().settings().debug) {
-                            Bukkit.getLogger().info("revert01b Transaction " + transactionId + " already reverted with " + transaction.getRevertedWith());
-                        }
+                        RedisEconomyPlugin.debug("revert01b Transaction " + transactionId + " already reverted with " + transaction.getRevertedWith());
+
                         return Integer.valueOf(transaction.getRevertedWith());
                     }
                     TransactionEvent revertTransactionEvent = new TransactionEvent(transaction);
@@ -215,9 +213,8 @@ public class EconomyExchange {
                                                             String.valueOf(transactionId), //Previous transaction id
                                                             revertTransactionEvent.getTransaction().toString())
                                                     .thenApply(result2 -> {
-                                                        if (RedisEconomyPlugin.getInstance().settings().debug) {
-                                                            Bukkit.getLogger().info("revert02 Replace transaction " + transactionId + " with a new revertedWith id on Redis: " + result2);
-                                                        }
+                                                        RedisEconomyPlugin.debug("revert02 Replace transaction " + transactionId + " with a new revertedWith id on Redis: " + result2);
+
                                                         return result2;
                                                     }));
 
@@ -248,7 +245,7 @@ public class EconomyExchange {
                 .skip(3)
                 .filter(s -> plugin.settings().callBlacklistRegex.stream().noneMatch(blRegex -> s.getClassName().matches(blRegex)))
                 .findFirst()
-                .map(ste -> "\nCall: " + ste.getClassName() + ":" + ste.getMethodName())
+                .map(ste -> "\nCall: " + ste.getClassName() + ":" + ste.getMethodName() + ":" + ste.getLineNumber())
                 .orElse("");
     }
 

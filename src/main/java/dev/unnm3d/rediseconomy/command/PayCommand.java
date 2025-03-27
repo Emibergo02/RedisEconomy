@@ -123,9 +123,8 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         //Send msg to target
         currenciesManager.getRedisManager().getConnectionAsync(commands -> {
             commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + target + ";;" + currency.format(amount));
-            if (plugin.settings().debug) {
-                Bukkit.getLogger().info("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
-            }
+
+            RedisEconomyPlugin.debug("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
             //Register transaction
             String reason = "Payment";
             if (args.length >= 4) {

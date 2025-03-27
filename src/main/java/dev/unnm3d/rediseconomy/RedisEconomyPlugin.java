@@ -31,7 +31,13 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -39,6 +45,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     @Getter
     private static RedisEconomyPlugin instance;
+    @Getter
+    private static UUID instanceUUID;
     @Getter
     private ConfigManager configManager;
     @Getter
@@ -52,7 +60,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Getter
     private Plugin vaultPlugin;
     @Getter
-    private static UUID instanceUUID;
+    private File debugFile;
 
 
     public Settings settings() {
@@ -83,6 +91,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         if (redisManager == null) return;
+        loadDebugFile();
 
         this.scheduler = UniversalScheduler.getScheduler(this);
         this.configManager.loadLangs();
@@ -193,7 +202,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
     }
 
-
     private void loadCommand(String cmdName, CommandExecutor executor, TabCompleter tabCompleter) {
         PluginCommand cmd = getServer().getPluginCommand(cmdName);
         if (cmd != null) {
@@ -201,6 +209,56 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             cmd.setTabCompleter(tabCompleter);
         } else {
             getLogger().warning("Command " + cmdName + " not found!");
+        }
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public void loadDebugFile() {
+        final File logsDir = new File(getDataFolder(), "logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdir();
+        }
+        debugFile = new File(logsDir, "debug" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + ".log");
+        if (!debugFile.exists()) {
+            try {
+                debugFile.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static void debug(String string) {
+        if (RedisEconomyPlugin.getInstance().settings().debug) {
+            try {
+                final FileWriter writer = new FileWriter(RedisEconomyPlugin.getInstance().getDebugFile().getAbsoluteFile(), true);
+                writer.append("[")
+                        .append(String.valueOf(LocalDateTime.now()))
+                        .append("] ")
+                        .append(string);
+
+                writer.append("\r\n");
+                writer.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static void debugCache(String string) {
+        if (RedisEconomyPlugin.getInstance().settings().debugUpdateCache) {
+            try {
+                final FileWriter writer = new FileWriter(RedisEconomyPlugin.getInstance().getDebugFile().getAbsoluteFile(), true);
+                writer.append("[")
+                        .append(String.valueOf(LocalDateTime.now()))
+                        .append("] CACHE: ")
+                        .append(string);
+
+                writer.append("\r\n");
+                writer.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

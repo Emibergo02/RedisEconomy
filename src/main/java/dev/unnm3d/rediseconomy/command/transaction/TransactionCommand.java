@@ -35,8 +35,7 @@ public class TransactionCommand extends TransactionCommandAbstract implements Co
             UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
             AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
             if (revertTransaction) {
-                if (plugin.settings().debug)
-                    Bukkit.getLogger().info("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
+                RedisEconomyPlugin.debug("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
                 plugin.getCurrenciesManager().getExchange().revertTransaction(accountID, transactionId)
                         .thenAccept(newId -> {
                             sender.sendMessage("§3Transaction reverted with #" + newId);
