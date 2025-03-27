@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
+import io.lettuce.core.RedisCommandTimeoutException;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import net.milkbowl.vault.economy.EconomyResponse;
@@ -318,14 +319,18 @@ public class CurrencyWithBanks extends Currency {
         final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
         if (tries < plugin.settings().redis.getTryAgainCount()) {
             plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
+            if (e instanceof RedisCommandTimeoutException) {
+                plugin.getLogger().warning("This is probably a network issue. " +
+                        "Try to increase the timeout parameter in the config.yml and ask the creator of the plugin what to do");
+            }
             if (e != null)
-                plugin.getLogger().warning(e.getMessage());
+                e.printStackTrace();
             updateBankAccountCloudCache(accountId, balance, tries + 1);
         } else {
             plugin.getLogger().severe("Failed to update bank account " + accountId + " after " + tries + " tries");
             currenciesManager.getRedisManager().printPool();
             if (e != null)
-                throw new RuntimeException(e);
+                e.printStackTrace();
         }
     }
 

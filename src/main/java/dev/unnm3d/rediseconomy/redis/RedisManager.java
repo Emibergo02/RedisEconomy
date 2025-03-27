@@ -3,7 +3,6 @@ package dev.unnm3d.rediseconomy.redis;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisFuture;
-import io.lettuce.core.TransactionResult;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.api.sync.RedisCommands;
@@ -35,6 +34,7 @@ public class RedisManager {
     public <T> CompletionStage<T> getConnectionAsync(Function<RedisAsyncCommands<String, String>, CompletionStage<T>> redisCallBack) {
         return redisCallBack.apply(roundRobinConnectionPool.get().async());
     }
+
     public <T> T getConnectionSync(Function<RedisCommands<String, String>, T> redisCallBack) {
         return redisCallBack.apply(roundRobinConnectionPool.get().sync());
     }
@@ -48,12 +48,25 @@ public class RedisManager {
         return completionStage;
     }
 
+    /**
+     * Executes a transaction with the given Redis commands consumer.
+     * If there is an exception during the transaction, it will be discarded.
+     *
+     * @param redisCommandsConsumer the consumer that will execute the Redis commands
+     * @return an Optional containing the result of the redis transaction, or an empty Optional if the transaction was discarded
+     */
     public Optional<List<Object>> executeTransaction(Consumer<RedisCommands<String, String>> redisCommandsConsumer) {
         final RedisCommands<String, String> syncCommands = roundRobinConnectionPool.get().sync();
-        syncCommands.multi();
-        redisCommandsConsumer.accept(syncCommands);
-        final TransactionResult transactionResult = syncCommands.exec();
-        return Optional.ofNullable(transactionResult.wasDiscarded() ? null : transactionResult.stream().toList());
+        try {
+            syncCommands.multi();
+            redisCommandsConsumer.accept(syncCommands);
+            return Optional.of(syncCommands.exec())
+                    .filter(result -> !result.wasDiscarded())
+                    .map(result -> result.stream().toList());
+        } catch (Exception e) {
+            syncCommands.discard();
+            throw e;
+        }
     }
 
     public StatefulRedisPubSubConnection<String, String> getPubSubConnection() {

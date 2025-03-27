@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
+import io.lettuce.core.RedisCommandTimeoutException;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.AllArgsConstructor;
@@ -596,6 +597,10 @@ public class Currency implements Economy {
         if (tries < plugin.settings().redis.getTryAgainCount()) {
             if (plugin.settings().debugUpdateCache) {
                 plugin.getLogger().warning("Player accounts are desynchronized. try: " + tries);
+                if (e instanceof RedisCommandTimeoutException) {
+                    plugin.getLogger().warning("This is probably a network issue. " +
+                            "Try to increase the timeout parameter in the config.yml and ask the creator of the plugin what to do");
+                }
                 if (e != null)
                     e.printStackTrace();
             }
@@ -606,7 +611,7 @@ public class Currency implements Economy {
             plugin.getLogger().severe("Failed to update account " + playerName + " after " + tries + " tries");
             currenciesManager.getRedisManager().printPool();
             if (e != null)
-                throw new RuntimeException(e);
+                e.printStackTrace();
         }
     }
 
@@ -629,7 +634,6 @@ public class Currency implements Economy {
         }).ifPresent(result -> {
             Bukkit.getLogger().info("migration01 updated balances into " + BALANCE_PREFIX + currencyName + " accounts. result " + result.get(0));
             Bukkit.getLogger().info("migration02 updated nameuuids into " + NAME_UUID + " accounts. result " + result.get(1));
-
         });
     }
 
@@ -662,7 +666,7 @@ public class Currency implements Economy {
 
     public void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
         currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
-            if(amount == maxBalance) {
+            if (amount == maxBalance) {
                 asyncCommands.hdel(MAX_PLAYER_BALANCES + currencyName, uuid.toString());
             } else {
                 asyncCommands.hset(MAX_PLAYER_BALANCES + currencyName, uuid.toString(), String.valueOf(amount));
