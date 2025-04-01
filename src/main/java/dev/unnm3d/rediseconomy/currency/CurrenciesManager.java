@@ -334,7 +334,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 String sender = args[0];
                 String target = args[1];
                 String currencyAmount = args[2];
-                Player online = plugin.getServer().getPlayer(target);
+                Player online = plugin.getServer().getPlayerExact(target);
                 if (online != null) {
                     if (online.isOnline()) {
                         configManager.getLangs().send(online, configManager.getLangs().payReceived
