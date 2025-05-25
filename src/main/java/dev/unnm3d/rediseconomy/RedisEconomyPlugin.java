@@ -176,6 +176,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                     .withHost(configManager.getSettings().redis.host())
                     .withPort(configManager.getSettings().redis.port())
                     .withDatabase(configManager.getSettings().redis.database())
+                    .withSsl(configManager.getSettings().redis.ssl())
                     .withTimeout(Duration.of(configManager.getSettings().redis.timeout(), TimeUnit.MILLISECONDS.toChronoUnit()))
                     .withClientName(configManager.getSettings().redis.clientName());
             if (configManager.getSettings().redis.user().equals("changecredentials"))

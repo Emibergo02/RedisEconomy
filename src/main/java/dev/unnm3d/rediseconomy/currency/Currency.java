@@ -571,7 +571,6 @@ public class Currency implements Economy {
     }
 
     private synchronized void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
-        final RedisEconomyPlugin plugin = RedisEconomyPlugin.getInstance();
         getExecutor((int) uuid.getMostSignificantBits()).submit(() -> {
             try {
                 RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
@@ -584,10 +583,9 @@ public class Currency implements Economy {
                             RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
                     RedisEconomyPlugin.debugCache("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
 
-                }).ifPresentOrElse(result -> {
-                    RedisEconomyPlugin.debugCache("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
-
-                }, () -> handleException(uuid, playerName, balance, tries, null));
+                }).ifPresentOrElse(result ->
+                        RedisEconomyPlugin.debugCache("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName),
+                        () -> handleException(uuid, playerName, balance, tries, null));
             } catch (Exception e) {
                 handleException(uuid, playerName, balance, tries, e);
             }
