@@ -29,7 +29,7 @@ public class Settings {
             "Don't use the default credentials in production!! Generate new credentials on RedisLabs -> https://github.com/Emibergo02/RedisEconomy/wiki/Install-redis",
             "Default credentials lead to a non-persistent redis server, only for testing!!",
     })
-    public RedisSettings redis = new RedisSettings("localhost", 6379, "", "", 0, 300, "RedisEconomy", false, 5, 3);
+    public RedisSettings redis = new RedisSettings("localhost", 6379, "", "", 0, 300, "RedisEconomy", false, 10, 3);
     @Comment({"All RedisEconomy instances with the same cluster id will share the same data"})
     public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})
@@ -43,7 +43,7 @@ public class Settings {
     @Comment("Minimum amount of money that can be paid")
     public double minPayAmount = 0.01;
     @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, true, false,2), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, false, false,2));
+    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, true, false,3), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, false, false,2));
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
                                    String decimalFormat, String languageTag,

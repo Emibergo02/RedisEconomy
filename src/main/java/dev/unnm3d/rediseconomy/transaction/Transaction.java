@@ -12,8 +12,14 @@ import java.util.UUID;
 @AllArgsConstructor
 @Getter
 public class Transaction {
+    /**
+     * The identifier of the account this transaction belongs to
+     */
     private AccountID accountIdentifier = new AccountID(RedisKeys.getServerUUID());
     private long timestamp = 0;
+    /**
+     * The identifier of the actor that performed this transaction
+     */
     private AccountID actor = new AccountID(RedisKeys.getServerUUID());
     @Setter
     private double amount = 0;
