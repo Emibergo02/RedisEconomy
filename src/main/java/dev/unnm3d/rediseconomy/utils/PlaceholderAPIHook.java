@@ -23,6 +23,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
     private final HashMap<Currency, Double> totalSupplyCache;
     private final HashMap<Currency, List<String[]>> baltopCache;
     private final int updateCachePeriod;
+    private final int baltopPlaceholderAccounts;
     private final RegisteredServiceProvider<Chat> prefixProvider;
     private final RedisEconomyPlugin plugin;
     private long lastUpdateTimestamp;
@@ -32,7 +33,8 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
         this.langs = redisEconomyPlugin.langs();
         this.totalSupplyCache = new HashMap<>();
         this.baltopCache = new HashMap<>();
-        this.updateCachePeriod = 1000 * 5; // 5 secs
+        this.updateCachePeriod = redisEconomyPlugin.getConfigManager().getSettings().placeholderCacheUpdateInterval;
+        this.baltopPlaceholderAccounts = redisEconomyPlugin.getConfigManager().getSettings().baltopPlaceholderAccounts;
         this.lastUpdateTimestamp = 0;
         this.plugin = redisEconomyPlugin;
         this.prefixProvider = redisEconomyPlugin.getServer().getServicesManager().getRegistration(net.milkbowl.vault.chat.Chat.class);
@@ -50,9 +52,9 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
             totalSupplyCache.put(currency, totalSupply);
 
             //Balance top
-            currency.getOrderedAccounts(10).thenAccept(accounts -> {
+            currency.getOrderedAccounts(baltopPlaceholderAccounts).thenAccept(accounts -> {
                 List<String[]> baltopList = new ArrayList<>();
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < baltopPlaceholderAccounts; i++) {
                     if (accounts.size() <= i) break;
 
                     //Extract data from vault and cache
@@ -109,7 +111,6 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
             return parseParams(balance, splitted, currency);
 
         }
-
         updatePlaceholdersCache();
 
         switch (splitted.get(0)) {
@@ -132,11 +133,11 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
                             return String.valueOf(i + 1);
                         }
                     }
-                    return "10+";
+                    return baltopPlaceholderAccounts + "+";
                 }
 
                 int position = Integer.parseInt(splitted.get(1));
-                if (position < 1 || position > 10) return "N/A"; //Invalid positions
+                if (position < 1 || position > baltopPlaceholderAccounts) return "N/A"; //Invalid positions
                 if (user_balance_strings.size() < position) return "N/A";
 
                 switch (splitted.get(2)) {
@@ -201,7 +202,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
                 return "true";
             }
             return "false";
-        }else if (params.equalsIgnoreCase("is_pay_blocked")) {
+        } else if (params.equalsIgnoreCase("is_pay_blocked")) {
             if (plugin.getCurrenciesManager().getLockedAccounts(two.getUniqueId()).contains(one.getUniqueId())) {
                 return "true";
             }
