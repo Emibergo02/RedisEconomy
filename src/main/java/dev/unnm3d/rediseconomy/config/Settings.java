@@ -46,6 +46,8 @@ public class Settings {
     public int placeholderCacheUpdateInterval = 5000;
     @Comment("How many accounts to show in the %rediseco_top_number...% placeholder")
     public int baltopPlaceholderAccounts = 100;
+    @Comment("Fixed pool size for making transactions")
+    public int transactionExecutorThreads = 3;
     @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
     public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, true, false,3), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, false, false,2));
 
