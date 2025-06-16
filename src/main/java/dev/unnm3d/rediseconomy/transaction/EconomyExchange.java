@@ -4,7 +4,6 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.TransactionEvent;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import io.lettuce.core.ScriptOutputType;
-import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,36 +12,53 @@ import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
 
-@AllArgsConstructor
 public class EconomyExchange {
 
     private final RedisEconomyPlugin plugin;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(3);
+    private final ExecutorService executorService;
+
+    /**
+     * Constructor for EconomyExchange
+     *
+     * @param plugin The RedisEconomyPlugin instance
+     */
+    public EconomyExchange(final RedisEconomyPlugin plugin) {
+        this.plugin = plugin;
+        this.executorService = Executors.newFixedThreadPool(plugin.getConfigManager().getSettings().transactionExecutorThreads);
+    }
 
     /**
      * Get transactions from an account id
      *
      * @param accountId Account id
+     * @param limit     Maximum number of transactions to return
      * @return Map of transaction ids and transactions
      */
     public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId, int limit) {
-        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
-                connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
-                        .thenApply(transactions -> {
-                            if (transactions == null || transactions.isEmpty())
-                                return new HashMap<Integer, Transaction>();
-                            final Map<Integer, Transaction> transactionsMap = new HashMap<>();
-                            transactions.entrySet().stream()
-                                    .sorted(Comparator.comparingInt(entryO -> Integer.parseInt(((Map.Entry<String, String>) entryO).getKey())).reversed())
-                                    .limit(limit)
-                                    .forEach(entry -> transactionsMap.put(Integer.parseInt(entry.getKey()), Transaction.fromString(entry.getValue())));
-                            return transactionsMap;
-                        })
-                        .exceptionally(exc -> {
-                            exc.printStackTrace();
-                            return null;
-                        })
-        );
+        return CompletableFuture.supplyAsync(() ->
+                        plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
+                                connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
+                        ), executorService)
+                .thenApply(transactions -> {
+                    if (transactions == null || transactions.isEmpty()) {
+                        return new HashMap<Integer, Transaction>();
+                    }
+
+                    final Map<Integer, Transaction> transactionsMap = new HashMap<>();
+                    transactions.entrySet().stream()
+                            .sorted(Comparator.<Map.Entry<String, String>>comparingInt(entry ->
+                                    Integer.parseInt(entry.getKey())).reversed())
+                            .limit(limit)
+                            .forEach(entry -> transactionsMap.put(
+                                    Integer.parseInt(entry.getKey()),
+                                    Transaction.fromString(entry.getValue())
+                            ));
+                    return transactionsMap;
+                })
+                .exceptionally(exc -> {
+                    exc.printStackTrace();
+                    return new HashMap<>(); // Return empty map instead of null for better error handling
+                });
     }
 
     /**
@@ -72,14 +88,14 @@ public class EconomyExchange {
      * @param id        Transaction id
      * @return Transaction
      */
-    public CompletionStage<Transaction> getTransaction(AccountID accountId, int id) {
-        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
-                connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))
-                        .thenApply(Transaction::fromString)
-                        .exceptionally(exc -> {
-                            exc.printStackTrace();
-                            return null;
-                        }));
+    public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, int id) {
+        return CompletableFuture.supplyAsync(() -> {
+            return Transaction.fromString(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
+                    connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))));
+        }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS).exceptionally(exc -> {
+            exc.printStackTrace();
+            return null;
+        });
     }
 
     /**
@@ -191,39 +207,59 @@ public class EconomyExchange {
      */
     public CompletionStage<Integer> revertTransaction(AccountID accountOwner, int transactionId) {
         return getTransaction(accountOwner, transactionId)
-                .thenApply(transaction -> {//get current transaction on Redis
-                    if (transaction == null) return -1;
+                .thenCompose(transaction -> {
+                    // Early return for null transaction
+                    if (transaction == null) {
+                        return CompletableFuture.completedFuture(-1);
+                    }
+
+                    // Get currency - this should be fast since it's likely cached
                     Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.getCurrencyName());
                     if (currency == null) {
-                        return -1;
+                        return CompletableFuture.completedFuture(-1);
                     }
+
+                    // Check if already reverted
                     if (transaction.getRevertedWith() != null) {
-                        //already cancelled
-                        RedisEconomyPlugin.debug("revert01b Transaction " + transactionId + " already reverted with " + transaction.getRevertedWith());
-
-                        return Integer.valueOf(transaction.getRevertedWith());
+                        RedisEconomyPlugin.debug("revert01b Transaction " + transactionId +
+                                " already reverted with " + transaction.getRevertedWith());
+                        return CompletableFuture.completedFuture(Integer.valueOf(transaction.getRevertedWith()));
                     }
-                    TransactionEvent revertTransactionEvent = new TransactionEvent(transaction);
-                    plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(revertTransactionEvent));
 
+                    // Fire event asynchronously (non-blocking)
+                    final TransactionEvent revertTransactionEvent = new TransactionEvent(transaction);
+                    plugin.getScheduler().runTask(() ->
+                            plugin.getServer().getPluginManager().callEvent(revertTransactionEvent));
+
+                    // Proceed with revert operation
                     return currency.revertTransaction(transactionId, revertTransactionEvent.getTransaction())
-                            .thenApply(newId -> {
-                                if (newId != null) {
-                                    revertTransactionEvent.getTransaction().setRevertedWith(String.valueOf(newId));
-                                    //replace transaction on Redis
-                                    plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
-                                            connection.hset(NEW_TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID
-                                                            String.valueOf(transactionId), //Previous transaction id
-                                                            revertTransactionEvent.getTransaction().toString())
-                                                    .thenApply(result2 -> {
-                                                        RedisEconomyPlugin.debug("revert02 Replace transaction " + transactionId + " with a new revertedWith id on Redis: " + result2);
-
-                                                        return result2;
-                                                    }));
-
+                            .thenCompose(newId -> {
+                                if (newId == null) {
+                                    return CompletableFuture.completedFuture(newId);
                                 }
-                                return newId;
-                            }).toCompletableFuture().join();
+
+                                // Update the transaction with revert info
+                                revertTransactionEvent.getTransaction().setRevertedWith(String.valueOf(newId));
+
+                                // Update Redis asynchronously and return the newId
+                                return plugin.getCurrenciesManager().getRedisManager()
+                                        .getConnectionAsync(connection ->
+                                                connection.hset(
+                                                        NEW_TRANSACTIONS + accountOwner.toString(),
+                                                        String.valueOf(transactionId),
+                                                        revertTransactionEvent.getTransaction().toString()
+                                                )
+                                        )
+                                        .thenApply(updateResult -> {
+                                            RedisEconomyPlugin.debug("revert02 Replace transaction " + transactionId +
+                                                    " with a new revertedWith id on Redis: " + updateResult);
+                                            return newId; // Return the new transaction ID, not the Redis update result
+                                        })
+                                        .exceptionally(throwable -> {
+                                            RedisEconomyPlugin.debug("Failed to update transaction in Redis: " + throwable.getMessage());
+                                            return newId; // Still return newId even if Redis update fails
+                                        });
+                            });
                 });
     }
 

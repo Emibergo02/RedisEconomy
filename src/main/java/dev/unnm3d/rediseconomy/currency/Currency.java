@@ -19,10 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
@@ -101,7 +98,7 @@ public class Currency implements Economy {
     }
 
     private List<ExecutorService> generateExecutors(int size) {
-        if(size <= 0) return List.of(Executors.newSingleThreadExecutor());
+        if (size <= 0) return List.of(Executors.newSingleThreadExecutor());
         List<ExecutorService> executors = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             executors.add(Executors.newSingleThreadExecutor());
@@ -571,24 +568,25 @@ public class Currency implements Economy {
     }
 
     private synchronized void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
-        getExecutor((int) uuid.getMostSignificantBits()).submit(() -> {
-            try {
-                RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
+        CompletableFuture.supplyAsync(() -> {
+            RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
 
-                currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                    reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
-                    if (playerName != null)
-                        reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                    reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
-                            RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
-                    RedisEconomyPlugin.debugCache("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
+            currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
+                reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
+                if (playerName != null)
+                    reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
+                reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
+                        RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
+                RedisEconomyPlugin.debugCache("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
 
-                }).ifPresentOrElse(result ->
-                        RedisEconomyPlugin.debugCache("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName),
-                        () -> handleException(uuid, playerName, balance, tries, null));
-            } catch (Exception e) {
-                handleException(uuid, playerName, balance, tries, e);
-            }
+            }).ifPresentOrElse(result -> {
+                RedisEconomyPlugin.debugCache("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
+            }, () -> handleException(uuid, playerName, balance, tries, null));
+
+            return null;
+        }, getExecutor((int) uuid.getMostSignificantBits())).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
+            handleException(uuid, playerName, balance, tries, new Exception(throwable));
+            return null;
         });
     }
 

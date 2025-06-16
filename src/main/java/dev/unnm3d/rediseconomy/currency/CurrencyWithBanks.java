@@ -13,7 +13,6 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -282,27 +281,25 @@ public class CurrencyWithBanks extends Currency {
     }
 
     private synchronized void updateBankAccountCloudCache(@NotNull String accountId, double balance, int tries) {
-        try {
-            getExecutor(accountId.getBytes()[0]).submit(() -> {
-                RedisEconomyPlugin.debug("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
+        CompletableFuture.supplyAsync(() -> {
+            RedisEconomyPlugin.debugCache("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
+            try {
+                currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
+                    reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
+                    reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
+                    RedisEconomyPlugin.debugCache("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
 
-                try {
-                    currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                        reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
-                        reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
-                        RedisEconomyPlugin.debug("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
-
-                    }).ifPresentOrElse(result -> {
-                        RedisEconomyPlugin.debug("01c Sent bank update account " + accountId + " to " + balance);
-
-                    }, () -> handleException(accountId, balance, tries, null));
-                } catch (Exception e) {
-                    handleException(accountId, balance, tries, e);
-                }
-            }).get(RedisEconomyPlugin.getInstance().settings().redis.timeout(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            handleException(accountId, balance, tries, e);
-        }
+                }).ifPresentOrElse(result -> {
+                    RedisEconomyPlugin.debugCache("01c Sent bank update account " + accountId + " to " + balance);
+                }, () -> handleException(accountId, balance, tries, null));
+            } catch (Exception e) {
+                handleException(accountId, balance, tries, e);
+            }
+            return null;
+        }, getExecutor(accountId.getBytes()[0])).orTimeout(10,TimeUnit.SECONDS).exceptionally(throwable ->{
+            handleException(accountId, balance, tries, new Exception(throwable));
+            return null;
+        });
     }
 
     private void handleException(@NotNull String accountId, double balance, int tries, @Nullable Exception e) {
