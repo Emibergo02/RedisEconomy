@@ -54,8 +54,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         this.configManager = configManager;
         this.currencies = new HashMap<>();
         try {
-            this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(1, TimeUnit.SECONDS);
-            this.lockedAccounts = loadLockedAccounts().toCompletableFuture().get(1, TimeUnit.SECONDS);
+            this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
+            this.lockedAccounts = loadLockedAccounts().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new RuntimeException(e);
         }
