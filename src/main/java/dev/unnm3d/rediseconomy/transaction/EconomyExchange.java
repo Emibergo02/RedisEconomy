@@ -138,13 +138,14 @@ public class EconomyExchange {
 
                     return plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                             (List<Integer>) connection.eval(
-                                    "local a=redis.call('hlen',KEYS[1])local b=redis.call('hlen',KEYS[2])redis.call('hset',KEYS[1],a,ARGV[1])redis.call('hset',KEYS[2],b,ARGV[2])return{a,b}", //Return the id of the new transaction
+                                    "local a=redis.call('hlen',KEYS[1])local b=redis.call('hlen',KEYS[2])redis.call('hset',KEYS[1],a,ARGV[1])redis.call('hset',KEYS[2],b,ARGV[2])if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[1],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,b)end return{a,b}",
                                     ScriptOutputType.MULTI,
                                     new String[]{
                                             NEW_TRANSACTIONS + sender.toString(),
                                             NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
                                     transactionSenderEvent.getTransaction().toString(),
-                                    transactionReceiverEvent.getTransaction().toString()));
+                                    transactionReceiverEvent.getTransaction().toString(),
+                                    String.valueOf(currency.getTransactionsTTL())));
                 }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS)
                 .exceptionally(exc -> {
                     RedisEconomyPlugin.debug("ERROR!!!!! 03payment Exception while saving transaction for " + sender + " and " + target + ": " + exc.getMessage());
@@ -183,10 +184,11 @@ public class EconomyExchange {
                             amount, currency.getCurrencyName(), reason + stackTrace, null));
                     plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
                     return (int) plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
-                            "local a=redis.call('hlen',KEYS[1])redis.call('hset',KEYS[1],a,ARGV[1])return a", //Return the id of the new transaction
+                            "local a=redis.call('hlen',KEYS[1])redis.call('hset',KEYS[1],a,ARGV[1])if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[1],ARGV[2],'FIELDS',1,a)end return a",
                             ScriptOutputType.INTEGER,
                             new String[]{NEW_TRANSACTIONS + accountOwner.toString()}, //Key rediseco:transactions:playerUUID
-                            transactionEvent.getTransaction().toString()));
+                            transactionEvent.getTransaction().toString(),
+                            String.valueOf(currency.getTransactionsTTL())));
                 }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS)
                 .exceptionally(exc -> {
                     RedisEconomyPlugin.debug("ERROR!!!!! 03 Transaction Exception while saving transaction for " + accountOwner + " and " + target + ": " + exc.getMessage());

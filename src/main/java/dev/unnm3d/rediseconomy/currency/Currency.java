@@ -45,6 +45,8 @@ public class Currency implements Economy {
     private final double maxBalance;
     private boolean saveTransactions;
     @Getter
+    private final int transactionsTTL; //Time to live for transactions in seconds, -1 means forever
+    @Getter
     private double transactionTax;
     @Getter
     private final boolean taxOnlyPay;
@@ -68,6 +70,7 @@ public class Currency implements Economy {
         this.startingBalance = currencySettings.startingBalance();
         this.maxBalance = currencySettings.maxBalance() == 0.0d ? Double.POSITIVE_INFINITY : currencySettings.maxBalance();
         this.saveTransactions = currencySettings.saveTransactions();
+        this.transactionsTTL = currencySettings.transactionsTTL();
         this.transactionTax = currencySettings.payTax();
         this.taxOnlyPay = currencySettings.taxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();

@@ -48,13 +48,13 @@ public class Settings {
     public int baltopPlaceholderAccounts = 100;
     @Comment("Fixed pool size for making transactions")
     public int transactionExecutorThreads = 3;
-    @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax"})
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, true, false,3), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, false, false,2));
+    @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax", "transactionsTTL is the time in seconds to keep the transactions in Redis (if saveTransactions is true), -1 means transactions will be kept forever NOTE: This feature is only supported in Redis 7.4 and above."})
+    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, -1, true, false,3), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, -1,false, false,2));
 
     public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
                                    String decimalFormat, String languageTag,
                                    double startingBalance, double maxBalance, double payTax,
-                                   boolean saveTransactions, boolean bankEnabled, boolean taxOnlyPay,
+                                   boolean saveTransactions, int transactionsTTL, boolean bankEnabled, boolean taxOnlyPay,
                                    int executorThreads) {
     }
 
