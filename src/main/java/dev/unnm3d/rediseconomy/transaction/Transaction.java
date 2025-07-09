@@ -16,6 +16,9 @@ public class Transaction {
      * The identifier of the account this transaction belongs to
      */
     private AccountID accountIdentifier = new AccountID(RedisKeys.getServerUUID());
+    /**
+     * The timestamp of the transaction
+     */
     private long timestamp = 0;
     /**
      * The identifier of the actor that performed this transaction
@@ -24,8 +27,18 @@ public class Transaction {
     @Setter
     private double amount = 0;
     private String currencyName = "";
+    /**
+     * The reason for this transaction
+     * <p>
+     * This is used to track the purpose of the transaction
+     */
     @Setter
     private String reason = "Unknown";
+    /**
+     * The identifier of the transaction that reverted this transaction, if any
+     * <p>
+     * This is used to track reversions of transactions, such as refunds or corrections.
+     */
     @Setter
     private String revertedWith = null;
 
@@ -49,6 +62,6 @@ public class Transaction {
 
     @Override
     public String toString() {
-        return accountIdentifier + ";" + timestamp + ";" + actor + ";" + amount + ";" + currencyName + ";" + reason + (revertedWith == null ? "" : ";" + revertedWith);
+        return accountIdentifier + ";" + timestamp + ";" + actor + ";" + amount + ";" + currencyName + ";" + reason.replace(";","") + (revertedWith == null ? "" : ";" + revertedWith);
     }
 }
