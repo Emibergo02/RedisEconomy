@@ -32,7 +32,7 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
         final String afterDateString = args.length == 3 ? args[1] : "anytime";
         final String beforeDateString = args.length == 3 ? args[2] : "anytime";
 
-        plugin.getCurrenciesManager().getExchange().getTransactions(accountID,Integer.MAX_VALUE).thenAccept(transactions -> {
+        plugin.getCurrenciesManager().getExchange().getTransactions(accountID, Integer.MAX_VALUE).thenAccept(transactions -> {
             long init = System.currentTimeMillis();
             if (transactions.isEmpty()) {
                 plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", target));
@@ -54,15 +54,17 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
                     .replace("%player%", target)
                     .replace("%after%", afterDateString)
                     .replace("%before%", beforeDateString));
-            for (int i = 0; i < transactions.size(); i++) {
+            final Date finalAfterDate = afterDate;
+            final Date finalBeforeDate = beforeDate;
+            transactions.forEach((i, transaction) -> {
                 Date transactionDate = new Date(transactions.get(i).getTimestamp());
-                if (afterDate != null)
-                    if (!transactionDate.after(afterDate)) continue;
-                if (beforeDate != null)
-                    if (!transactionDate.before(beforeDate)) continue;
+                if (finalAfterDate != null)
+                    if (!transactionDate.after(finalAfterDate)) return;
+                if (finalBeforeDate != null)
+                    if (!transactionDate.before(finalBeforeDate)) return;
 
-                sendTransaction(sender, i, transactions.get(i), afterDateString + " " + beforeDateString);
-            }
+                sendTransaction(sender, i, transaction, afterDateString + " " + beforeDateString);
+            });
 
             plugin.langs().send(sender, plugin.langs().transactionsEnd
                     .replace("%player%", target)
