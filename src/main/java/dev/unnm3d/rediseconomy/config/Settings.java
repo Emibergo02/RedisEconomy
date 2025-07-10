@@ -48,15 +48,17 @@ public class Settings {
     public int baltopPlaceholderAccounts = 100;
     @Comment("Fixed pool size for making transactions")
     public int transactionExecutorThreads = 3;
-    @Comment({"Currencies", "payTax is the tax on payments, 0.1 = 10% tax", "transactionsTTL is the time in seconds to keep the transactions in Redis (if saveTransactions is true), -1 means transactions will be kept forever NOTE: This feature is only supported in Redis 7.4 and above."})
-    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, -1, true, false,3), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, -1,false, false,2));
+    @Comment({"Currency name must be less than 8 characters",
+            "Decimal format is for displaying currency amounts, e.g. '#,##0.00'. More info: https://www.baeldung.com/java-decimalformat",
+            "Language tag is for the decimal format, to use . or , as decimal separator, e.g. 'en-US' for . and 'de-DE' for ,",
+            "Pay tax is the tax that will be applied to all payments, e.g. 0.05 for 5%",
+            "Save transactions is for saving transactions in the database, if false, transactions are not saved",
+            "Transaction TTL is the time after which a transaction is considered expired and removed (THIS ONLY WORKS ON REDIS 7.4+)",
+            "Bank enable is to enable the bank feature on Vault API Economy class (which is extended by Currency class)",
+            "Executor threads are the number of threads to use for executing balance updates on this currency (optimal is 3)"
+    })
+    public List<CurrencySettings> currencies = List.of(new CurrencySettings("vault", "euro", "euros", "#.##", "en-US", 0, 100000000000000d, 0, true, -1, true, false, 3), new CurrencySettings("dollar", "$", "$", "#.##", "en-US", 0, 100000000000000d, 0, false, -1, false, false, 2));
 
-    public record CurrencySettings(String currencyName, String currencySingle, String currencyPlural,
-                                   String decimalFormat, String languageTag,
-                                   double startingBalance, double maxBalance, double payTax,
-                                   boolean saveTransactions, int transactionsTTL, boolean bankEnabled, boolean taxOnlyPay,
-                                   int executorThreads) {
-    }
 
     public record RedisSettings(String host, int port, String user, String password, int database, int timeout,
                                 String clientName, boolean ssl, int poolSize, int tryAgainCount) {

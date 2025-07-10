@@ -1,7 +1,7 @@
 package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-import dev.unnm3d.rediseconomy.config.Settings;
+import dev.unnm3d.rediseconomy.config.CurrencySettings;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
@@ -60,24 +60,24 @@ public class Currency implements Economy {
      * @param currenciesManager The CurrenciesManager instance
      * @param currencySettings  The currency settings
      */
-    public Currency(CurrenciesManager currenciesManager, Settings.CurrencySettings currencySettings) {
+    public Currency(CurrenciesManager currenciesManager, CurrencySettings currencySettings) {
         this.currenciesManager = currenciesManager;
         this.enabled = true;
-        this.updateExecutors = generateExecutors(currencySettings.executorThreads());
-        this.currencyName = currencySettings.currencyName();
-        this.currencySingular = currencySettings.currencySingle();
-        this.currencyPlural = currencySettings.currencyPlural();
-        this.startingBalance = currencySettings.startingBalance();
-        this.maxBalance = currencySettings.maxBalance() == 0.0d ? Double.POSITIVE_INFINITY : currencySettings.maxBalance();
-        this.saveTransactions = currencySettings.saveTransactions();
-        this.transactionsTTL = currencySettings.transactionsTTL();
-        this.transactionTax = currencySettings.payTax();
-        this.taxOnlyPay = currencySettings.taxOnlyPay();
+        this.updateExecutors = generateExecutors(currencySettings.getExecutorThreads());
+        this.currencyName = currencySettings.getCurrencyName();
+        this.currencySingular = currencySettings.getCurrencySingle();
+        this.currencyPlural = currencySettings.getCurrencyPlural();
+        this.startingBalance = currencySettings.getStartingBalance();
+        this.maxBalance = currencySettings.getMaxBalance() == 0.0d ? Double.POSITIVE_INFINITY : currencySettings.getMaxBalance();
+        this.saveTransactions = currencySettings.isSaveTransactions();
+        this.transactionsTTL = currencySettings.getTransactionsTTL();
+        this.transactionTax = currencySettings.getPayTax();
+        this.taxOnlyPay = currencySettings.isTaxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();
         this.maxPlayerBalances = new ConcurrentHashMap<>();
         this.decimalFormat = new DecimalFormat(
-                currencySettings.decimalFormat() != null ? currencySettings.decimalFormat() : "#.##",
-                new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.languageTag() != null ? currencySettings.languageTag() : "en-US"))
+                currencySettings.getDecimalFormat() != null ? currencySettings.getDecimalFormat() : "#.##",
+                new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.getLanguageTag() != null ? currencySettings.getLanguageTag() : "en-US"))
         );
 
         getOrderedAccounts(-1).thenApply(result -> {
