@@ -249,7 +249,7 @@ public class CurrencyWithBanks extends Currency {
      * @return The transaction id that reverted the initial transaction
      */
     @Override
-    public CompletionStage<Long> revertTransaction(int transactionId, @NotNull Transaction transaction) {
+    public CompletionStage<Long> revertTransaction(long transactionId, @NotNull Transaction transaction) {
         String ownerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
                 currenciesManager.getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id

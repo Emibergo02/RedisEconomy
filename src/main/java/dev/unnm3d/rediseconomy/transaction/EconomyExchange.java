@@ -35,30 +35,30 @@ public class EconomyExchange {
      * @param limit     Maximum number of transactions to return
      * @return Map of transaction ids and transactions
      */
-    public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId, int limit) {
+    public CompletionStage<Map<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
         return CompletableFuture.supplyAsync(() ->
                         plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
                         ), executorService)
                 .thenApply(transactions -> {
                     if (transactions == null || transactions.isEmpty()) {
-                        return new HashMap<Integer, Transaction>();
+                        return new HashMap<Long, Transaction>();
                     }
 
-                    final Map<Integer, Transaction> transactionsMap = new HashMap<>();
+                    final Map<Long, Transaction> transactionsMap = new HashMap<>();
                     transactions.entrySet().stream()
                             .sorted(Comparator.<Map.Entry<String, String>>comparingInt(entry ->
                                     Integer.parseInt(entry.getKey())).reversed())
                             .limit(limit)
                             .forEach(entry -> transactionsMap.put(
-                                    Integer.parseInt(entry.getKey()),
+                                    Long.parseLong(entry.getKey()),
                                     Transaction.fromString(entry.getValue())
                             ));
                     return transactionsMap;
                 })
                 .exceptionally(exc -> {
                     exc.printStackTrace();
-                    return new HashMap<>(); // Return empty map instead of null for better error handling
+                    return new HashMap<Long, Transaction>(); // Return empty map instead of null for better error handling
                 });
     }
 
@@ -89,7 +89,7 @@ public class EconomyExchange {
      * @param id        Transaction id
      * @return Transaction
      */
-    public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, int id) {
+    public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, long id) {
         return CompletableFuture.supplyAsync(() -> {
             return Transaction.fromString(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                     connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))));
@@ -222,7 +222,7 @@ public class EconomyExchange {
      * @param transactionId The id of the transaction to revert
      * @return The id of the new transaction that reverts the old one or the id of the already existing transaction that reverts the old one
      */
-    public CompletionStage<Long> revertTransaction(AccountID accountOwner, int transactionId) {
+    public CompletionStage<Long> revertTransaction(AccountID accountOwner, long transactionId) {
         return getTransaction(accountOwner, transactionId)
                 .thenCompose(transaction -> {
                     // Early return for null transaction
