@@ -47,8 +47,8 @@ public class EconomyExchange {
 
                     final Map<Long, Transaction> transactionsMap = new HashMap<>();
                     transactions.entrySet().stream()
-                            .sorted(Comparator.<Map.Entry<String, String>>comparingInt(entry ->
-                                    Integer.parseInt(entry.getKey())).reversed())
+                            .sorted(Comparator.<Map.Entry<String, String>>comparingLong(entry ->
+                                    Long.parseLong(entry.getKey())))
                             .limit(limit)
                             .forEach(entry -> transactionsMap.put(
                                     Long.parseLong(entry.getKey()),
@@ -58,7 +58,7 @@ public class EconomyExchange {
                 })
                 .exceptionally(exc -> {
                     exc.printStackTrace();
-                    return new HashMap<Long, Transaction>(); // Return empty map instead of null for better error handling
+                    return new HashMap<>(); // Return empty map instead of null for better error handling
                 });
     }
 
