@@ -45,8 +45,8 @@ public class EconomyExchange {
                         return new HashMap<Long, Transaction>();
                     }
 
-                    final Map<Long, Transaction> transactionsMap = new HashMap<>();
-                    transactions.entrySet().stream()
+                    final Map<Long, Transaction> transactionsMap = new TreeMap<>();
+                    transactions.entrySet().stream().toList().stream()
                             .sorted(Comparator.<Map.Entry<String, String>>comparingLong(entry ->
                                     Long.parseLong(entry.getKey())))
                             .limit(limit)
