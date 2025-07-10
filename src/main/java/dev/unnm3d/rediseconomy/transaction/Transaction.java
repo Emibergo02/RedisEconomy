@@ -65,7 +65,7 @@ public class Transaction {
 
     private static AccountID parseAccountID(String id) {
         if (id.startsWith("§")) {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(id.substring(1).getBytes(StandardCharsets.ISO_8859_1)); // Remove the leading '§' if present
+            ByteBuffer byteBuffer = ByteBuffer.wrap(id.substring(1).getBytes(StandardCharsets.ISO_8859_1));
             long high = byteBuffer.getLong();
             long low = byteBuffer.getLong();
             return new AccountID(new UUID(high, low));
@@ -79,15 +79,8 @@ public class Transaction {
     public String toString() {
         ByteBuffer buf = ByteBuffer.allocate(66 + reason.length());
 
-        if (accountIdentifier.isPlayer()) buf.put((byte) '§');
-        else buf.put((byte) '^');
-        buf.putLong(accountIdentifier.getUUID().getMostSignificantBits());
-        buf.putLong(accountIdentifier.getUUID().getLeastSignificantBits());
-
-        if (actor.isPlayer()) buf.put((byte) '§');
-        else buf.put((byte) '^');
-        buf.putLong(actor.getUUID().getMostSignificantBits());
-        buf.putLong(actor.getUUID().getLeastSignificantBits());
+        writeIdentifier(buf, accountIdentifier);
+        writeIdentifier(buf, actor);
 
         buf.putLong(timestamp);
         buf.putDouble(amount);
@@ -100,5 +93,16 @@ public class Transaction {
         buf.put(reason.getBytes(StandardCharsets.ISO_8859_1));
 
         return new String(buf.array(), StandardCharsets.ISO_8859_1);
+    }
+
+    private void writeIdentifier(ByteBuffer buf, AccountID accountID) {
+        if (accountID.isPlayer()) {
+            buf.put((byte) '§');
+            buf.putLong(accountID.getUUID().getMostSignificantBits());
+            buf.putLong(accountID.getUUID().getLeastSignificantBits());
+        } else {
+            buf.put((byte) '^');
+            buf.put(Arrays.copyOf(accountID.toString().getBytes(StandardCharsets.ISO_8859_1),16)); // Ensure non-player account ID is exactly 16 bytes long, padding with zeros if necessary
+        }
     }
 }

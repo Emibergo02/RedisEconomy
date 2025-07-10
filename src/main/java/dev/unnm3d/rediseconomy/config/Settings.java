@@ -29,7 +29,7 @@ public class Settings {
             "Don't use the default credentials in production!! Generate new credentials on RedisLabs -> https://github.com/Emibergo02/RedisEconomy/wiki/Install-redis",
             "Default credentials lead to a non-persistent redis server, only for testing!!",
     })
-    public RedisSettings redis = new RedisSettings("localhost", 6379, "", "", 0, 300, "RedisEconomy", false, 10, 3);
+    public RedisSettings redis = new RedisSettings("localhost", 6379, "", "", 0, 1000, "RedisEconomy", false, 10, 3);
     @Comment({"All RedisEconomy instances with the same cluster id will share the same data"})
     public String clusterId = "";
     @Comment({"How many chars are needed for a command autocompletion", "Increase if you have a lot of players to list"})

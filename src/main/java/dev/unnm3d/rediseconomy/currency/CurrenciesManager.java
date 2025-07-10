@@ -70,7 +70,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             currencies.put(currencySettings.getCurrencyName(), currency);
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, -1, true, false,2)));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, -1, true, false, 2)));
         }
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -476,4 +476,18 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     }
 
+    public void terminate() {
+        currencies.values().forEach(currency -> {
+            currency.updateExecutors.forEach(ex->{
+                try {
+                    if (!ex.awaitTermination(1, TimeUnit.SECONDS)) {
+                        ex.shutdownNow();
+                    }
+                } catch (InterruptedException e1) {
+                    ex.shutdownNow();
+                }
+            });
+        });
+        exchange.terminate();
+    }
 }

@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
+import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
@@ -104,6 +105,10 @@ public class CurrencyWithBanks extends Currency {
         return true;
     }
 
+    public EconomyResponse createBank(@NotNull String accountId) {
+        return createBank(accountId, RedisKeys.getServerUUID(), "Bank account creation");
+    }
+
     @Override
     public EconomyResponse createBank(@NotNull String accountId, String player) {
         return createBank(accountId, currenciesManager.getUUIDFromUsernameCache(player), "Bank account creation");
@@ -142,7 +147,7 @@ public class CurrencyWithBanks extends Currency {
             return redisAsyncCommands.hdel(BANK_OWNERS.toString(), accountId);
         }).thenAccept(result -> {
             bankAccounts.remove(accountId);
-                    RedisEconomyPlugin.debug("Deleted bank account " + accountId + " with result " + result);
+            RedisEconomyPlugin.debug("Deleted bank account " + accountId + " with result " + result);
 
             currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), 0, this, "Bank account deletion");
         });
@@ -156,11 +161,14 @@ public class CurrencyWithBanks extends Currency {
 
     @Override
     public EconomyResponse bankHas(@NotNull String accountId, double amount) {
-        EconomyResponse balanceResponse = bankBalance(accountId);
-        if (balanceResponse.balance - amount < 0) {
+        if (!existsBank(accountId)) {
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Bank account does not exist");
+        }
+        double bankBalance = bankAccounts.getOrDefault(accountId, 0.0D);
+        if (bankBalance - amount < 0) {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Not enough money");
         }
-        return new EconomyResponse(amount, balanceResponse.balance - amount, EconomyResponse.ResponseType.SUCCESS, null);
+        return new EconomyResponse(amount, bankBalance - amount, EconomyResponse.ResponseType.SUCCESS, null);
     }
 
     @Override
@@ -201,13 +209,29 @@ public class CurrencyWithBanks extends Currency {
      * @return EconomyResponse with the result of the operation SUCCESS or FAILURE if the bank account does not exist
      */
     public EconomyResponse bankDeposit(@NotNull String accountId, double amount, String reason) {
-        if (existsBank(accountId)) {
+        if (!existsBank(accountId)) {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Bank account does not exist");
         }
-        EconomyResponse balanceResponse = bankBalance(accountId);
-        updateBankAccount(accountId, balanceResponse.balance + amount);//Balance is the new balance with subtracted amount
+        double bankBalance = bankAccounts.getOrDefault(accountId, 0.0D);
+        updateBankAccount(accountId, bankBalance + amount);//Balance is the new balance with subtracted amount
         currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), amount, this, reason);
-        return new EconomyResponse(amount, balanceResponse.balance + amount, EconomyResponse.ResponseType.SUCCESS, null);
+        return new EconomyResponse(amount, bankBalance + amount, EconomyResponse.ResponseType.SUCCESS, null);
+    }
+
+    /**
+     * Set the balance of a bank account.
+     *
+     * @param accountId The account ID of the bank
+     * @param amount    The amount to set the balance to
+     * @return The result of the operation
+     */
+    public EconomyResponse setBankBalance(@NotNull String accountId, double amount) {
+        if (amount == Double.POSITIVE_INFINITY || amount == Double.NEGATIVE_INFINITY || Double.isNaN(amount))
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, "Invalid decimal amount format");
+        updateBankAccount(accountId, amount);
+        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), -bankAccounts.getOrDefault(accountId, 0.0D), this, "Reset balance");
+        currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), amount, this, "Set balance");
+        return new EconomyResponse(amount, bankAccounts.getOrDefault(accountId, 0.0D), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
     @Override
@@ -256,7 +280,8 @@ public class CurrencyWithBanks extends Currency {
         if (transaction.getAccountIdentifier().isPlayer()) {//Update player account
             updateAccount(transaction.getAccountIdentifier().getUUID(), ownerName, getBalance(transaction.getAccountIdentifier().getUUID()) - transaction.getAmount());
         } else {//Update bank account
-            updateBankAccount(transaction.getAccountIdentifier().toString(), bankBalance(transaction.getAccountIdentifier().toString()).balance - transaction.getAmount());
+            double bankBalance = bankAccounts.getOrDefault(transaction.getAccountIdentifier().toString(), 0.0D);
+            updateBankAccount(transaction.getAccountIdentifier().toString(), bankBalance - transaction.getAmount());
         }
         RedisEconomyPlugin.debug("revert01a reverted on account " + transaction.getAccountIdentifier() + " amount " + transaction.getAmount());
 
@@ -286,20 +311,19 @@ public class CurrencyWithBanks extends Currency {
     private synchronized void updateBankAccountCloudCache(@NotNull String accountId, double balance, int tries) {
         CompletableFuture.supplyAsync(() -> {
             RedisEconomyPlugin.debugCache("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
-            try {
-                currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                    reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
-                    reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
-                    RedisEconomyPlugin.debugCache("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
 
-                }).ifPresentOrElse(result -> {
-                    RedisEconomyPlugin.debugCache("01c Sent bank update account " + accountId + " to " + balance);
-                }, () -> handleException(accountId, balance, tries, null));
-            } catch (Exception e) {
-                handleException(accountId, balance, tries, e);
-            }
+            currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
+                reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
+                reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName,
+                        RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
+                RedisEconomyPlugin.debugCache("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
+
+            }).ifPresentOrElse(result -> {
+                RedisEconomyPlugin.debugCache("01c Sent bank update account " + accountId + " to " + balance);
+            }, () -> handleException(accountId, balance, tries, null));
+
             return null;
-        }, getExecutor(accountId.getBytes()[0])).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
+        }, getExecutor(accountId.getBytes()[accountId.length() - 1])).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
             handleException(accountId, balance, tries, new Exception(throwable));
             return null;
         });

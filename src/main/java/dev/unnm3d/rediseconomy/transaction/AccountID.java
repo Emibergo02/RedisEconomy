@@ -13,12 +13,9 @@ public class AccountID {
     /**
      * Creates a new non-player account id
      *
-     * @param id The account id. It must be less than 36 characters
+     * @param id The account id. It must be less than 16 characters, or it will be truncated.
      */
     public AccountID(String id) {
-        if (id.length() >= 16) {
-            throw new IllegalArgumentException("Invalid account id. It must be less than 16 characters");
-        }
         this.id = id;
         this.isPlayer = false;
     }

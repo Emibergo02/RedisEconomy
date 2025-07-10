@@ -39,20 +39,20 @@ public class EconomyExchange {
      * @param limit     Maximum number of transactions to return
      * @return Map of transaction ids and transactions
      */
-    public CompletionStage<Map<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
+    public CompletionStage<TreeMap<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
         return CompletableFuture.supplyAsync(() ->
                         plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                                 connection.hgetall(RedisKeys.TRANSACTIONS + accountId.toString())
                         ), executorService)
                 .thenApply(transactions -> {
                     if (transactions == null || transactions.isEmpty()) {
-                        return new HashMap<Long, Transaction>();
+                        return new TreeMap<Long, Transaction>();
                     }
 
-                    final Map<Long, Transaction> transactionsMap = new TreeMap<>();
+                    final TreeMap<Long, Transaction> transactionsMap = new TreeMap<>();
                     transactions.entrySet().stream().toList().stream()
                             .sorted(Comparator.<Map.Entry<String, String>>comparingLong(entry ->
-                                    Long.parseLong(entry.getKey())))
+                                    Long.parseLong(entry.getKey())).reversed())
                             .limit(limit)
                             .forEach(entry -> transactionsMap.put(
                                     Long.parseLong(entry.getKey()),
@@ -62,7 +62,7 @@ public class EconomyExchange {
                 })
                 .exceptionally(exc -> {
                     exc.printStackTrace();
-                    return new HashMap<>(); // Return empty map instead of null for better error handling
+                    return new TreeMap<>(); // Return empty map instead of null for better error handling
                 });
     }
 
@@ -381,6 +381,16 @@ public class EconomyExchange {
                 .findFirst()
                 .map(ste -> "\nCall: " + ste.getClassName() + ":" + ste.getMethodName() + ":" + ste.getLineNumber())
                 .orElse("");
+    }
+
+    public void terminate() {
+        try {
+            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
     }
 
 }

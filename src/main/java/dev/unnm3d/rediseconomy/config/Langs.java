@@ -68,9 +68,9 @@ public final class Langs {
                     "<yellow>Reason: </yellow>%reason%");
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
     public String backupRestoreFinished = "<green>Backup/restore file %file% finished!</green>";
+    public String truncatedID = "<red>You're trying to search for a account with an ID that is too long! Account IDs must be 16 or less characters long.</red><br><red>Any longer ID will be TRUNCATED!";
     public String invalidPath = "<red>Invalid path!</red>";
     public String allPlayersPlaceholder = "_ALL_";
-
 
     public record TransactionItem(
             String outgoingFunds,
