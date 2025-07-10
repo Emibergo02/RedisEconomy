@@ -6,9 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.UUID;
 
 @NoArgsConstructor
@@ -20,23 +17,16 @@ public class Transaction {
      */
     private AccountID accountIdentifier = new AccountID(RedisKeys.getServerUUID());
     /**
-     * The identifier of the actor that performed this transaction
-     */
-    private AccountID actor = new AccountID(RedisKeys.getServerUUID());
-    private String currencyName = "";
-    /**
      * The timestamp of the transaction
      */
     private long timestamp = 0;
+    /**
+     * The identifier of the actor that performed this transaction
+     */
+    private AccountID actor = new AccountID(RedisKeys.getServerUUID());
     @Setter
     private double amount = 0;
-    /**
-     * The identifier of the transaction that reverted this transaction, if any
-     * <p>
-     * This is used to track reversions of transactions, such as refunds or corrections.
-     */
-    @Setter
-    private String revertedWith = null;
+    private String currencyName = "";
     /**
      * The reason for this transaction
      * <p>
@@ -44,6 +34,13 @@ public class Transaction {
      */
     @Setter
     private String reason = "Unknown";
+    /**
+     * The identifier of the transaction that reverted this transaction, if any
+     * <p>
+     * This is used to track reversions of transactions, such as refunds or corrections.
+     */
+    @Setter
+    private String revertedWith = null;
 
     /**
      * Creates a new transaction from a string
@@ -52,53 +49,19 @@ public class Transaction {
      * @return The transaction created from the string
      */
     public static Transaction fromString(String serializedTransaction) {
-        final AccountID accountID = parseAccountID(serializedTransaction.substring(0, 17));
-        final AccountID actorID = parseAccountID(serializedTransaction.substring(17, 34));
-        final long timestamp = ByteBuffer.wrap(serializedTransaction.substring(34, 42).getBytes(StandardCharsets.ISO_8859_1)).getLong();
-        final double amount = ByteBuffer.wrap(serializedTransaction.substring(42, 50).getBytes(StandardCharsets.ISO_8859_1)).getDouble();
-        final String currencyName = serializedTransaction.substring(50, 58);
-        final long revertedWith = ByteBuffer.wrap(serializedTransaction.substring(58, 66).getBytes(StandardCharsets.ISO_8859_1)).getLong();
-        final String reason = serializedTransaction.substring(66);
-
-        return new Transaction(accountID, actorID, currencyName, timestamp, amount, revertedWith == 0 ? null : String.valueOf(revertedWith), reason);
-    }
-
-    private static AccountID parseAccountID(String id) {
-        if (id.startsWith("§")) {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(id.substring(1).getBytes(StandardCharsets.ISO_8859_1)); // Remove the leading '§' if present
-            long high = byteBuffer.getLong();
-            long low = byteBuffer.getLong();
-            return new AccountID(new UUID(high, low));
-        } else if (id.startsWith("^")) {
-            return new AccountID(id.substring(1));
-        }
-        throw new IllegalArgumentException("Invalid account identifier format: " + id);
+        String[] parts = serializedTransaction.split(";");
+        return new Transaction(
+                parts[0].length() == 36 ? new AccountID(UUID.fromString(parts[0])) : new AccountID(parts[0]),
+                Long.parseLong(parts[1]),
+                parts[2].length() == 36 ? new AccountID(UUID.fromString(parts[2])) : new AccountID(parts[2]),
+                Double.parseDouble(parts[3]),
+                parts[4],
+                parts[5],
+                parts.length == 7 ? parts[6] : null);
     }
 
     @Override
     public String toString() {
-        ByteBuffer buf = ByteBuffer.allocate(66 + reason.length());
-
-        if (accountIdentifier.isPlayer()) buf.put((byte) '§');
-        else buf.put((byte) '^');
-        buf.putLong(accountIdentifier.getUUID().getMostSignificantBits());
-        buf.putLong(accountIdentifier.getUUID().getLeastSignificantBits());
-
-        if (actor.isPlayer()) buf.put((byte) '§');
-        else buf.put((byte) '^');
-        buf.putLong(actor.getUUID().getMostSignificantBits());
-        buf.putLong(actor.getUUID().getLeastSignificantBits());
-
-        buf.putLong(timestamp);
-        buf.putDouble(amount);
-        buf.put(Arrays.copyOf(currencyName.getBytes(StandardCharsets.ISO_8859_1),8)); // Ensure currencyName is exactly 8 bytes long, padding with zeros if necessary
-        if (revertedWith == null) {
-            buf.putLong(0);
-        } else {
-            buf.putLong(Long.parseLong(revertedWith));
-        }
-        buf.put(reason.getBytes(StandardCharsets.ISO_8859_1));
-
-        return new String(buf.array(), StandardCharsets.ISO_8859_1);
+        return accountIdentifier + ";" + timestamp + ";" + actor + ";" + amount + ";" + currencyName + ";" + reason.replace(";","") + (revertedWith == null ? "" : ";" + revertedWith);
     }
 }

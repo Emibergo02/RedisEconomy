@@ -117,16 +117,20 @@ public class EconomyExchange {
         return CompletableFuture.supplyAsync(() -> {
                     TransactionEvent transactionSenderEvent = new TransactionEvent(new Transaction(
                             new AccountID(sender),
-                            new AccountID(target), currency.getCurrencyName(), System.currentTimeMillis(),
+                            System.currentTimeMillis(),
+                            new AccountID(target),
                             -amount,
-                            null, reason + stackTrace
-                    ));
+                            currency.getCurrencyName(),
+                            reason + stackTrace,
+                            null));
                     TransactionEvent transactionReceiverEvent = new TransactionEvent(new Transaction(
                             new AccountID(target),
-                            new AccountID(sender), currency.getCurrencyName(), System.currentTimeMillis(),
+                            System.currentTimeMillis(),
+                            new AccountID(sender),
                             amount,
-                            null, reason + stackTrace
-                    ));
+                            currency.getCurrencyName(),
+                            reason + stackTrace,
+                            null));
 
                     plugin.getScheduler().runTask(() -> {
                         plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
@@ -136,7 +140,12 @@ public class EconomyExchange {
                     //noinspection unchecked
                     return plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                             (List<Long>) connection.eval(
-                                    "local a=redis.call('incr',KEYS[1])local b=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])redis.call('hset',KEYS[3],b,ARGV[2])if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end;return{a,b}",
+                                    "local a=redis.call('incr',KEYS[1])" +
+                                            "local b=redis.call('incr',KEYS[1])" +
+                                            "redis.call('hset',KEYS[2],a,ARGV[1])" +
+                                            "redis.call('hset',KEYS[3],b,ARGV[2])" +
+                                            "if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end" +
+                                            " return{a,b}",
                                     ScriptOutputType.MULTI,
                                     new String[]{
                                             TRANSACTIONS_COUNTER.toString(),
@@ -178,12 +187,15 @@ public class EconomyExchange {
         return CompletableFuture.supplyAsync(() -> {
                     TransactionEvent transactionEvent = new TransactionEvent(new Transaction(
                             accountOwner,
-                            target, currency.getCurrencyName(), System.currentTimeMillis(),
-                            //If target is null, it has been sent from the server
-                            amount, null, reason + stackTrace));
+                            System.currentTimeMillis(),
+                            target, //If target is null, it has been sent from the server
+                            amount, currency.getCurrencyName(), reason + stackTrace, null));
                     plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
                     return (long) plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
-                            "local a=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end;return a",
+                            "local a=redis.call('incr',KEYS[1])" +
+                                    "redis.call('hset',KEYS[2],a,ARGV[1])" +
+                                    "if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end" +
+                                    " return a",
                             ScriptOutputType.INTEGER,
                             new String[]{
                                     TRANSACTIONS_COUNTER.toString(),

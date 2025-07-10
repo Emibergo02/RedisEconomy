@@ -1,14 +1,11 @@
 package dev.unnm3d.rediseconomy.transaction;
 
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
-import lombok.Getter;
 
 import java.util.UUID;
 
 public class AccountID {
     private final String id;
-    @Getter
-    private final boolean isPlayer;
 
     /**
      * Creates a new non-player account id
@@ -16,11 +13,10 @@ public class AccountID {
      * @param id The account id. It must be less than 36 characters
      */
     public AccountID(String id) {
-        if (id.length() >= 16) {
-            throw new IllegalArgumentException("Invalid account id. It must be less than 16 characters");
+        if (id.length() >= 36) {
+            throw new IllegalArgumentException("Invalid account id. It must be less than 36 characters");
         }
         this.id = id;
-        this.isPlayer = false;
     }
 
     /**
@@ -30,12 +26,19 @@ public class AccountID {
      */
     public AccountID(UUID id) {
         this.id = id.toString();
-        this.isPlayer = true;
     }
 
     public AccountID() {
         this.id = RedisKeys.getServerUUID().toString();
-        this.isPlayer = true;
+    }
+
+    /**
+     * Returns if the account id is a player or a bank id (non UUID)
+     *
+     * @return true if the account id is a player uuid
+     */
+    public boolean isPlayer() {
+        return id.length() == 36;
     }
 
     public boolean isServer() {
