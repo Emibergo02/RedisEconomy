@@ -45,6 +45,8 @@ public class Currency implements Economy {
     private final double maxBalance;
     private boolean saveTransactions;
     @Getter
+    private final int transactionsTTL; //Time to live for transactions in seconds, -1 means forever
+    @Getter
     private double transactionTax;
     @Getter
     private final boolean taxOnlyPay;
@@ -68,6 +70,7 @@ public class Currency implements Economy {
         this.startingBalance = currencySettings.startingBalance();
         this.maxBalance = currencySettings.maxBalance() == 0.0d ? Double.POSITIVE_INFINITY : currencySettings.maxBalance();
         this.saveTransactions = currencySettings.saveTransactions();
+        this.transactionsTTL = currencySettings.transactionsTTL();
         this.transactionTax = currencySettings.payTax();
         this.taxOnlyPay = currencySettings.taxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();
@@ -508,7 +511,7 @@ public class Currency implements Economy {
      * @param transaction   The transaction to revert
      * @return The transaction id that reverted the initial transaction
      */
-    public CompletionStage<Integer> revertTransaction(int transactionId, @NotNull Transaction transaction) {
+    public CompletionStage<Long> revertTransaction(long transactionId, @NotNull Transaction transaction) {
         String ownerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
                 currenciesManager.getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id

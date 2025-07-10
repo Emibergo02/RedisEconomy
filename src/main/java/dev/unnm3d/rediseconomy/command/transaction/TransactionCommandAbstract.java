@@ -17,7 +17,7 @@ public abstract class TransactionCommandAbstract {
     protected final RedisEconomyPlugin plugin;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
 
-    void sendTransaction(CommandSender sender, int transactionId, Transaction transaction, String timestampArgument) {
+    void sendTransaction(CommandSender sender, long transactionId, Transaction transaction, String timestampArgument) {
         String accountOwnerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
                 plugin.getCurrenciesManager().getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id
@@ -43,7 +43,7 @@ public abstract class TransactionCommandAbstract {
         plugin.langs().send(sender, transactionMessage);
     }
 
-    void sendTransaction(CommandSender sender, int transactionId, Transaction transaction) {
+    void sendTransaction(CommandSender sender, long transactionId, Transaction transaction) {
         sendTransaction(sender, transactionId, transaction, null);
     }
 

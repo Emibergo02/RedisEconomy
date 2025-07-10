@@ -16,7 +16,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
@@ -139,7 +142,7 @@ public class CurrencyWithBanks extends Currency {
             return redisAsyncCommands.hdel(BANK_OWNERS.toString(), accountId);
         }).thenAccept(result -> {
             bankAccounts.remove(accountId);
-                    RedisEconomyPlugin.debug("Deleted bank account " + accountId + " with result " + result);
+            RedisEconomyPlugin.debug("Deleted bank account " + accountId + " with result " + result);
 
             currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), 0, this, "Bank account deletion");
         });
@@ -246,7 +249,7 @@ public class CurrencyWithBanks extends Currency {
      * @return The transaction id that reverted the initial transaction
      */
     @Override
-    public CompletionStage<Integer> revertTransaction(int transactionId, @NotNull Transaction transaction) {
+    public CompletionStage<Long> revertTransaction(long transactionId, @NotNull Transaction transaction) {
         String ownerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
                 currenciesManager.getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id
@@ -265,7 +268,7 @@ public class CurrencyWithBanks extends Currency {
             connection.hset(BANK_OWNERS.toString(), accountId, ownerUUID.toString());
             return connection.publish(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + ownerUUID);
         }).thenAccept((result) -> {
-                    RedisEconomyPlugin.debug("Set owner of bank " + accountId + " to " + ownerUUID + " with result " + result);
+            RedisEconomyPlugin.debug("Set owner of bank " + accountId + " to " + ownerUUID + " with result " + result);
 
             bankOwners.put(accountId, ownerUUID);
         });
@@ -296,7 +299,7 @@ public class CurrencyWithBanks extends Currency {
                 handleException(accountId, balance, tries, e);
             }
             return null;
-        }, getExecutor(accountId.getBytes()[0])).orTimeout(10,TimeUnit.SECONDS).exceptionally(throwable ->{
+        }, getExecutor(accountId.getBytes()[0])).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
             handleException(accountId, balance, tries, new Exception(throwable));
             return null;
         });

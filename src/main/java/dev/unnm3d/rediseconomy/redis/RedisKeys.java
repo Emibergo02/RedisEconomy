@@ -15,6 +15,7 @@ public enum RedisKeys {
     UPDATE_BANK_OWNER_CHANNEL_PREFIX("rediseco:b_owner_update_"),
     MSG_CHANNEL("rediseco:paymsg"),
     NEW_TRANSACTIONS("rediseco:transactions:"),
+    TRANSACTIONS_COUNTER("rediseco:transactions_counter"),
     LOCKED_ACCOUNTS("rediseco:locked"),
     UPDATE_LOCKED_ACCOUNTS("rediseco:locked"),
     UPDATE_ONLINE("rediseco:online_update"),

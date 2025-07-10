@@ -2,7 +2,6 @@ package dev.unnm3d.rediseconomy.command.transaction;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -28,7 +27,7 @@ public class TransactionCommand extends TransactionCommandAbstract implements Co
         }
         String target = args[0];
         try {
-            int transactionId = Integer.parseInt(args[1]);
+            long transactionId = Long.parseLong(args[1]);
 
             boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
 

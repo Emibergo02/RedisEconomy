@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
+import static dev.unnm3d.rediseconomy.redis.RedisKeys.TRANSACTIONS_COUNTER;
 
 public class EconomyExchange {
 
@@ -34,23 +35,23 @@ public class EconomyExchange {
      * @param limit     Maximum number of transactions to return
      * @return Map of transaction ids and transactions
      */
-    public CompletionStage<Map<Integer, Transaction>> getTransactions(AccountID accountId, int limit) {
+    public CompletionStage<Map<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
         return CompletableFuture.supplyAsync(() ->
                         plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                                 connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
                         ), executorService)
                 .thenApply(transactions -> {
                     if (transactions == null || transactions.isEmpty()) {
-                        return new HashMap<Integer, Transaction>();
+                        return new HashMap<Long, Transaction>();
                     }
 
-                    final Map<Integer, Transaction> transactionsMap = new HashMap<>();
-                    transactions.entrySet().stream()
-                            .sorted(Comparator.<Map.Entry<String, String>>comparingInt(entry ->
-                                    Integer.parseInt(entry.getKey())).reversed())
+                    final Map<Long, Transaction> transactionsMap = new TreeMap<>();
+                    transactions.entrySet().stream().toList().stream()
+                            .sorted(Comparator.<Map.Entry<String, String>>comparingLong(entry ->
+                                    Long.parseLong(entry.getKey())))
                             .limit(limit)
                             .forEach(entry -> transactionsMap.put(
-                                    Integer.parseInt(entry.getKey()),
+                                    Long.parseLong(entry.getKey()),
                                     Transaction.fromString(entry.getValue())
                             ));
                     return transactionsMap;
@@ -88,7 +89,7 @@ public class EconomyExchange {
      * @param id        Transaction id
      * @return Transaction
      */
-    public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, int id) {
+    public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, long id) {
         return CompletableFuture.supplyAsync(() -> {
             return Transaction.fromString(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                     connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))));
@@ -108,8 +109,8 @@ public class EconomyExchange {
      * @param reason   Reason of the transaction
      * @return List of ids: the first one is the id of the transaction on the sender side, the second one is the id of the transaction on the target side
      */
-    public CompletionStage<List<Integer>> savePaymentTransaction(@NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
-        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(List.of(-1, -1));
+    public CompletionStage<List<Long>> savePaymentTransaction(@NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
+        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(List.of((long) -1, (long) -1));
 
         long init = System.currentTimeMillis();
         final String stackTrace = getCallerPluginString();
@@ -136,19 +137,27 @@ public class EconomyExchange {
                         plugin.getServer().getPluginManager().callEvent(transactionReceiverEvent);
                     });
 
+                    //noinspection unchecked
                     return plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
-                            (List<Integer>) connection.eval(
-                                    "local a=redis.call('hlen',KEYS[1])local b=redis.call('hlen',KEYS[2])redis.call('hset',KEYS[1],a,ARGV[1])redis.call('hset',KEYS[2],b,ARGV[2])return{a,b}", //Return the id of the new transaction
+                            (List<Long>) connection.eval(
+                                    "local a=redis.call('incr',KEYS[1])" +
+                                            "local b=redis.call('incr',KEYS[1])" +
+                                            "redis.call('hset',KEYS[2],a,ARGV[1])" +
+                                            "redis.call('hset',KEYS[3],b,ARGV[2])" +
+                                            "if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end" +
+                                            " return{a,b}",
                                     ScriptOutputType.MULTI,
                                     new String[]{
+                                            TRANSACTIONS_COUNTER.toString(),
                                             NEW_TRANSACTIONS + sender.toString(),
                                             NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
                                     transactionSenderEvent.getTransaction().toString(),
-                                    transactionReceiverEvent.getTransaction().toString()));
+                                    transactionReceiverEvent.getTransaction().toString(),
+                                    String.valueOf(currency.getTransactionsTTL())));
                 }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS)
                 .exceptionally(exc -> {
                     RedisEconomyPlugin.debug("ERROR!!!!! 03payment Exception while saving transaction for " + sender + " and " + target + ": " + exc.getMessage());
-                    return List.of(-1, -1);
+                    return List.of((long) -1, (long) -1);
                 })
                 .thenApply(response -> {
                     RedisEconomyPlugin.debug("03payment Transaction for " + sender + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response.get(0) + " !");
@@ -169,8 +178,8 @@ public class EconomyExchange {
      * @param reason       The reason of the transaction
      * @return The transaction id
      */
-    public CompletionStage<Integer> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull Currency currency, @NotNull String reason) {
-        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(-1);
+    public CompletionStage<Long> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull Currency currency, @NotNull String reason) {
+        if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage((long) -1);
         long init = System.currentTimeMillis();
 
         final String stackTrace = getCallerPluginString();
@@ -182,15 +191,23 @@ public class EconomyExchange {
                             target, //If target is null, it has been sent from the server
                             amount, currency.getCurrencyName(), reason + stackTrace, null));
                     plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
-                    return (int) plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
-                            "local a=redis.call('hlen',KEYS[1])redis.call('hset',KEYS[1],a,ARGV[1])return a", //Return the id of the new transaction
+                    return (long) plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
+                            "local a=redis.call('incr',KEYS[1])" +
+                                    "redis.call('hset',KEYS[2],a,ARGV[1])" +
+                                    "if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end" +
+                                    " return a",
                             ScriptOutputType.INTEGER,
-                            new String[]{NEW_TRANSACTIONS + accountOwner.toString()}, //Key rediseco:transactions:playerUUID
-                            transactionEvent.getTransaction().toString()));
+                            new String[]{
+                                    TRANSACTIONS_COUNTER.toString(),
+                                    NEW_TRANSACTIONS + accountOwner.toString() //Key rediseco:transactions:playerUUID
+                            },
+                            transactionEvent.getTransaction().toString(),
+                            String.valueOf(currency.getTransactionsTTL())));
                 }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS)
                 .exceptionally(exc -> {
+                    exc.printStackTrace();
                     RedisEconomyPlugin.debug("ERROR!!!!! 03 Transaction Exception while saving transaction for " + accountOwner + " and " + target + ": " + exc.getMessage());
-                    return -1;
+                    return (long) -1;
                 })
                 .thenApply(response -> {
                     RedisEconomyPlugin.debug("03 Transaction for " + accountOwner + " saved in " + (System.currentTimeMillis() - init) + " ms with id " + response + " !");
@@ -205,25 +222,25 @@ public class EconomyExchange {
      * @param transactionId The id of the transaction to revert
      * @return The id of the new transaction that reverts the old one or the id of the already existing transaction that reverts the old one
      */
-    public CompletionStage<Integer> revertTransaction(AccountID accountOwner, int transactionId) {
+    public CompletionStage<Long> revertTransaction(AccountID accountOwner, long transactionId) {
         return getTransaction(accountOwner, transactionId)
                 .thenCompose(transaction -> {
                     // Early return for null transaction
                     if (transaction == null) {
-                        return CompletableFuture.completedFuture(-1);
+                        return CompletableFuture.completedFuture((long) -1);
                     }
 
                     // Get currency - this should be fast since it's likely cached
                     Currency currency = plugin.getCurrenciesManager().getCurrencyByName(transaction.getCurrencyName());
                     if (currency == null) {
-                        return CompletableFuture.completedFuture(-1);
+                        return CompletableFuture.completedFuture((long) -1);
                     }
 
                     // Check if already reverted
                     if (transaction.getRevertedWith() != null) {
                         RedisEconomyPlugin.debug("revert01b Transaction " + transactionId +
                                 " already reverted with " + transaction.getRevertedWith());
-                        return CompletableFuture.completedFuture(Integer.valueOf(transaction.getRevertedWith()));
+                        return CompletableFuture.completedFuture(Long.valueOf(transaction.getRevertedWith()));
                     }
 
                     // Fire event asynchronously (non-blocking)

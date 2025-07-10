@@ -32,7 +32,7 @@ public class LastTransactionsCommand extends TransactionCommandAbstract implemen
                 plugin.langs().send(sender, plugin.langs().noTransactionFound.replace("%player%", sender.getName()));
                 return;
             }
-            for (Map.Entry<Integer, Transaction> integerTransactionEntry : transactions.entrySet()) {
+            for (Map.Entry<Long, Transaction> integerTransactionEntry : transactions.entrySet()) {
                 sendTransaction(sender, integerTransactionEntry.getKey(), integerTransactionEntry.getValue());
             }
         });
@@ -41,7 +41,7 @@ public class LastTransactionsCommand extends TransactionCommandAbstract implemen
     }
 
     @Override
-    public void sendTransaction(CommandSender sender, int transactionId, Transaction transaction) {
+    public void sendTransaction(CommandSender sender, long transactionId, Transaction transaction) {
         String accountOwnerName = transaction.getAccountIdentifier().isPlayer() ?//If the sender is a player
                 plugin.getCurrenciesManager().getUsernameFromUUIDCache(transaction.getAccountIdentifier().getUUID()) : //Get the username from the cache (with server uuid translation)
                 transaction.getAccountIdentifier().toString(); //Else, it's a bank, so we get the bank id
