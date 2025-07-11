@@ -99,6 +99,8 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
     // %rediseco_bal_formatted_shorthand_<currency>%
     // %rediseco_top_1_name_shorthand_<currency>%
     // %rediseco_top_1_bal_shorthand_<currency>%
+    // %rediseco_singular_<currency>%
+    // %rediseco_plural_<currency>%
     @Override
     public String onRequest(OfflinePlayer player, String params) {
         List<String> splitted = List.of(params.split("_"));
@@ -111,6 +113,14 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
             return parseParams(balance, splitted, currency);
 
         }
+
+        if (splitted.get(0).equals("singular")) {
+            return currency.getCurrencySingular();
+        }
+        if (splitted.get(0).equals("plural")) {
+            return currency.getCurrencyPlural();
+        }
+
         updatePlaceholdersCache();
 
         switch (splitted.get(0)) {
