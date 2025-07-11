@@ -2,6 +2,8 @@ package dev.unnm3d.rediseconomy.command;
 
 import com.github.Anon8281.universalScheduler.UniversalRunnable;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
+import dev.unnm3d.rediseconomy.currency.CurrencyWithBanks;
+import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
 import lombok.AllArgsConstructor;
 import org.bukkit.command.Command;
@@ -13,10 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.BALANCE_PREFIX;
 
 @AllArgsConstructor
 public class MainCommand implements CommandExecutor, TabCompleter {
@@ -37,19 +36,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
             if (args[0].equalsIgnoreCase("test")) {
                 if (sender.hasPermission("rediseconomy.admin.test")) {
-                    long init=System.currentTimeMillis();
+                    long init = System.currentTimeMillis();
                     sender.sendMessage("§6Processing 10000 transactions...");
+                    CurrencyWithBanks defaultBankCurrency = (CurrencyWithBanks) plugin.getCurrenciesManager().getDefaultCurrency();
                     for (int j = 0; j < 10; j++) {
-                        UUID randomUUID = UUID.randomUUID();
-                        final String playerName= String.valueOf(j);
-                        plugin.getCurrenciesManager().getDefaultCurrency().setPlayerBalance(randomUUID, playerName, 0);
+
+                        final String accountId = "test12345678912" + j;
+                        defaultBankCurrency.createBank(accountId, sender.getName());
                         double shouldBeBalance = 0;
                         for (int i = 0; i < 1000; i++) {
                             if (i % 100 == 0) {
-                                plugin.getCurrenciesManager().getDefaultCurrency().setPlayerBalance(randomUUID, playerName, 0);
+                                defaultBankCurrency.setBankBalance(accountId, 0);
                                 shouldBeBalance = 0;
                             }
-                            plugin.getCurrenciesManager().getDefaultCurrency().depositPlayer(randomUUID, playerName, i, "Test" + i + " " + j);
+                            defaultBankCurrency.bankDeposit(accountId, i, "Test" + i + " " + j);
                             shouldBeBalance += i;
                         }
                         double finalShouldBeBalance = shouldBeBalance;
@@ -57,10 +57,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                             @Override
                             public void run() {
                                 plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
-                                                connection.zscore(BALANCE_PREFIX + plugin.getCurrenciesManager().getDefaultCurrency().getCurrencyName(),
-                                                        randomUUID.toString()))
+                                                connection.zscore(RedisKeys.BALANCE_BANK_PREFIX + defaultBankCurrency.getCurrencyName(), accountId))
                                         .thenAccept(balance -> {
-                                            sender.sendMessage("§bUser " + playerName + " balance -> remote: " +balance+ " local: "+ finalShouldBeBalance+" in "+(System.currentTimeMillis()-init)+"ms");
+                                            sender.sendMessage("§bBank " + accountId + " balance -> remote: " + balance + " local: " + finalShouldBeBalance + " in " + (System.currentTimeMillis() - init) + "ms");
                                             if (balance == finalShouldBeBalance) {
                                                 this.cancel();
                                             }

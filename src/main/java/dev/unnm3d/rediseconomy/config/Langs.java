@@ -47,7 +47,7 @@ public final class Langs {
     public String incorrectDate = "<red>Incorrect Date formatting !</red>";
     public String transactionsStart = "<dark_aqua>Transactions of player %player% from %after% to %before%!</dark_aqua>";
     public String transactionsEnd = "<dark_aqua>End of %player% transactions in %time% ms</dark_aqua>";
-    public String transactionsArchiveCompleted = "<green>Archived %size% transaction accounts to %file%</green>";
+    public String transactionsArchiveCompleted = "<green>Archived %size% accounts to %file%</green>";
     public String transactionsArchiveProgress = "<aqua>Archiving progress: %progress%% </aqua>";
     public String editMessageError = "<red>This config entry is not a String or doesn't exist!";
     public String editMessageClickHere = "<click:open_url:%url%>Click here to edit the message %field%!</click>";
@@ -68,9 +68,9 @@ public final class Langs {
                     "<yellow>Reason: </yellow>%reason%");
     public UnitSymbols unitSymbols = new UnitSymbols("k", "m", "b", "t", "q");
     public String backupRestoreFinished = "<green>Backup/restore file %file% finished!</green>";
+    public String truncatedID = "<red>You're trying to search for a account with an ID that is too long! Account IDs must be 16 or less characters long.</red><br><red>Any longer ID will be TRUNCATED!";
     public String invalidPath = "<red>Invalid path!</red>";
     public String allPlayersPlaceholder = "_ALL_";
-
 
     public record TransactionItem(
             String outgoingFunds,

@@ -8,6 +8,7 @@ version = '4.4.3'
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
     }
@@ -26,8 +27,8 @@ dependencies {
     compileOnly 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
     compileOnly 'com.github.MilkBowl:VaultAPI:1.7.1'
     compileOnly 'org.projectlombok:lombok:1.18.34'
-    implementation 'net.kyori:adventure-text-minimessage:4.21.0'
-    implementation 'net.kyori:adventure-platform-bukkit:4.4.0'
+    implementation 'net.kyori:adventure-text-minimessage:4.23.0'
+    implementation 'net.kyori:adventure-platform-bukkit:4.4.1-SNAPSHOT'
     compileOnly 'me.clip:placeholderapi:2.11.6'
     compileOnly 'io.lettuce:lettuce-core:6.5.5.RELEASE'
     implementation 'de.exlll:configlib-yaml:4.6.1'
@@ -37,6 +38,9 @@ dependencies {
 }
 
 shadowJar {
+    destinationDirectory.set(file("$rootDir/target"))
+    archiveClassifier.set('')
+
     relocate 'net.kyori', 'dev.unnm3d.shaded.kyori'
     relocate 'de.exlll.configlib', 'dev.unnm3d.shaded.configlib'
     relocate 'org.snakeyaml.engine', 'dev.unnm3d.shaded.snakeyaml'
@@ -53,6 +57,7 @@ java {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
 }
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 
@@ -60,3 +65,16 @@ tasks.withType(JavaCompile).configureEach {
         options.release.set(targetJavaVersion)
     }
 }
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+    filesMatching('source') {
+        expand props
+    }
+}
+

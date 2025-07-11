@@ -29,6 +29,9 @@ public class BrowseTransactionsCommand extends TransactionCommandAbstract implem
         final String target = args[0];
         final UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
         final AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
+        if (!accountID.isPlayer() && target.length() > 16) {
+            plugin.langs().send(sender, plugin.langs().truncatedID);
+        }
         final String afterDateString = args.length == 3 ? args[1] : "anytime";
         final String beforeDateString = args.length == 3 ? args[2] : "anytime";
 

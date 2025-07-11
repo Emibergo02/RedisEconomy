@@ -3,15 +3,19 @@ package dev.unnm3d.rediseconomy.transaction;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.TransactionEvent;
 import dev.unnm3d.rediseconomy.currency.Currency;
+import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import io.lettuce.core.ScriptOutputType;
+import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
-
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.NEW_TRANSACTIONS;
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.TRANSACTIONS_COUNTER;
 
 public class EconomyExchange {
 
@@ -35,20 +39,20 @@ public class EconomyExchange {
      * @param limit     Maximum number of transactions to return
      * @return Map of transaction ids and transactions
      */
-    public CompletionStage<Map<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
+    public CompletionStage<TreeMap<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
         return CompletableFuture.supplyAsync(() ->
                         plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
-                                connection.hgetall(NEW_TRANSACTIONS + accountId.toString())
+                                connection.hgetall(RedisKeys.TRANSACTIONS + accountId.toString())
                         ), executorService)
                 .thenApply(transactions -> {
                     if (transactions == null || transactions.isEmpty()) {
-                        return new HashMap<Long, Transaction>();
+                        return new TreeMap<Long, Transaction>();
                     }
 
-                    final Map<Long, Transaction> transactionsMap = new TreeMap<>();
+                    final TreeMap<Long, Transaction> transactionsMap = new TreeMap<>();
                     transactions.entrySet().stream().toList().stream()
                             .sorted(Comparator.<Map.Entry<String, String>>comparingLong(entry ->
-                                    Long.parseLong(entry.getKey())))
+                                    Long.parseLong(entry.getKey())).reversed())
                             .limit(limit)
                             .forEach(entry -> transactionsMap.put(
                                     Long.parseLong(entry.getKey()),
@@ -58,7 +62,7 @@ public class EconomyExchange {
                 })
                 .exceptionally(exc -> {
                     exc.printStackTrace();
-                    return new HashMap<>(); // Return empty map instead of null for better error handling
+                    return new TreeMap<>(); // Return empty map instead of null for better error handling
                 });
     }
 
@@ -70,7 +74,7 @@ public class EconomyExchange {
     public CompletionStage<Long> removeAllTransactions() {
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection -> {
                     try {
-                        List<String> keys = connection.keys(NEW_TRANSACTIONS + "*").get();
+                        List<String> keys = connection.keys(RedisKeys.TRANSACTIONS + "*").get();
                         if (keys.isEmpty()) {
                             return CompletableFuture.completedFuture(0L);
                         }
@@ -92,7 +96,7 @@ public class EconomyExchange {
     public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, long id) {
         return CompletableFuture.supplyAsync(() -> {
             return Transaction.fromString(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
-                    connection.hget(NEW_TRANSACTIONS + accountId.toString(), String.valueOf(id))));
+                    connection.hget(RedisKeys.TRANSACTIONS + accountId.toString(), String.valueOf(id))));
         }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS).exceptionally(exc -> {
             exc.printStackTrace();
             return null;
@@ -117,20 +121,16 @@ public class EconomyExchange {
         return CompletableFuture.supplyAsync(() -> {
                     TransactionEvent transactionSenderEvent = new TransactionEvent(new Transaction(
                             new AccountID(sender),
-                            System.currentTimeMillis(),
-                            new AccountID(target),
+                            new AccountID(target), currency.getCurrencyName(), System.currentTimeMillis(),
                             -amount,
-                            currency.getCurrencyName(),
-                            reason + stackTrace,
-                            null));
+                            null, reason + stackTrace
+                    ));
                     TransactionEvent transactionReceiverEvent = new TransactionEvent(new Transaction(
                             new AccountID(target),
-                            System.currentTimeMillis(),
-                            new AccountID(sender),
+                            new AccountID(sender), currency.getCurrencyName(), System.currentTimeMillis(),
                             amount,
-                            currency.getCurrencyName(),
-                            reason + stackTrace,
-                            null));
+                            null, reason + stackTrace
+                    ));
 
                     plugin.getScheduler().runTask(() -> {
                         plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
@@ -140,17 +140,12 @@ public class EconomyExchange {
                     //noinspection unchecked
                     return plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                             (List<Long>) connection.eval(
-                                    "local a=redis.call('incr',KEYS[1])" +
-                                            "local b=redis.call('incr',KEYS[1])" +
-                                            "redis.call('hset',KEYS[2],a,ARGV[1])" +
-                                            "redis.call('hset',KEYS[3],b,ARGV[2])" +
-                                            "if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end" +
-                                            " return{a,b}",
+                                    "local a=redis.call('incr',KEYS[1])local b=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])redis.call('hset',KEYS[3],b,ARGV[2])if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end;return{a,b}",
                                     ScriptOutputType.MULTI,
                                     new String[]{
-                                            TRANSACTIONS_COUNTER.toString(),
-                                            NEW_TRANSACTIONS + sender.toString(),
-                                            NEW_TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
+                                            RedisKeys.TRANSACTIONS_COUNTER.toString(),
+                                            RedisKeys.TRANSACTIONS + sender.toString(),
+                                            RedisKeys.TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
                                     transactionSenderEvent.getTransaction().toString(),
                                     transactionReceiverEvent.getTransaction().toString(),
                                     String.valueOf(currency.getTransactionsTTL())));
@@ -187,19 +182,16 @@ public class EconomyExchange {
         return CompletableFuture.supplyAsync(() -> {
                     TransactionEvent transactionEvent = new TransactionEvent(new Transaction(
                             accountOwner,
-                            System.currentTimeMillis(),
-                            target, //If target is null, it has been sent from the server
-                            amount, currency.getCurrencyName(), reason + stackTrace, null));
+                            target, currency.getCurrencyName(), System.currentTimeMillis(),
+                            //If target is null, it has been sent from the server
+                            amount, null, reason + stackTrace));
                     plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
                     return (long) plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
-                            "local a=redis.call('incr',KEYS[1])" +
-                                    "redis.call('hset',KEYS[2],a,ARGV[1])" +
-                                    "if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end" +
-                                    " return a",
+                            "local a=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end;return a",
                             ScriptOutputType.INTEGER,
                             new String[]{
-                                    TRANSACTIONS_COUNTER.toString(),
-                                    NEW_TRANSACTIONS + accountOwner.toString() //Key rediseco:transactions:playerUUID
+                                    RedisKeys.TRANSACTIONS_COUNTER.toString(),
+                                    RedisKeys.TRANSACTIONS + accountOwner.toString() //Key rediseco:transactions:playerUUID
                             },
                             transactionEvent.getTransaction().toString(),
                             String.valueOf(currency.getTransactionsTTL())));
@@ -252,7 +244,7 @@ public class EconomyExchange {
                     return currency.revertTransaction(transactionId, revertTransactionEvent.getTransaction())
                             .thenCompose(newId -> {
                                 if (newId == null) {
-                                    return CompletableFuture.completedFuture(newId);
+                                    return CompletableFuture.completedFuture(null);
                                 }
 
                                 // Update the transaction with revert info
@@ -262,7 +254,7 @@ public class EconomyExchange {
                                 return plugin.getCurrenciesManager().getRedisManager()
                                         .getConnectionAsync(connection ->
                                                 connection.hset(
-                                                        NEW_TRANSACTIONS + accountOwner.toString(),
+                                                        RedisKeys.TRANSACTIONS + accountOwner.toString(),
                                                         String.valueOf(transactionId),
                                                         revertTransactionEvent.getTransaction().toString()
                                                 )
@@ -278,6 +270,92 @@ public class EconomyExchange {
                                         });
                             });
                 });
+    }
+
+    /**
+     * Archives all transactions to a file
+     *
+     * @param sender      Command sender, usually a player or console
+     * @param archivePath Path to the archive file where transactions will be saved
+     * @return A CompletionStage that completes with the number of archived accounts
+     */
+    public CompletionStage<Integer> archiveTransactions(CommandSender sender, Path archivePath) {
+        // Create parent directories if they don't exist
+        try {
+            Files.createDirectories(archivePath.getParent());
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(new IOException("Failed to create archive directory", e));
+        }
+
+        return CompletableFuture.supplyAsync(() -> {
+            int totalAccounts = plugin.getCurrenciesManager().getNameUniqueIds().size();
+            int archivedCount = 0;
+
+            try (BufferedWriter writer = Files.newBufferedWriter(archivePath, StandardCharsets.UTF_8)) {
+                for (Map.Entry<String, UUID> entry : plugin.getCurrenciesManager().getNameUniqueIds().entrySet()) {
+
+                    String username = entry.getKey();
+                    UUID uuid = entry.getValue();
+
+                    try {
+                        AccountID accountID = new AccountID(uuid);
+                        final Map<Long, Transaction> transactionsMap = plugin.getCurrenciesManager()
+                                .getExchange()
+                                .getTransactions(accountID, Integer.MAX_VALUE)
+                                .toCompletableFuture()
+                                .join(); // Using join() is better in this context than get()
+
+                        if (transactionsMap.isEmpty()) {
+                            continue;
+                        }
+
+                        // Write account header
+                        writer.write(username);
+                        writer.write(';');
+                        writer.write(uuid.toString());
+                        writer.newLine();
+
+                        // Write transactions
+                        for (Transaction transaction : transactionsMap.values()) {
+                            writer.write(transaction.toString());
+                            writer.newLine();
+                        }
+
+                        // Add separator between accounts
+                        writer.newLine();
+
+                        // Report progress at regular intervals
+                        archivedCount++;
+                        if (archivedCount % 100 == 0 || archivedCount == totalAccounts) {
+                            int progressPercentage = (archivedCount * 100) / totalAccounts;
+                            plugin.getScheduler().runTask(() ->
+                                    plugin.langs().send(sender, plugin.langs().transactionsArchiveProgress
+                                            .replace("%progress%", String.valueOf(progressPercentage))));
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger().warning("Failed to archive transactions for " + username + ": " + e.getMessage());
+                    }
+                }
+            } catch (IOException e) {
+                plugin.getLogger().severe("Failed to write transaction archive: " + e.getMessage());
+            }
+
+            return archivedCount;
+        }).thenCompose(archivedCount -> {
+            if (archivedCount <= 0) {
+                return CompletableFuture.completedStage(archivedCount);
+            }
+
+            // Remove transactions only if archiving was successful
+            return plugin.getCurrenciesManager().getExchange().removeAllTransactions()
+                    .thenApply(deletedCount -> {
+                        plugin.getScheduler().runTask(() ->
+                                plugin.langs().send(sender, plugin.langs().transactionsArchiveCompleted
+                                        .replace("%size%", String.valueOf(deletedCount))
+                                        .replace("%file%", archivePath.getFileName().toString())));
+                        return archivedCount;
+                    });
+        });
     }
 
 
@@ -303,6 +381,16 @@ public class EconomyExchange {
                 .findFirst()
                 .map(ste -> "\nCall: " + ste.getClassName() + ":" + ste.getMethodName() + ":" + ste.getLineNumber())
                 .orElse("");
+    }
+
+    public void terminate() {
+        try {
+            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
     }
 
 }
