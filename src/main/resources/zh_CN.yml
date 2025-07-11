@@ -1,0 +1,73 @@
+# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+# ┃      RedisEconomy Config     ┃
+# ┃      Developed by Unnm3d     ┃
+# ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+noConsole: <red>你必须在游戏中才能使用此命令！</red>
+noPermission: <red>你没有权限使用此命令！</red>
+missingArguments: <red>缺少参数！</red>
+playerNotFound: <red>未找到玩家！</red>
+invalidAmount: <red>无效的金额！</red>
+tooSmallAmount: <red>金额太小！</red>
+payCooldown: <red>你之前的付款仍在处理中！请稍候</red>
+invalidCurrency: <red>无效的货币！</red>
+insufficientFunds: <red>你的余额不足！</red>
+balance: <green>你拥有 %balance_short%！</green>
+balanceSet: <green>你已将 %player% 的账户设置为 %balance%！</green>
+maxBalanceSet: <green>你已将 %player% 的最大余额设置为 %amount%！</green>
+balanceOther: <green>%player% 拥有 %balance_short%！</green>
+balanceTop: <green>最富有的玩家：</green><br>%prevpage%      %page%      %nextpage%
+blockedAccounts: <green>已封锁的账户：</green><br>%list%
+blockedAccountSuccess: <green>账户 %player% 已被封锁！</green>
+unblockedAccountSuccess: <green>账户 %player% 已被解封！</green>
+blockedPayment: <red>你对 %player% 的付款已被封锁！</red>
+balanceTopFormat: <aqua>%pos% - %player% %balance_short%</aqua>
+paySelf: <red>你不能向自己付款！</red>
+# Use %tax_percentage% for tax percentage and %tax_applied% for tax applied to the transaction.
+paySuccess: <green>你已向 %player% 支付了 %amount%</green>
+payFail: <red>支付失败！</red>
+payReceived: <green>你已收到来自 %player% 的 %amount%！</green>
+purgeUserSuccess: <green>已清除匹配 %player% 的用户！</green>
+purgeBalanceSuccess: <green>已重置匹配 %player% 的用户在货币 %currency% 上的余额！</green>
+switchCurrencySuccess: <green>已将 %currency% 切换为 %switch-currency%。<br>请立即重启每一个安装了<br>RedisEconomy
+  的实例以避免数据被覆盖！</green>
+noTransactionFound: <red>未找到 %player% 的交易！</red>
+incorrectDate: <red>日期格式不正确！</red>
+transactionsStart: <dark_aqua>玩家 %player% 从 %after% 到 %before% 的交易记录：</dark_aqua>
+transactionsEnd: <dark_aqua>%player% 的交易结束，用时 %time% 毫秒</dark_aqua>
+transactionsArchiveCompleted: <green>已归档 %size% 个账户至 %file%</green>
+transactionsArchiveProgress: <aqua>归档进度：%progress%% </aqua>
+editMessageError: <red>该配置项不是字符串或不存在！</red>
+editMessageClickHere: <click:open_url:%url%>点击此处编辑消息 %field%！</click>
+editMessageSuccess: <green>成功保存 %field%！</green>
+transactionItem:
+  outgoingFunds: <dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>点击复制：</blue><br><aqua>%timestamp%</aqua>"><gold>[时间戳⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"点击撤销交易"><red>[←撤销]</hover></click><br><click:run_command:/transaction
+    %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
+    <grey>> <white>%amount%%symbol%</white> <grey>></grey> <click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>原因：
+    </yellow>%reason%
+  incomingFunds: <dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>点击复制：</blue><br><aqua>%timestamp%</aqua>"><gold>[时间戳⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"点击撤销交易"><red>[←撤销]</hover></click><br><click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%</white>
+    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>原因：
+    </yellow>%reason%
+playerTransactionItem:
+  outgoingFunds: <dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[时间戳⌛]</hover><br><dark_green>%account-owner%</dark_green>
+    <grey>> <white>%amount%%symbol%</white> ></grey> <green>%other-account%</green><br><yellow>原因：
+    </yellow>%reason%
+  incomingFunds: <dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[时间戳⌛]</hover><br><dark_green>%other-account%</dark_green>
+    <grey>> <white>%amount%%symbol%</white> ></grey> <green>%account-owner%</green><br><yellow>原因：
+    </yellow>%reason%
+unitSymbols:
+  thousand: k
+  million: m
+  billion: b
+  trillion: t
+  quadrillion: q
+backupRestoreFinished: <green>备份/还原文件 %file% 已完成！</green>
+truncatedID: <red>你正在尝试搜索一个过长的账户 ID！账户 ID 最多只能有 16 个字符。</red><br><red>超过的部分将被截断！</red>
+invalidPath: <red>无效路径！</red>
+allPlayersPlaceholder: _ALL_
+
+# Authors: Unnm3d

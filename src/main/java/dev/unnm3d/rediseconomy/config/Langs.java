@@ -47,6 +47,8 @@ public final class Langs {
     public String incorrectDate = "<red>Incorrect Date formatting !</red>";
     public String transactionsStart = "<dark_aqua>Transactions of player %player% from %after% to %before%!</dark_aqua>";
     public String transactionsEnd = "<dark_aqua>End of %player% transactions in %time% ms</dark_aqua>";
+    public String transactionReverted = "<green>Transaction %id% reverted successfully with id %new_id%!</green>";
+    public String transactionRevertedFail = "<red>Transaction %id% failed reversion!</red>";
     public String transactionsArchiveCompleted = "<green>Archived %size% accounts to %file%</green>";
     public String transactionsArchiveProgress = "<aqua>Archiving progress: %progress%% </aqua>";
     public String editMessageError = "<red>This config entry is not a String or doesn't exist!";

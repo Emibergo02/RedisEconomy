@@ -1,48 +1,81 @@
-noConsole: <red>Devi essere in gioco per poter usare questo comando!</red>
-noPermission: <red>No hai il permesso di usare questo comando!</red>
-missingArguments: <red>Mancano dei parametri al comando!</red>
+# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+# ┃      RedisEconomy Config     ┃
+# ┃      Developed by Unnm3d     ┃
+# ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+noConsole: <red>Devi essere in gioco per usare questo comando!</red>
+noPermission: <red>Non hai il permesso per usare questo comando!</red>
+missingArguments: <red>Argomenti mancanti!</red>
 playerNotFound: <red>Giocatore non trovato!</red>
-invalidAmount: <red>Il valore immesso è invalido!</red>
-invalidCurrency: <red>Valuta invalida!</red>
+invalidAmount: <red>Importo non valido!</red>
+tooSmallAmount: <red>L'importo è troppo basso!</red>
+payCooldown: <red>Il pagamento precedente è ancora in corso! Attendere prego</red>
+invalidCurrency: <red>Valuta non valida!</red>
 insufficientFunds: <red>Non hai abbastanza soldi!</red>
-balance: <green>Tu hai %balance%!</green>
-balanceSet: <green>Hai messo %balance% all'account %player% !</green>
-balanceOther: <green>%player% ha %balance% !</green>
+balance: <green>Hai %balance_short%!</green>
+balanceSet: <green>Hai impostato il conto di %player% a %balance%!</green>
+maxBalanceSet: <green>Hai impostato il saldo massimo di %player% a %amount%!</green>
+balanceOther: <green>%player% ha %balance_short%!</green>
 balanceTop: <green>Giocatori più ricchi:</green><br>%prevpage%      %page%      %nextpage%
-balanceTopFormat: <aqua>%pos% - %player% %balance%</aqua>
+blockedAccounts: <green>Account bloccati:</green><br>%list%
+blockedAccountSuccess: <green>L'account %player% è stato bloccato!</green>
+unblockedAccountSuccess: <green>L'account %player% è stato sbloccato!</green>
+blockedPayment: <red>I tuoi pagamenti verso %player% sono stati bloccati!</red>
+balanceTopFormat: <aqua>%pos% - %player% %balance_short%</aqua>
 paySelf: <red>Non puoi pagare te stesso!</red>
-paySuccess: <green>Hai pagato a %player% %amount% con %tax_percentage% (%tax_applied%)
-  di commissioni!</green>
+paySuccess: <green>Hai pagato %player% %amount%</green>
 payFail: <red>Pagamento fallito!</red>
 payReceived: <green>Hai ricevuto %amount% da %player%!</green>
-purgeUserSuccess: <green>L'utente che corrisponde a %player% è stato ripulito!</green>
-switchCurrencySuccess: <green>Sostituita %currency% a %switch-currency%.<br>Per favore
-  riavviare ogni istanza<br>di RedisEconomy in modo da evitare sovrapposizioni!</green>
+purgeUserSuccess: <green>Utenti corrispondenti a %player% sono stati eliminati!</green>
+purgeBalanceSuccess: <green>Utenti corrispondenti a %player% sono stati azzerati per la valuta %currency%!</green>
+switchCurrencySuccess: <green>Valuta cambiata da %currency% a %switch-currency%.<br>Si prega
+  di riavviare immediatamente tutte le istanze<br> con RedisEconomy installato per evitare
+  sovrascritture!</green>
 noTransactionFound: <red>Nessuna transazione trovata per %player%!</red>
-transactionsStart: <dark_aqua>Transazioni di %player% da %after% a %before%!</dark_aqua>
+incorrectDate: <red>Formato data non corretto!</red>
+transactionsStart: <dark_aqua>Transazioni del giocatore %player% da %after% a %before%!</dark_aqua>
 transactionsEnd: <dark_aqua>Fine delle transazioni di %player% in %time% ms</dark_aqua>
-editMessageError: <red>Questo campo della configurazione non esiste o non è una stringa!
-editMessageClickHere: <click:open_url:%url%>Clicca qui per modificare %field%!</click>
-editMessageSuccess: <green>%field% salvato con successo!
+transactionsArchiveCompleted: <green>%size% account di transazioni archiviati in %file%</green>
+transactionsArchiveProgress: '<aqua>Avanzamento archiviazione: %progress%% </aqua>'
+transactionReverted: <green>La transazione %id% è stata invertita con %new_id%!</green>
+transactionRevertedFail: <red>L'inversione di %id% è fallita!</red>
+editMessageError: <red>Questa voce di configurazione non è una stringa o non esiste!</red>
+editMessageClickHere: <click:open_url:%url%>Clicca qui per modificare il messaggio %field%!</click>
+editMessageSuccess: <green>Salvato con successo %field%!</green>
 transactionItem:
-  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Click
-    to copy:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Click
-    to revert transaction"><red>[←Riavvolgi]</hover></click><br><click:run_command:/transaction
+  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Clicca
+    per copiare:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Clicca
+    per annullare la transazione"><red>[←Annulla]</hover></click><br><click:run_command:/transaction
     %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
     <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction
-    %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>Ragione:
+    %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>Motivo:
     </yellow>%reason%'
-  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Click
-    to copy:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Click
-    to revert transaction"><red>[←Riavvolgi]</hover></click><br><click:run_command:/transaction
+  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Clicca
+    per copiare:</blue><br><aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Clicca
+    per annullare la transazione"><red>[←Annulla]</hover></click><br><click:run_command:/transaction
     %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%
-    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Ragione:
+    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Motivo:
+    </yellow>%reason%'
+playerTransactionItem:
+  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover><br><dark_green>%account-owner%</dark_green>
+    <grey>> <white>%amount%%symbol%</white> ></grey> <green>%other-account%</green><br><yellow>Motivo:
+    </yellow>%reason%'
+  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[Timestamp⌛]</hover><br><dark_green>%other-account%</dark_green>
+    <grey>> <white>%amount%%symbol%</white> ></grey> <green>%account-owner%</green><br><yellow>Motivo:
     </yellow>%reason%'
 unitSymbols:
   thousand: k
   million: m
-  billion: M
-  trillion: T
-  quadrillion: Q
+  billion: b
+  trillion: t
+  quadrillion: q
+backupRestoreFinished: <green>File di backup/ripristino %file% completato!</green>
+truncatedID: <red>Stai cercando di trovare un account con un ID troppo lungo!
+  Gli ID devono avere al massimo 16 caratteri.</red><br><red>Qualsiasi ID più lungo sarà
+  TRONCATO!</red>
+invalidPath: <red>Percorso non valido!</red>
+allPlayersPlaceholder: _ALL_
+
+# Authors: Unnm3d

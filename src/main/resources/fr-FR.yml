@@ -1,0 +1,72 @@
+noConsole: <red>Vous devez être en jeu pour utiliser cette commande !</red>
+noPermission: <red>Vous n'avez pas la permission d'utiliser cette commande !</red>
+missingArguments: <red>Arguments manquants !</red>
+playerNotFound: <red>Joueur introuvable !</red>
+invalidAmount: <red>Montant invalide !</red>
+tooSmallAmount: <red>Le montant est trop faible !</red>
+payCooldown: <red>Votre paiement précédent est toujours en cours ! Veuillez patienter</red>
+invalidCurrency: <red>Devise invalide !</red>
+insufficientFunds: <red>Vous n'avez pas assez d'argent !</red>
+balance: <green>Vous avez %balance_short% !</green>
+balanceSet: <green>Vous avez défini le compte de %player% à %balance% !</green>
+maxBalanceSet: <green>Vous avez défini le solde max de %player% à %amount% !</green>
+balanceOther: <green>%player% a %balance_short% !</green>
+balanceTop: <green>Joueurs les plus riches :</green><br>%prevpage%      %page%      %nextpage%
+blockedAccounts: <green>Comptes bloqués :</green><br>%list%
+blockedAccountSuccess: <green>Le compte %player% a été bloqué !</green>
+unblockedAccountSuccess: <green>Le compte %player% a été débloqué !</green>
+blockedPayment: <red>Vos paiements à %player% ont été bloqués !</red>
+balanceTopFormat: <aqua>%pos% - %player% %balance_short%</aqua>
+paySelf: <red>Vous ne pouvez pas vous payer vous-même !</red>
+paySuccess: <green>Vous avez payé %player% %amount%</green>
+payFail: <red>Paiement échoué !</red>
+payReceived: <green>Vous avez reçu %amount% de %player% !</green>
+purgeUserSuccess: <green>Les utilisateurs correspondant à %player% ont été supprimés !</green>
+purgeBalanceSuccess: <green>Les utilisateurs correspondant à %player% ont été réinitialisés pour la devise %currency% !</green>
+switchCurrencySuccess: <green>Changement de %currency% vers %switch-currency%.<br>Veuillez
+  redémarrer immédiatement chaque instance<br> avec RedisEconomy installé pour éviter toute
+  écrasement !</green>
+noTransactionFound: <red>Aucune transaction trouvée pour %player% !</red>
+incorrectDate: <red>Format de date incorrect !</red>
+transactionsStart: <dark_aqua>Transactions du joueur %player% de %after% à %before% !</dark_aqua>
+transactionsEnd: <dark_aqua>Fin des transactions de %player% en %time% ms</dark_aqua>
+transactionsArchiveCompleted: <green>%size% comptes archivés dans %file%</green>
+transactionsArchiveProgress: '<aqua>Progression de l’archivage : %progress%% </aqua>'
+editMessageError: <red>Cette entrée de configuration n'est pas une chaîne ou n'existe pas !</red>
+editMessageClickHere: <click:open_url:%url%>Cliquez ici pour modifier le message %field% !</click>
+editMessageSuccess: <green>%field% enregistré avec succès !</green>
+transactionItem:
+  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Cliquez
+    pour copier :</blue><br><aqua>%timestamp%</aqua>"><gold>[Horodatage⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Cliquez
+    pour annuler la transaction"><red>[←Annuler]</hover></click><br><click:run_command:/transaction
+    %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
+    <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>Raison :
+    </yellow>%reason%'
+  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Cliquez
+    pour copier :</blue><br><aqua>%timestamp%</aqua>"><gold>[Horodatage⌛]</hover></click>
+    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Cliquez
+    pour annuler la transaction"><red>[←Annuler]</hover></click><br><click:run_command:/transaction
+    %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%
+    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Raison :
+    </yellow>%reason%'
+playerTransactionItem:
+  outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[Horodatage⌛]</hover><br><dark_green>%account-owner%</dark_green>
+    <grey>> <white>%amount%%symbol%</white> ></grey> <green>%other-account%</green><br><yellow>Raison :
+    </yellow>%reason%'
+  incomingFunds: '<dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[Horodatage⌛]</hover><br><dark_green>%other-account%</dark_green>
+    <grey>> <white>%amount%%symbol%</white> ></grey> <green>%account-owner%</green><br><yellow>Raison :
+    </yellow>%reason%'
+unitSymbols:
+  thousand: k
+  million: m
+  billion: b
+  trillion: t
+  quadrillion: q
+backupRestoreFinished: <green>Fichier de sauvegarde/restauration %file% terminé !</green>
+truncatedID: <red>Vous essayez de rechercher un compte avec un ID trop long !
+  Les IDs de compte doivent comporter 16 caractères ou moins.</red><br><red>Tout ID plus long sera
+  TRONQUÉ !</red>
+invalidPath: <red>Chemin invalide !</red>
+allPlayersPlaceholder: _ALL_

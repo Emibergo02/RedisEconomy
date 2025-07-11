@@ -38,9 +38,14 @@ public class TransactionCommand extends TransactionCommandAbstract implements Co
                 RedisEconomyPlugin.debug("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
                 plugin.getCurrenciesManager().getExchange().revertTransaction(accountID, transactionId)
                         .thenAccept(newId -> {
-                            sender.sendMessage("§3Transaction reverted with #" + newId);
-                            if (newId == -1)
-                                sender.sendMessage("§3Transaction reverted with §cFAIL");
+                            if (newId == -1) {
+                                plugin.langs().send(sender, plugin.langs().transactionRevertedFail
+                                        .replace("%id%", args[1]));
+                                return;
+                            }
+                            plugin.langs().send(sender, plugin.langs().transactionReverted
+                                    .replace("%id%", args[1])
+                                    .replace("%new_id%", String.valueOf(newId)));
                         });
                 return true;
             }
@@ -68,7 +73,7 @@ public class TransactionCommand extends TransactionCommandAbstract implements Co
                 return List.of();
             return plugin.getCurrenciesManager().getNameUniqueIds().keySet().stream().filter(name -> name.toUpperCase().startsWith(args[0].toUpperCase())).toList();
         } else if (args.length == 2) {
-            if (args[1].trim().equals(""))
+            if (args[1].trim().isEmpty())
                 return List.of("numeric_id");
         } else if (args.length == 3) {
             return List.of("revert");
