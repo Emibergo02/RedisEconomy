@@ -29,14 +29,12 @@ public class TransactionCommand extends TransactionCommandAbstract implements Co
         try {
             long transactionId = Long.parseLong(args[1]);
 
-            boolean revertTransaction = args.length > 2 && args[2].equalsIgnoreCase("revert");
-
             UUID targetUUID = plugin.getCurrenciesManager().getUUIDFromUsernameCache(target);
             AccountID accountID = targetUUID != null ? new AccountID(targetUUID) : new AccountID(target);
             if (!accountID.isPlayer() && target.length() > 16) {
                 plugin.langs().send(sender, plugin.langs().truncatedID);
             }
-            if (revertTransaction) {
+            if (args.length > 2 && args[2].equalsIgnoreCase("revert")) {
                 RedisEconomyPlugin.debug("revert00 Reverting transaction " + transactionId + " called by " + sender.getName());
                 plugin.getCurrenciesManager().getExchange().revertTransaction(accountID, transactionId)
                         .thenAccept(newId -> {

@@ -56,11 +56,19 @@ public class Transaction {
         final AccountID actorID = parseAccountID(serializedTransaction.substring(17, 34));
         final long timestamp = ByteBuffer.wrap(serializedTransaction.substring(34, 42).getBytes(StandardCharsets.ISO_8859_1)).getLong();
         final double amount = ByteBuffer.wrap(serializedTransaction.substring(42, 50).getBytes(StandardCharsets.ISO_8859_1)).getDouble();
-        final String currencyName = serializedTransaction.substring(50, 58);
+        final String currencyName = removeTrailingNulls(serializedTransaction.substring(50, 58));//Remove padding null characters from currencyName
         final long revertedWith = ByteBuffer.wrap(serializedTransaction.substring(58, 66).getBytes(StandardCharsets.ISO_8859_1)).getLong();
         final String reason = serializedTransaction.substring(66);
 
         return new Transaction(accountID, actorID, currencyName, timestamp, amount, revertedWith == 0 ? null : String.valueOf(revertedWith), reason);
+    }
+
+    private static String removeTrailingNulls(String str) {
+        int endIndex = str.length();
+        while (endIndex > 0 && str.charAt(endIndex - 1) == '\0') {
+            endIndex--;
+        }
+        return str.substring(0, endIndex);
     }
 
     private static AccountID parseAccountID(String id) {
@@ -70,7 +78,7 @@ public class Transaction {
             long low = byteBuffer.getLong();
             return new AccountID(new UUID(high, low));
         } else if (id.startsWith("^")) {
-            return new AccountID(id.substring(1));
+            return new AccountID(removeTrailingNulls(id.substring(1)));
         }
         throw new IllegalArgumentException("Invalid account identifier format: " + id);
     }

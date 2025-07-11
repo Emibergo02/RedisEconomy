@@ -244,7 +244,7 @@ public class EconomyExchange {
                     return currency.revertTransaction(transactionId, revertTransactionEvent.getTransaction())
                             .thenCompose(newId -> {
                                 if (newId == null) {
-                                    return CompletableFuture.completedFuture(newId);
+                                    return CompletableFuture.completedFuture(null);
                                 }
 
                                 // Update the transaction with revert info
