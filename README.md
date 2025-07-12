@@ -15,7 +15,7 @@ Add the dependency and replace `<version>...</version>` with the latest release 
 <dependency>
   <groupId>com.github.Emibergo02</groupId>
   <artifactId>RedisEconomy</artifactId>
-  <version>4.3.19</version>
+  <version>4.5.0</version>
   <scope>provided</scope>
 </dependency>
 ```
@@ -34,7 +34,7 @@ allprojects {
 Add the dependency and replace `master-SNAPSHOT` with the latest release version:
 ```gradle
 dependencies {
-  compileOnly 'com.github.Emibergo02:RedisEconomy:4.3.19'
+  compileOnly 'com.github.Emibergo02:RedisEconomy:4.5.0'
 }
 ```
 ## API usage
