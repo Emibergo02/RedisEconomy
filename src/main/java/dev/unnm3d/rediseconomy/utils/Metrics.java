@@ -99,6 +99,10 @@ public class Metrics {
                         logErrors,
                         logSentData,
                         logResponseStatusText);
+        metricsBase.addCustomChart(
+                new SingleLineChart(
+                        "registered_transactions",
+                        () -> plugin.getCurrenciesManager().getExchange().getCurrentTransactionID()));
     }
 
     /**

@@ -54,6 +54,9 @@ public class ConfigManager {
         if (!settingsFile.exists()) {
             plugin.saveResource("it-IT.yml", false);
             plugin.saveResource("de-DE.yml", false);
+            plugin.saveResource("zh-CN.yml", false);
+            plugin.saveResource("fr-FR.yml", false);
+            plugin.saveResource("es-ES.yml", false);
         }
         langs = YamlConfigurations.update(
                 settingsFile.toPath(),

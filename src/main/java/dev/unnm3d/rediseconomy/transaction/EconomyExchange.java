@@ -21,6 +21,8 @@ public class EconomyExchange {
 
     private final RedisEconomyPlugin plugin;
     private final ExecutorService executorService;
+    private long updateTIDTimestamp = System.currentTimeMillis();
+    private int lastTID = 0;
 
     /**
      * Constructor for EconomyExchange
@@ -64,6 +66,17 @@ public class EconomyExchange {
                     exc.printStackTrace();
                     return new TreeMap<>(); // Return empty map instead of null for better error handling
                 });
+    }
+
+    public int getCurrentTransactionID() {
+        if (System.currentTimeMillis() - this.updateTIDTimestamp > 10000 || this.lastTID == 0) {
+            plugin.getCurrenciesManager().getRedisManager()
+                    .getConnectionAsync(connection ->
+                            connection.get(RedisKeys.TRANSACTIONS_COUNTER.toString()))
+                    .thenAccept(s -> this.lastTID = Integer.parseInt(Optional.ofNullable(s).orElse("0")));
+            this.updateTIDTimestamp = System.currentTimeMillis();
+        }
+        return this.lastTID;
     }
 
     /**
