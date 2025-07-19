@@ -28,9 +28,8 @@ paySuccess: <green>你已向 %player% 支付了 %amount%</green>
 payFail: <red>支付失败！</red>
 payReceived: <green>你已收到来自 %player% 的 %amount%！</green>
 purgeUserSuccess: <green>已清除匹配 %player% 的用户！</green>
-purgeBalanceSuccess: <green>已重置匹配 %player% 的用户在货币 %currency% 上的余额！</green>
-switchCurrencySuccess: <green>已将 %currency% 切换为 %switch-currency%。<br>请立即重启每一个安装了<br>RedisEconomy
-  的实例以避免数据被覆盖！</green>
+purgeBalanceSuccess: <green>已清除匹配 %player% 的用户 %currency% 币种的余额！</green>
+switchCurrencySuccess: <green>已将币种 %currency% 切换为 %switch-currency%</green><br><red>请立即重启所有安装了 RedisEconomy<br><red>的服务器实例以避免数据冲突!
 noTransactionFound: <red>未找到 %player% 的交易！</red>
 incorrectDate: <red>日期格式不正确！</red>
 transactionsStart: <dark_aqua>玩家 %player% 从 %after% 到 %before% 的交易记录：</dark_aqua>
