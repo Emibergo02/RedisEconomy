@@ -154,15 +154,17 @@ public class EconomyExchange {
                     //noinspection unchecked
                     return plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                             (List<Long>) connection.eval(
-                                    "local a=redis.call('incr',KEYS[1])local b=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])redis.call('hset',KEYS[3],b,ARGV[2])if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end;return{a,b}",
+                                    "local a=redis.call('incr',KEYS[1])local b=redis.call('incr',KEYS[1])local c=redis.call('zcard',KEYS[4])redis.call('hset',KEYS[2],a,ARGV[1])redis.call('hset',KEYS[3],b,ARGV[2])redis.call('zadd',KEYS[4],c,ARGV[4])if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end;return{a,b}",
                                     ScriptOutputType.MULTI,
                                     new String[]{
                                             RedisKeys.TRANSACTIONS_COUNTER.toString(),
                                             RedisKeys.TRANSACTIONS + sender.toString(),
-                                            RedisKeys.TRANSACTIONS + target.toString()}, //Key rediseco:transactions:playerUUID
+                                            RedisKeys.TRANSACTIONS + target.toString(),
+                                    RedisKeys.DALLO + currency.getCurrencyName()}, //Key rediseco:transactions:playerUUID
                                     transactionSenderEvent.getTransaction().toString(),
                                     transactionReceiverEvent.getTransaction().toString(),
-                                    String.valueOf(currency.getTransactionsTTL())));
+                                    String.valueOf(currency.getTransactionsTTL()),
+                                    transactionSenderEvent.getTransaction().getTimestamp() + ";" + transactionSenderEvent.getTransaction().getAccountIdentifier().getUUID()));
                 }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS)
                 .exceptionally(exc -> {
                     RedisEconomyPlugin.debug("ERROR!!!!! 03payment Exception while saving transaction for " + sender + " and " + target + ": " + exc.getMessage());
@@ -201,14 +203,16 @@ public class EconomyExchange {
                             amount, null, reason + stackTrace));
                     plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
                     return (long) plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
-                            "local a=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end;return a",
+                            "local a=redis.call('incr',KEYS[1])local b=redis.call('zcard',KEYS[3])redis.call('hset',KEYS[2],a,ARGV[1])redis.call('zadd',KEYS[3],b,ARGV[3])if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end;return a",
                             ScriptOutputType.INTEGER,
                             new String[]{
                                     RedisKeys.TRANSACTIONS_COUNTER.toString(),
-                                    RedisKeys.TRANSACTIONS + accountOwner.toString() //Key rediseco:transactions:playerUUID
+                                    RedisKeys.TRANSACTIONS + accountOwner.toString(), //Key rediseco:transactions:playerUUID
+                                    RedisKeys.DALLO + currency.getCurrencyName()
                             },
                             transactionEvent.getTransaction().toString(),
-                            String.valueOf(currency.getTransactionsTTL())));
+                            String.valueOf(currency.getTransactionsTTL()),
+                            transactionEvent.getTransaction().getTimestamp() + ";" + transactionEvent.getTransaction().getAccountIdentifier().getUUID()));
                 }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS)
                 .exceptionally(exc -> {
                     exc.printStackTrace();

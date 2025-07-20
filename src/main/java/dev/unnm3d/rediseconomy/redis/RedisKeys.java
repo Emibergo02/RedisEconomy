@@ -19,7 +19,7 @@ public enum RedisKeys {
     LOCKED_ACCOUNTS("rediseco:locked"),
     UPDATE_LOCKED_ACCOUNTS("rediseco:locked"),
     UPDATE_ONLINE("rediseco:online_update"),
-    ;
+    DALLO("rediseco:dallotransactions:");
 
     private String keyName;
 
