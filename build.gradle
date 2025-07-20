@@ -4,14 +4,11 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '4.5.1-SNAPSHOT'
+version = '4.5.2'
 
 repositories {
     mavenCentral()
     mavenLocal()
-    maven {
-        url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
-    }
     maven {
         url 'https://jitpack.io'
     }
@@ -24,13 +21,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
+    compileOnly 'io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT'
     compileOnly 'com.github.MilkBowl:VaultAPI:1.7.1'
     compileOnly 'org.projectlombok:lombok:1.18.34'
-    implementation 'net.kyori:adventure-text-minimessage:4.23.0'
     implementation 'net.kyori:adventure-platform-bukkit:4.4.1-SNAPSHOT'
     compileOnly 'me.clip:placeholderapi:2.11.6'
-    compileOnly 'io.lettuce:lettuce-core:6.5.5.RELEASE'
+    compileOnly 'io.lettuce:lettuce-core:6.7.1.RELEASE'
     implementation 'de.exlll:configlib-yaml:4.6.1'
     implementation 'com.github.Anon8281:UniversalScheduler:0.1.6'
 
@@ -48,7 +44,7 @@ shadowJar {
     minimize()
 }
 
-def targetJavaVersion = 17
+def targetJavaVersion = 21
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion

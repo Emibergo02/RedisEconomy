@@ -102,10 +102,10 @@ public class Currency implements Economy {
     }
 
     private List<ExecutorService> generateExecutors(int size) {
-        if (size <= 0) return List.of(Executors.newSingleThreadExecutor());
+        if (size <= 0) return List.of(Executors.newSingleThreadExecutor(Thread.ofVirtual().factory()));
         List<ExecutorService> executors = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            executors.add(Executors.newSingleThreadExecutor());
+            executors.add(Executors.newSingleThreadExecutor(Thread.ofVirtual().factory()));
         }
         return executors;
     }

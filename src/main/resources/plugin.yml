@@ -1,13 +1,13 @@
 name: RedisEconomy
 version: '${version}'
-api-version: '1.17'
+api-version: '1.20'
 main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
 author: Unnm3d
 load: STARTUP
 depend:
   - Vault
 libraries:
-  - io.lettuce:lettuce-core:6.5.5.RELEASE
+  - io.lettuce:lettuce-core:6.7.1.RELEASE
 softdepend:
   - PlaceholderAPI
   - Essentials
