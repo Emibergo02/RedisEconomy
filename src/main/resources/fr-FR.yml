@@ -38,7 +38,7 @@ editMessageSuccess: <green>%field% enregistré avec succès !</green>
 transactionItem:
   outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Cliquez
     pour copier :</blue><br><aqua>%timestamp%</aqua>"><gold>[Horodatage⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Cliquez
+    <click:run_command:transaction %account-owner% %id% revert><hover:show_text:"Cliquez
     pour annuler la transaction"><red>[←Annuler]</hover></click><br><click:run_command:/transaction
     %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
     <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction
@@ -46,10 +46,10 @@ transactionItem:
     </yellow>%reason%'
   incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Cliquez
     pour copier :</blue><br><aqua>%timestamp%</aqua>"><gold>[Horodatage⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Cliquez
+    <click:run_command:transaction %account-owner% %id% revert><hover:show_text:"Cliquez
     pour annuler la transaction"><red>[←Annuler]</hover></click><br><click:run_command:/transaction
     %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%
-    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Raison :
+    <grey>></grey> <click:run_command:browse-transactions %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Raison :
     </yellow>%reason%'
 playerTransactionItem:
   outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[Horodatage⌛]</hover><br><dark_green>%account-owner%</dark_green>

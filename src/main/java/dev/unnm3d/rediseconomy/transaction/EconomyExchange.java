@@ -31,7 +31,8 @@ public class EconomyExchange {
      */
     public EconomyExchange(final RedisEconomyPlugin plugin) {
         this.plugin = plugin;
-        this.executorService = Executors.newFixedThreadPool(plugin.getConfigManager().getSettings().transactionExecutorThreads);
+        this.executorService = Executors.newFixedThreadPool(plugin.getConfigManager().getSettings().transactionExecutorThreads,
+                Thread.ofVirtual().factory());
     }
 
     /**
@@ -370,8 +371,7 @@ public class EconomyExchange {
                     });
         });
     }
-
-
+    
     /**
      * Deserializes a string into an array of transactions
      *

@@ -53,8 +53,8 @@ public class BalanceTopCommand implements CommandExecutor, TabCompleter {
                     } else pageBalances = balances.subList((finalPage - 1) * 10, balances.size());
                     //Page formatting: clickable arrows to go to next/previous page
                     plugin.langs().send(sender, plugin.langs().balanceTop.replace("%page%", String.valueOf(finalPage))
-                            .replace("%nextpage%", "<click:run_command:/balancetop " + (balances.size() <= finalPage * 10 ? 1 : finalPage + 1) + ">-></click>")
-                            .replace("%prevpage%", "<click:run_command:/balancetop " + (finalPage == 1 ? (balances.size() % 10) + 1 : finalPage - 1) + "><-</click>"));
+                            .replace("%nextpage%", "<click:run_command:balancetop " + (balances.size() <= finalPage * 10 ? 1 : finalPage + 1) + ">-></click>")
+                            .replace("%prevpage%", "<click:run_command:balancetop " + (finalPage == 1 ? (balances.size() % 10) + 1 : finalPage - 1) + "><-</click>"));
 
                     return new PageData(finalPage, pageBalances);
                 })

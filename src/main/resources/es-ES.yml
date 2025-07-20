@@ -38,7 +38,7 @@ editMessageSuccess: <green>¡Guardado correctamente %field%!</green>
 transactionItem:
   outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Haz clic
     para copiar:</blue><br><aqua>%timestamp%</aqua>"><gold>[Marca de tiempo⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Haz clic
+    <click:run_command:transaction %account-owner% %id% revert><hover:show_text:"Haz clic
     para revertir la transacción"><red>[←Revertir]</hover></click><br><click:run_command:/transaction
     %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
     <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:/transaction
@@ -46,10 +46,10 @@ transactionItem:
     </yellow>%reason%'
   incomingFunds: '<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>Haz clic
     para copiar:</blue><br><aqua>%timestamp%</aqua>"><gold>[Marca de tiempo⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"Haz clic
+    <click:run_command:transaction %account-owner% %id% revert><hover:show_text:"Haz clic
     para revertir la transacción"><red>[←Revertir]</hover></click><br><click:run_command:/transaction
     %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%
-    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Motivo:
+    <grey>></grey> <click:run_command:browse-transactions %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>Motivo:
     </yellow>%reason%'
 playerTransactionItem:
   outgoingFunds: '<dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[Marca de tiempo⌛]</hover><br><dark_green>%account-owner%</dark_green>

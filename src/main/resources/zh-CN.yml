@@ -41,15 +41,15 @@ editMessageClickHere: <click:open_url:%url%>点击此处编辑消息 %field%！<
 editMessageSuccess: <green>成功保存 %field%！</green>
 transactionItem:
   outgoingFunds: <dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>点击复制：</blue><br><aqua>%timestamp%</aqua>"><gold>[时间戳⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"点击撤销交易"><red>[←撤销]</hover></click><br><click:run_command:/transaction
+    <click:run_command:transaction %account-owner% %id% revert><hover:show_text:"点击撤销交易"><red>[←撤销]</hover></click><br><click:run_command:/transaction
     %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click>
     <grey>> <white>%amount%%symbol%</white> <grey>></grey> <click:run_command:/transaction
     %other-account% %afterbefore%><green>%other-account%</green></click><br><yellow>原因：
     </yellow>%reason%
   incomingFunds: <dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:"<blue>点击复制：</blue><br><aqua>%timestamp%</aqua>"><gold>[时间戳⌛]</hover></click>
-    <click:run_command:/transaction %account-owner% %id% revert><hover:show_text:"点击撤销交易"><red>[←撤销]</hover></click><br><click:run_command:/transaction
+    <click:run_command:transaction %account-owner% %id% revert><hover:show_text:"点击撤销交易"><red>[←撤销]</hover></click><br><click:run_command:/transaction
     %other-account% %afterbefore%><green>%other-account%</green></click> <grey>> <white>%amount%%symbol%</white>
-    <grey>></grey> <click:run_command:/transaction %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>原因：
+    <grey>></grey> <click:run_command:browse-transactions %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click><br><yellow>原因：
     </yellow>%reason%
 playerTransactionItem:
   outgoingFunds: <dark_aqua>#%id%</dark_aqua> <hover:show_text:"<aqua>%timestamp%</aqua>"><gold>[时间戳⌛]</hover><br><dark_green>%account-owner%</dark_green>

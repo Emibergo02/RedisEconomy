@@ -4,14 +4,11 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '4.5.1-SNAPSHOT'
+version = '4.5.2'
 
 repositories {
     mavenCentral()
     mavenLocal()
-    maven {
-        url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
-    }
     maven {
         url 'https://jitpack.io'
     }
@@ -24,13 +21,13 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
+    compileOnly 'io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT'
     compileOnly 'com.github.MilkBowl:VaultAPI:1.7.1'
     compileOnly 'org.projectlombok:lombok:1.18.34'
-    implementation 'net.kyori:adventure-text-minimessage:4.23.0'
+    compileOnly 'net.kyori:adventure-text-minimessage:4.23.0'
     implementation 'net.kyori:adventure-platform-bukkit:4.4.1-SNAPSHOT'
     compileOnly 'me.clip:placeholderapi:2.11.6'
-    compileOnly 'io.lettuce:lettuce-core:6.5.5.RELEASE'
+    compileOnly 'io.lettuce:lettuce-core:6.7.1.RELEASE'
     implementation 'de.exlll:configlib-yaml:4.6.1'
     implementation 'com.github.Anon8281:UniversalScheduler:0.1.6'
 
@@ -38,17 +35,32 @@ dependencies {
 }
 
 shadowJar {
+    dependencies{
+        exclude(dependency('net.kyori:adventure-platform-viaversion'))
+        exclude(dependency('net.kyori:adventure-text-minimessage'))
+        exclude(dependency('net.kyori:adventure-text-serializer-legacy'))
+        exclude(dependency('net.kyori:adventure-text-serializer-json'))
+        exclude(dependency('net.kyori:adventure-text-serializer-json-legacy-impl'))
+        exclude(dependency('net.kyori:adventure-text-serializer-gson'))
+        exclude(dependency('net.kyori:adventure-text-serializer-bungeecord'))
+        exclude(dependency('net.kyori:adventure-api'))
+        exclude(dependency('net.kyori:adventure-nbt'))
+        exclude(dependency('net.kyori:adventure-key'))
+        exclude(dependency('net.kyori:option'))
+        exclude(dependency('net.kyori:examination-api'))
+    }
+
     destinationDirectory.set(file("$rootDir/target"))
     archiveClassifier.set('')
 
-    relocate 'net.kyori', 'dev.unnm3d.shaded.kyori'
+    relocate 'net.kyori.adventure.platform', 'dev.unnm3d.shaded.kyori.adventure.platform'
     relocate 'de.exlll.configlib', 'dev.unnm3d.shaded.configlib'
     relocate 'org.snakeyaml.engine', 'dev.unnm3d.shaded.snakeyaml'
     relocate 'com.github.Anon8281.universalScheduler', 'dev.unnm3d.shaded.universalScheduler'
     minimize()
 }
 
-def targetJavaVersion = 17
+def targetJavaVersion = 21
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
