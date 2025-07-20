@@ -387,12 +387,22 @@ public class EconomyExchange {
     }
 
     public String getCallerPluginString() {
-        if (!plugin.settings().registerCalls) return "";
+        if (plugin.settings().registerCallsVerbosity == 0) return "";
         return Arrays.stream(Thread.currentThread().getStackTrace())
                 .skip(3)
                 .filter(s -> plugin.settings().callBlacklistRegex.stream().noneMatch(blRegex -> s.getClassName().matches(blRegex)))
                 .findFirst()
-                .map(ste -> "\nCall: " + ste.getClassName() + ":" + ste.getMethodName() + ":" + ste.getLineNumber())
+                .map(ste -> {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("\nCall: ").append(ste.getClassName());
+                    if (plugin.settings().registerCallsVerbosity > 1) {
+                        sb.append(":").append(ste.getMethodName());
+                    }
+                    if (plugin.settings().registerCallsVerbosity > 2) {
+                        sb.append(":").append(ste.getLineNumber());
+                    }
+                    return sb.toString();
+                })
                 .orElse("");
     }
 

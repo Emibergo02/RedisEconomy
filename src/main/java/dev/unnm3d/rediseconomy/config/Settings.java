@@ -16,8 +16,9 @@ public class Settings {
     public boolean debug = false;
     @Comment("A specific debug for cache update")
     public boolean debugUpdateCache = false;
-    @Comment("If true, the plugin registers who's calling it's methods inside transactions")
-    public boolean registerCalls = false;
+    @Comment({"If 0 registerCalls is disabled, if 1 it will log only the calling class",
+            "if 2 it will log the calling class and method, if 3 it will log the calling class, method and line number"})
+    public int registerCallsVerbosity = 0;
     @Comment("List of regex to be excluded from the registerCalls")
     public List<String> callBlacklistRegex = List.of("^org\\.bukkit.*", "^io\\.papermc.*", "^dev\\.unnm3d\\.rediseconomy.*", "^com\\.mojang.*");
     @Comment({"if true, migrates the bukkit offline uuids accounts to the default RedisEconomy currency",
