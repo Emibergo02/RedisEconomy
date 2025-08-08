@@ -480,7 +480,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         currencies.values().forEach(currency -> {
             currency.updateExecutors.forEach(ex->{
                 try {
-                    if (!ex.awaitTermination(1, TimeUnit.SECONDS)) {
+                    if (!ex.awaitTermination(100, TimeUnit.MILLISECONDS)) {
                         ex.shutdownNow();
                     }
                 } catch (InterruptedException e1) {
