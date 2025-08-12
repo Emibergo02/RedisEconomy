@@ -560,7 +560,14 @@ public class Currency implements Economy {
         return new EconomyResponse(amount, getBalance(playerUUID), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
-    void updateAccountLocal(@NotNull UUID uuid, @Nullable String playerName, double balance) {
+    /**
+     * Only update the balance on local memory
+     *
+     * @param uuid The UUID of the player
+     * @param playerName The name of the player, can be null if not known
+     * @param balance The new balance to set for the player
+     */
+    public void updateAccountLocal(@NotNull UUID uuid, @Nullable String playerName, double balance) {
         if (playerName != null)
             currenciesManager.updateNameUniqueId(playerName, uuid);
         accounts.put(uuid, balance);

@@ -14,6 +14,7 @@ import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.migrators.*;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
@@ -107,8 +108,25 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         this.getLogger().info("Hooked into Vault!");
 
         if (settings().migrationEnabled) {
-            scheduler.runTaskLater(() ->
-                    currenciesManager.migrateFromOfflinePlayers(getServer().getOfflinePlayers()), 100L);
+            scheduler.runTaskLater(() -> {
+                Migrator migrator;
+                if (getServer().getPluginManager().getPlugin("XConomy") != null) {
+                    migrator = new XConomyMigrator();
+                } else if (getServer().getPluginManager().getPlugin("Essentials") != null) {
+                    migrator = new EssentialsMigrator(getServer().getPluginManager().getPlugin("Essentials"));
+                } else if (getServer().getPluginManager().getPlugin("CMI") != null) {
+                    migrator = new CMIMigrator(getServer().getPluginManager().getPlugin("CMI"));
+                } else {
+                    migrator = new OfflinePlayersMigrator(this);
+                }
+                migrator.migrate(currenciesManager.getDefaultCurrency());
+
+                getLogger().info("§aMigration completed!");
+                getLogger().info("§aRestart the server to apply the changes.");
+
+                configManager.getSettings().migrationEnabled = false;
+                configManager.saveConfigs();
+            }, 100L);
         } else {
             currenciesManager.loadDefaultCurrency(this.vaultPlugin);
         }

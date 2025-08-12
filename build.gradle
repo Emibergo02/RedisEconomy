@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '4.5.3'
+version = '4.5.4'
 
 repositories {
     mavenCentral()
@@ -17,18 +17,25 @@ repositories {
     maven {
         url 'https://repo.extendedclip.com/content/repositories/placeholderapi/'
     }
+    maven {
+        url 'https://repo.essentialsx.net/releases/'
+    }
 }
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT'
-    compileOnly 'com.github.MilkBowl:VaultAPI:1.7.1'
     compileOnly 'org.projectlombok:lombok:1.18.34'
     compileOnly 'net.kyori:adventure-text-minimessage:4.23.0'
     implementation 'net.kyori:adventure-platform-bukkit:4.4.1'
-    compileOnly 'me.clip:placeholderapi:2.11.6'
     compileOnly 'io.lettuce:lettuce-core:6.7.1.RELEASE'
     implementation 'de.exlll:configlib-yaml:4.6.1'
     implementation 'com.github.Anon8281:UniversalScheduler:0.1.6'
+
+    compileOnly 'com.github.MilkBowl:VaultAPI:1.7.1'
+    compileOnly 'me.clip:placeholderapi:2.11.6'
+    compileOnly 'net.essentialsx:EssentialsX:2.21.0'
+    compileOnly 'com.github.Zrips:CMI-API:9.7.14.3'
+    compileOnly(files('libs/XConomy-Bukkit-2.26.3.jar'))
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 }
