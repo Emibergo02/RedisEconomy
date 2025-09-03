@@ -2,6 +2,7 @@ package dev.unnm3d.rediseconomy.currency;
 
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
+import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
@@ -21,7 +22,6 @@ import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
 @AllArgsConstructor
 public class Currency implements Economy {
@@ -124,7 +124,7 @@ public class Currency implements Economy {
                 if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
                 final UUID uuid = UUID.fromString(split[1]);
 
-                if (channel.equals(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName)) {
+                if (channel.equals(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName)) {
                     String playerName = split[2];
                     double balance = Double.parseDouble(split[3]);
                     if (playerName == null) {
@@ -134,7 +134,7 @@ public class Currency implements Economy {
                     updateAccountLocal(uuid, playerName, balance);
                     RedisEconomyPlugin.debug("01b Received balance update " + playerName + " to " + balance);
 
-                } else if (channel.equals(UPDATE_MAX_BAL_PREFIX + currencyName)) {
+                } else if (channel.equals(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName)) {
                     double maxBal = Double.parseDouble(split[2]);
                     setPlayerMaxBalanceLocal(uuid, maxBal);
                     RedisEconomyPlugin.debug("01b Received max balance update " + uuid + " to " + maxBal);
@@ -142,8 +142,8 @@ public class Currency implements Economy {
                 }
             }
         });
-        connection.async().subscribe(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, UPDATE_MAX_BAL_PREFIX + currencyName);
-        RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
+        connection.async().subscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName);
+        RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
 
     }
 
@@ -583,10 +583,10 @@ public class Currency implements Economy {
             RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
 
             currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                reactiveCommands.zadd(BALANCE_PREFIX + currencyName, balance, uuid.toString());
+                reactiveCommands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balance, uuid.toString());
                 if (playerName != null)
-                    reactiveCommands.hset(NAME_UUID.toString(), playerName, uuid.toString());
-                reactiveCommands.publish(UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
+                    reactiveCommands.hset(RedisKeys.NAME_UUID.toString(), playerName, uuid.toString());
+                reactiveCommands.publish(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
                         RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
                 RedisEconomyPlugin.debugCache("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
 
@@ -649,11 +649,11 @@ public class Currency implements Economy {
             ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
             balances.toArray(balancesArray);
 
-            commands.zadd(BALANCE_PREFIX + currencyName, balancesArray);
-            commands.hset(NAME_UUID.toString(), nameUUIDs);
+            commands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balancesArray);
+            commands.hset(RedisKeys.NAME_UUID.toString(), nameUUIDs);
         }).ifPresent(result -> {
-            Bukkit.getLogger().info("migration01 updated balances into " + BALANCE_PREFIX + currencyName + " accounts. result " + result.get(0));
-            Bukkit.getLogger().info("migration02 updated nameuuids into " + NAME_UUID + " accounts. result " + result.get(1));
+            Bukkit.getLogger().info("migration01 updated balances into " + RedisKeys.BALANCE_PREFIX + currencyName + " accounts. result " + result.get(0));
+            Bukkit.getLogger().info("migration02 updated nameuuids into " + RedisKeys.NAME_UUID + " accounts. result " + result.get(1));
 
         });
     }
@@ -668,7 +668,7 @@ public class Currency implements Economy {
      */
     public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts(int limit) {
         return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
-                accounts.zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, limit));
+                accounts.zrevrangeWithScores(RedisKeys.BALANCE_PREFIX + currencyName, 0, limit));
 
     }
 
@@ -676,9 +676,12 @@ public class Currency implements Economy {
         return maxPlayerBalances.getOrDefault(uuid, maxBalance);
     }
 
-    public void setPlayerMaxBalance(UUID uuid, double amount) {
-        setPlayerMaxBalanceCloud(uuid, amount);
-        setPlayerMaxBalanceLocal(uuid, amount);
+    public void setPlayerMaxBalance(UUID uuid, double maxAmount) {
+        if (maxAmount < getBalance(uuid)) {
+            setPlayerBalance(uuid, null, maxAmount);
+        }
+        setPlayerMaxBalanceCloud(uuid, maxAmount);
+        setPlayerMaxBalanceLocal(uuid, maxAmount);
     }
 
     public void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
@@ -688,17 +691,17 @@ public class Currency implements Economy {
     public void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
         currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
             if (amount == maxBalance) {
-                asyncCommands.hdel(MAX_PLAYER_BALANCES + currencyName, uuid.toString());
+                asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
             } else {
-                asyncCommands.hset(MAX_PLAYER_BALANCES + currencyName, uuid.toString(), String.valueOf(amount));
+                asyncCommands.hset(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString(), String.valueOf(amount));
             }
-            return asyncCommands.publish(UPDATE_MAX_BAL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + amount);
+            return asyncCommands.publish(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + amount);
         });
     }
 
     public CompletionStage<Map<UUID, Double>> getPlayerMaxBalances() {
         return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
-                        accounts.hgetall(MAX_PLAYER_BALANCES + currencyName))
+                        accounts.hgetall(RedisKeys.MAX_PLAYER_BALANCES + currencyName))
                 .thenApply(result -> {
                     final Map<UUID, Double> maxBalances = new HashMap<>();
                     result.forEach((key, value) -> maxBalances.put(UUID.fromString(key), Double.parseDouble(value)));
@@ -713,7 +716,7 @@ public class Currency implements Economy {
      * @return The balance associated with the UUID on Redis
      */
     public CompletionStage<Double> getAccountRedis(UUID uuid) {
-        return currenciesManager.getRedisManager().getConnectionAsync(connection -> connection.zscore(BALANCE_PREFIX + currencyName, uuid.toString()));
+        return currenciesManager.getRedisManager().getConnectionAsync(connection -> connection.zscore(RedisKeys.BALANCE_PREFIX + currencyName, uuid.toString()));
     }
 
     /**
