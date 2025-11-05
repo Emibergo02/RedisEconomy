@@ -37,6 +37,8 @@ public class Settings {
     public int tab_complete_chars = 0;
     @Comment("If true, the tab completion will show only online players. tab_complete_chars is applied")
     public boolean tabOnlinePlayers = false;
+    @Comment("Enable baltop hide permissions, if true /balancetop toggle will be overridden by permissions on join")
+    public boolean enableHidePermissions = false;
     @Comment("Default currency name (must be the same as the currency name in the currencies list)")
     public String defaultCurrencyName = "vault";
     @Comment("Cooldown between payments in milliseconds")

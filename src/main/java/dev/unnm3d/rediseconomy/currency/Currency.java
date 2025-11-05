@@ -31,6 +31,7 @@ public class Currency implements Economy {
     protected final String currencyName;
     private final ConcurrentHashMap<UUID, Double> accounts;
     private final ConcurrentHashMap<UUID, Double> maxPlayerBalances;
+    private final Set<UUID> baltopHiddenAccounts;
 
     private boolean enabled;
     @Getter
@@ -76,6 +77,7 @@ public class Currency implements Economy {
         this.taxOnlyPay = currencySettings.isTaxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();
         this.maxPlayerBalances = new ConcurrentHashMap<>();
+        this.baltopHiddenAccounts = ConcurrentHashMap.newKeySet();
         this.decimalFormat = new DecimalFormat(
                 currencySettings.getDecimalFormat() != null ? currencySettings.getDecimalFormat() : "#.##",
                 new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.getLanguageTag() != null ? currencySettings.getLanguageTag() : "en-US"))
@@ -97,6 +99,14 @@ public class Currency implements Economy {
             }
             return result;
         }); //Not as critical as accounts, so we don't wait
+
+        getBaltopHiddenAccounts().thenApply(result -> {
+            baltopHiddenAccounts.addAll(result);
+            if (!baltopHiddenAccounts.isEmpty()) {
+                RedisEconomyPlugin.debug("start1 Loaded " + baltopHiddenAccounts.size() + " baltop hidden accounts for currency " + currencyName);
+            }
+            return result;
+        });
 
         registerUpdateListener();
     }
@@ -120,7 +130,7 @@ public class Currency implements Economy {
                 if (split.length < 3) {
                     Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
                 }
-
+                //0 instanceID, 1 playerUUID, 2 playerName/maxBal/isHidden, 3 balance/emtpty/empty (if applicable)
                 if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
                 final UUID uuid = UUID.fromString(split[1]);
 
@@ -139,10 +149,15 @@ public class Currency implements Economy {
                     setPlayerMaxBalanceLocal(uuid, maxBal);
                     RedisEconomyPlugin.debug("01b Received max balance update " + uuid + " to " + maxBal);
 
+                } else if (channel.equals(RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS + currencyName)) {
+                    boolean hidden = Boolean.parseBoolean(split[2]);
+                    hidePlayerBaltopLocal(uuid, hidden);
+                    RedisEconomyPlugin.debug("01b Received baltop hidden update " + uuid + " to " + hidden);
                 }
             }
         });
-        connection.async().subscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName);
+        connection.async().subscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName,
+                RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS + currencyName);
         RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
 
     }
@@ -563,9 +578,9 @@ public class Currency implements Economy {
     /**
      * Only update the balance on local memory
      *
-     * @param uuid The UUID of the player
+     * @param uuid       The UUID of the player
      * @param playerName The name of the player, can be null if not known
-     * @param balance The new balance to set for the player
+     * @param balance    The new balance to set for the player
      */
     public void updateAccountLocal(@NotNull UUID uuid, @Nullable String playerName, double balance) {
         if (playerName != null)
@@ -684,11 +699,11 @@ public class Currency implements Economy {
         setPlayerMaxBalanceLocal(uuid, maxAmount);
     }
 
-    public void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
+    private void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
         maxPlayerBalances.put(uuid, amount);
     }
 
-    public void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
+    private void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
         currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
             if (amount == maxBalance) {
                 asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
@@ -699,6 +714,34 @@ public class Currency implements Economy {
         });
     }
 
+    public boolean isPlayerBaltopHidden(UUID uuid) {
+        return baltopHiddenAccounts.contains(uuid);
+    }
+
+    public void hidePlayerBaltop(UUID uuid, boolean hide) {
+        hidePlayerBaltopLocal(uuid, hide);
+        hidePlayerBaltopCloud(uuid, hide);
+    }
+
+    private void hidePlayerBaltopLocal(UUID uuid, boolean hide) {
+        if (hide) {
+            baltopHiddenAccounts.add(uuid);
+        } else {
+            baltopHiddenAccounts.remove(uuid);
+        }
+    }
+
+    private void hidePlayerBaltopCloud(UUID uuid, boolean hide) {
+        currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
+            if (hide) {
+                asyncCommands.sadd(RedisKeys.BALTOP_HIDDEN_ACCOUNTS + currencyName, uuid.toString());
+            } else {
+                asyncCommands.srem(RedisKeys.BALTOP_HIDDEN_ACCOUNTS + currencyName, uuid.toString());
+            }
+            return asyncCommands.publish(RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + hide);
+        });
+    }
+
     public CompletionStage<Map<UUID, Double>> getPlayerMaxBalances() {
         return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
                         accounts.hgetall(RedisKeys.MAX_PLAYER_BALANCES + currencyName))
@@ -706,6 +749,23 @@ public class Currency implements Economy {
                     final Map<UUID, Double> maxBalances = new HashMap<>();
                     result.forEach((key, value) -> maxBalances.put(UUID.fromString(key), Double.parseDouble(value)));
                     return maxBalances;
+                });
+    }
+
+    private CompletionStage<Set<UUID>> getBaltopHiddenAccounts() {
+        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
+                        connection.smembers(RedisKeys.BALTOP_HIDDEN_ACCOUNTS + currencyName))
+                .thenApply(result -> {
+                    Set<UUID> uuids = new HashSet<>();
+                    result.forEach(uuidString -> {
+                        try {
+                            uuids.add(UUID.fromString(uuidString));
+                        } catch (IllegalArgumentException e) {
+                            RedisEconomyPlugin.getInstance().getLogger()
+                                    .warning("Invalid UUID in baltop hidden accounts: " + uuidString);
+                        }
+                    });
+                    return uuids;
                 });
     }
 

@@ -54,6 +54,8 @@ public final class Langs {
     public String editMessageError = "<red>This config entry is not a String or doesn't exist!";
     public String editMessageClickHere = "<click:open_url:%url%>Click here to edit the message %field%!</click>";
     public String editMessageSuccess = "<green>Saved successfully %field%!";
+    public String baltopHidden="<green>You are now hidden from baltop!</green>";
+    public String baltopShown="<green>You are now shown on baltop!</green>";
     public TransactionItem transactionItem = new TransactionItem(
             "<dark_aqua>#%id%</dark_aqua> <click:copy_to_clipboard:%timestamp%><hover:show_text:\"<blue>Click to copy:</blue><br><aqua>%timestamp%</aqua>\"><gold>[Timestamp⌛]</hover></click> <click:run_command:transaction %account-owner% %id% revert><hover:show_text:\"Click to revert transaction\"><red>[←Revert]</hover></click><br>" +
                     "<click:run_command:browse-transactions %account-owner% %afterbefore%><dark_green>%account-owner%</dark_green></click> <grey>> <white>%amount%%symbol% <grey>></grey> <click:run_command:browse-transactions %other-account% %afterbefore%><green>%other-account%</green></click><br>" +

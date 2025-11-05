@@ -89,6 +89,12 @@ permissions:
   rediseconomy.balancetop:
     description: Allows to use /balancetop
     default: true
+  rediseconomy.balancetop.toggle:
+    description: Allows to use /balancetop toggle
+    default: true
+  rediseconomy.balancetop.hide:
+    description: Allows to be hidden in /balancetop, if false you will be shown on baltop
+    default: false
   rediseconomy.last-transactions:
     description: Allows to use /last-transactions
     default: true
@@ -140,3 +146,4 @@ permissions:
       rediseconomy.admin.archive-transactions: true
       rediseconomy.admin.expandpool: true
       rediseconomy.admin.test: true
+      rediseconomy.balancetop.hide: true

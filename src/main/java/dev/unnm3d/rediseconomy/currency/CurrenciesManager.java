@@ -251,24 +251,30 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     @EventHandler
     private void onJoin(PlayerJoinEvent e) {
-        getCurrencies().forEach(currency ->
-                currency.getAccountRedis(e.getPlayer().getUniqueId())
-                        .thenAccept(balance -> {
-                            RedisEconomyPlugin.debug("00 Loaded " + e.getPlayer().getName() + "'s balance of " + balance + " " + currency.getCurrencyName());
+        getCurrencies().forEach(currency -> {
+            currency.getAccountRedis(e.getPlayer().getUniqueId())
+                    .thenAccept(balance -> {
+                        RedisEconomyPlugin.debug("00 Loaded " + e.getPlayer().getName() + "'s balance of " + balance + " " + currency.getCurrencyName());
 
-                            if (balance == null) {
-                                currency.createPlayerAccount(e.getPlayer());
-                            } else {
-                                currency.updateAccountLocal(e.getPlayer().getUniqueId(), e.getPlayer().getName(), balance);
-                            }
-                        }).exceptionally(ex -> {
-                            ex.printStackTrace();
-                            return null;
-                        }));
+                        if (balance == null) {
+                            currency.createPlayerAccount(e.getPlayer());
+                        } else {
+                            currency.updateAccountLocal(e.getPlayer().getUniqueId(), e.getPlayer().getName(), balance);
+                        }
+                    }).exceptionally(ex -> {
+                        ex.printStackTrace();
+                        return null;
+                    });
+            if (!plugin.getConfigManager().getSettings().enableHidePermissions) return;
+            if (currency.isPlayerBaltopHidden(e.getPlayer().getUniqueId()) == e.getPlayer().hasPermission("rediseconomy.balancetop.hide"))
+                return;
+            currency.hidePlayerBaltop(e.getPlayer().getUniqueId(), e.getPlayer().hasPermission("rediseconomy.balancetop.hide"));
+        });
+
     }
 
     @EventHandler
-    private void onPluginEnable(PluginEnableEvent pluginEnableEvent) {
+    private void onPluginEnable(PluginEnableEvent ignored) {
         if (plugin.settings().migrationEnabled) return;
         if (!plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
                 .stream().allMatch(registration -> registration.getPlugin().equals(plugin))) {
@@ -478,7 +484,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     public void terminate() {
         currencies.values().forEach(currency -> {
-            currency.updateExecutors.forEach(ex->{
+            currency.updateExecutors.forEach(ex -> {
                 try {
                     if (!ex.awaitTermination(100, TimeUnit.MILLISECONDS)) {
                         ex.shutdownNow();
