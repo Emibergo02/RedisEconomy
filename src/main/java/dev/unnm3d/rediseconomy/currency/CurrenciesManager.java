@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
+import dev.unnm3d.rediseconomy.migrators.*;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
@@ -60,6 +61,19 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             throw new RuntimeException(e);
         }
 
+        loadCurrencySystem();
+
+        if (!plugin.settings().migrationEnabled) {
+            loadDefaultCurrency(plugin.getVaultPlugin());
+            return;
+        }
+
+        registerPayMsgChannel();
+        registerBlockAccountChannel();
+        registerUpdateChannelPattern();
+    }
+
+    public void loadCurrencySystem() {
         configManager.getSettings().currencies.forEach(currencySettings -> {
             Currency currency;
             if (currencySettings.isBankEnabled()) {
@@ -67,14 +81,16 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             } else {
                 currency = new Currency(this, currencySettings);
             }
-            currencies.put(currencySettings.getCurrencyName(), currency);
+
+            //Do not register the default currency twice on Vault or the plugins that rely on it will malfunction
+            if (!(currency.getCurrencyName().equals(configManager.getSettings().defaultCurrencyName) &&
+                    currencies.containsKey(currency.getCurrencyName()))) {
+                currencies.put(currencySettings.getCurrencyName(), currency);
+            }
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
             currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, -1, true, false, 2)));
         }
-        registerPayMsgChannel();
-        registerBlockAccountChannel();
-
     }
 
     /**
@@ -479,6 +495,35 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         });
         connection.async().subscribe(UPDATE_LOCKED_ACCOUNTS.toString());
         RedisEconomyPlugin.debug("Lockch Registered locked accounts channel");
+
+    }
+
+    private void registerUpdateChannelPattern() {
+        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        connection.addListener(new RedisEconomyListener() {
+            @Override
+            public void message(String pattern, String channel, String message) {
+                String[] split = message.split(";;");
+                if (split.length < 3) {
+                    Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
+                }
+                //0 instanceID, 1 playerUUID, 2 playerName/maxBal/isHidden, 3 balance/emtpty/empty (if applicable)
+                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
+                final String[] updateArgs = Arrays.copyOfRange(split, 1, split.length);
+
+                for (Currency currency : getCurrencies()) {
+                    String name = currency.getCurrencyName();
+                    if (channel.endsWith(name)) {
+                        currency.processUpdateMessage(channel.substring(0, channel.length() - name.length()), updateArgs);
+                        return;
+                    }
+                }
+
+            }
+        });
+        connection.async().psubscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.wildcard(), RedisKeys.UPDATE_MAX_BAL_PREFIX.wildcard(),
+                RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS.wildcard());
+        RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.wildcard());
 
     }
 

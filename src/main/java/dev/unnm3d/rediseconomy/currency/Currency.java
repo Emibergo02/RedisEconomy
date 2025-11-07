@@ -7,7 +7,6 @@ import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
@@ -107,8 +106,31 @@ public class Currency implements Economy {
             }
             return result;
         });
+    }
 
-        registerUpdateListener();
+    public void processUpdateMessage(String channel, String[] arguments) {
+        final UUID uuid = UUID.fromString(arguments[0]);
+
+        if (channel.equals(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.toString())) {
+            String playerName = arguments[1];
+            double balance = Double.parseDouble(arguments[2]);
+            if (playerName == null) {
+                Bukkit.getLogger().severe("Player name not found for UUID " + uuid);
+                return;
+            }
+            updateAccountLocal(uuid, playerName, balance);
+            RedisEconomyPlugin.debug("01b Received balance update " + playerName + " to " + balance);
+
+        } else if (channel.equals(RedisKeys.UPDATE_MAX_BAL_PREFIX.toString())) {
+            double maxBal = Double.parseDouble(arguments[1]);
+            setPlayerMaxBalanceLocal(uuid, maxBal);
+            RedisEconomyPlugin.debug("01b Received max balance update " + uuid + " to " + maxBal);
+
+        } else if (channel.equals(RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS.toString())) {
+            boolean hidden = Boolean.parseBoolean(arguments[1]);
+            hidePlayerBaltopLocal(uuid, hidden);
+            RedisEconomyPlugin.debug("01b Received baltop hidden update " + uuid + " to " + hidden);
+        }
     }
 
     private List<ExecutorService> generateExecutors(int size) {
@@ -118,48 +140,6 @@ public class Currency implements Economy {
             executors.add(Executors.newSingleThreadExecutor(Thread.ofVirtual().factory()));
         }
         return executors;
-    }
-
-
-    private void registerUpdateListener() {
-        StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
-        connection.addListener(new RedisEconomyListener() {
-            @Override
-            public void message(String channel, String message) {
-                String[] split = message.split(";;");
-                if (split.length < 3) {
-                    Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
-                }
-                //0 instanceID, 1 playerUUID, 2 playerName/maxBal/isHidden, 3 balance/emtpty/empty (if applicable)
-                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
-                final UUID uuid = UUID.fromString(split[1]);
-
-                if (channel.equals(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName)) {
-                    String playerName = split[2];
-                    double balance = Double.parseDouble(split[3]);
-                    if (playerName == null) {
-                        Bukkit.getLogger().severe("Player name not found for UUID " + uuid);
-                        return;
-                    }
-                    updateAccountLocal(uuid, playerName, balance);
-                    RedisEconomyPlugin.debug("01b Received balance update " + playerName + " to " + balance);
-
-                } else if (channel.equals(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName)) {
-                    double maxBal = Double.parseDouble(split[2]);
-                    setPlayerMaxBalanceLocal(uuid, maxBal);
-                    RedisEconomyPlugin.debug("01b Received max balance update " + uuid + " to " + maxBal);
-
-                } else if (channel.equals(RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS + currencyName)) {
-                    boolean hidden = Boolean.parseBoolean(split[2]);
-                    hidePlayerBaltopLocal(uuid, hidden);
-                    RedisEconomyPlugin.debug("01b Received baltop hidden update " + uuid + " to " + hidden);
-                }
-            }
-        });
-        connection.async().subscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName,
-                RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS + currencyName);
-        RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
-
     }
 
     @Override
@@ -788,6 +768,5 @@ public class Currency implements Economy {
     public final Map<UUID, Double> getAccounts() {
         return Collections.unmodifiableMap(accounts);
     }
-
 
 }

@@ -127,8 +127,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                 configManager.getSettings().migrationEnabled = false;
                 configManager.saveConfigs();
             }, 100L);
-        } else {
-            currenciesManager.loadDefaultCurrency(this.vaultPlugin);
         }
 
         getServer().getPluginManager().registerEvents(currenciesManager, this);

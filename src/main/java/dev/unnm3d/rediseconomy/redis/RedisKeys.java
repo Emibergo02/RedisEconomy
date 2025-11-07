@@ -19,7 +19,7 @@ public enum RedisKeys {
     LOCKED_ACCOUNTS("rediseco:locked"),
     UPDATE_LOCKED_ACCOUNTS("rediseco:locked"),
     UPDATE_ONLINE("rediseco:online_update"),
-    BALTOP_HIDDEN_ACCOUNTS("rediseco:hiddenacc"),
+    BALTOP_HIDDEN_ACCOUNTS("rediseco:hiddenacc:"),
     UPDATE_BALTOP_HIDDEN_ACCOUNTS("rediseco:hiddenaccup_"),
     BALTOP_HIDDEN_BANK_ACCOUNTS("rediseco:hiddenbacc"),
     UPDATE_BALTOP_HIDDEN_BANK_ACCOUNTS("rediseco:hiddenbaccup_"),
@@ -43,6 +43,10 @@ public enum RedisKeys {
         for (RedisKeys key : values()) {
             key.keyName = clusterId + "-" + key.keyName;
         }
+    }
+
+    public String wildcard() {
+        return keyName + "*";
     }
 
     /**
