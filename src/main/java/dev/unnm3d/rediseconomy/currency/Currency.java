@@ -7,7 +7,6 @@ import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
@@ -98,7 +97,28 @@ public class Currency implements Economy {
             return result;
         }); //Not as critical as accounts, so we don't wait
 
-        registerUpdateListener();
+
+    }
+
+    public void processUpdateMessage(String channel, String[] arguments) {
+        final UUID uuid = UUID.fromString(arguments[0]);
+
+        if (channel.equals(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.toString())) {
+            String playerName = arguments[1];
+            double balance = Double.parseDouble(arguments[2]);
+            if (playerName == null) {
+                Bukkit.getLogger().severe("Player name not found for UUID " + uuid);
+                return;
+            }
+            updateAccountLocal(uuid, playerName, balance);
+            RedisEconomyPlugin.debug("01b Received balance update " + playerName + " to " + balance);
+
+        } else if (channel.equals(RedisKeys.UPDATE_MAX_BAL_PREFIX.toString())) {
+            double maxBal = Double.parseDouble(arguments[1]);
+            setPlayerMaxBalanceLocal(uuid, maxBal);
+            RedisEconomyPlugin.debug("01b Received max balance update " + uuid + " to " + maxBal);
+
+        }
     }
 
     private List<ExecutorService> generateExecutors(int size) {
@@ -108,43 +128,6 @@ public class Currency implements Economy {
             executors.add(Executors.newSingleThreadExecutor(Thread.ofVirtual().factory()));
         }
         return executors;
-    }
-
-
-    private void registerUpdateListener() {
-        StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
-        connection.addListener(new RedisEconomyListener() {
-            @Override
-            public void message(String channel, String message) {
-                String[] split = message.split(";;");
-                if (split.length < 3) {
-                    Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
-                }
-
-                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
-                final UUID uuid = UUID.fromString(split[1]);
-
-                if (channel.equals(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName)) {
-                    String playerName = split[2];
-                    double balance = Double.parseDouble(split[3]);
-                    if (playerName == null) {
-                        Bukkit.getLogger().severe("Player name not found for UUID " + uuid);
-                        return;
-                    }
-                    updateAccountLocal(uuid, playerName, balance);
-                    RedisEconomyPlugin.debug("01b Received balance update " + playerName + " to " + balance);
-
-                } else if (channel.equals(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName)) {
-                    double maxBal = Double.parseDouble(split[2]);
-                    setPlayerMaxBalanceLocal(uuid, maxBal);
-                    RedisEconomyPlugin.debug("01b Received max balance update " + uuid + " to " + maxBal);
-
-                }
-            }
-        });
-        connection.async().subscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName, RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName);
-        RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName);
-
     }
 
     @Override
@@ -563,9 +546,9 @@ public class Currency implements Economy {
     /**
      * Only update the balance on local memory
      *
-     * @param uuid The UUID of the player
+     * @param uuid       The UUID of the player
      * @param playerName The name of the player, can be null if not known
-     * @param balance The new balance to set for the player
+     * @param balance    The new balance to set for the player
      */
     public void updateAccountLocal(@NotNull UUID uuid, @Nullable String playerName, double balance) {
         if (playerName != null)
@@ -684,11 +667,11 @@ public class Currency implements Economy {
         setPlayerMaxBalanceLocal(uuid, maxAmount);
     }
 
-    public void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
+    private void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
         maxPlayerBalances.put(uuid, amount);
     }
 
-    public void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
+    private void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
         currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
             if (amount == maxBalance) {
                 asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
@@ -729,5 +712,19 @@ public class Currency implements Economy {
         return Collections.unmodifiableMap(accounts);
     }
 
+    /**
+     * Terminate all executors
+     */
+    public void terminateExecutors() {
+        updateExecutors.forEach(executor -> {
+            try {
+                if (!executor.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e1) {
+                executor.shutdownNow();
+            }
+        });
+    }
 
 }

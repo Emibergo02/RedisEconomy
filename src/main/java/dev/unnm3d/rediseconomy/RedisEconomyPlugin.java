@@ -127,8 +127,6 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                 configManager.getSettings().migrationEnabled = false;
                 configManager.saveConfigs();
             }, 100L);
-        } else {
-            currenciesManager.loadDefaultCurrency(this.vaultPlugin);
         }
 
         getServer().getPluginManager().registerEvents(currenciesManager, this);
@@ -217,8 +215,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         } catch (Exception e) {
             if (e.getMessage().contains("max number of clients reached")) {
                 getLogger().severe("CHECK YOUR REDIS CREDENTIALS. DO NOT USE DEFAULT CREDENTIALS OR THE PLUGIN WILL LOSE DATA AND MAY NOT WORK!");
-            } else
-                e.printStackTrace();
+            } else e.printStackTrace();
             return false;
         }
     }

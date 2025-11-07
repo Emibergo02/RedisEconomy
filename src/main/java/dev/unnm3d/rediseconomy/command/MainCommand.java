@@ -104,9 +104,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         plugin.getConfigManager().loadSettingsConfig();
         plugin.getConfigManager().loadLangs();
         plugin.getConfigManager().saveConfigs();
+        plugin.getCurrenciesManager().loadCurrencySystem();
         plugin.loadPlayerList();
         this.adventureWebuiEditorAPI = new AdventureWebuiEditorAPI(plugin.getConfigManager().getSettings().webEditorUrl);
-        sender.sendMessage("§aReloaded successfully!");
+        sender.sendMessage("§aReloaded successfully! Currencies are reloaded");
+        sender.sendMessage("§cIF YOU CHANGED THE DEFAULT CURRENCY, YOU MUST RESTART THE SERVER!!!!");
     }
 
     private void expandPool(CommandSender sender, String arg) {

@@ -7,9 +7,7 @@ import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -51,53 +49,22 @@ public class CurrencyWithBanks extends Currency {
             }
             return map;
         }).toCompletableFuture().join();
-        registerBankAccountListener();
-        registerBankOwnerListener();
-    }
-
-    private void registerBankOwnerListener() {
-        StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
-        connection.addListener(new RedisEconomyListener() {
-            @Override
-            public void message(String channel, String message) {
-                String[] split = message.split(";;");
-                if (split.length != 3) {
-                    Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
-                    return;
-                }
-                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
-                String accountId = split[1];
-                UUID owner = UUID.fromString(split[2]);
-                bankOwners.put(accountId, owner);
-                RedisEconomyPlugin.debug("01d Received bank owner update " + accountId + " to " + owner);
-            }
-        });
-        connection.async().subscribe(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName);
-        RedisEconomyPlugin.debug("start1d Listening to RedisEco channel " + UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName);
 
     }
 
-    private void registerBankAccountListener() {
-        StatefulRedisPubSubConnection<String, String> connection = currenciesManager.getRedisManager().getPubSubConnection();
-        connection.addListener(new RedisEconomyListener() {
-            @Override
-            public void message(String channel, String message) {
-                String[] split = message.split(";;");
-                if (split.length != 3) {
-                    Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
-                    return;
-                }
-                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
-                String accountId = split[1];
-                double balance = Double.parseDouble(split[2]);
-                updateBankAccountLocal(accountId, balance);
-                RedisEconomyPlugin.debug("01c Received bank balance update " + accountId + " to " + balance);
-
-            }
-        });
-        connection.async().subscribe(UPDATE_BANK_CHANNEL_PREFIX + currencyName);
-        RedisEconomyPlugin.debug("start1c Listening to RedisEco channel " + UPDATE_BANK_CHANNEL_PREFIX + currencyName);
-
+    @Override
+    public void processUpdateMessage(String channel, String[] arguments) {
+        if (channel.equals(RedisKeys.UPDATE_BANK_OWNER_CHANNEL_PREFIX.toString())) {
+            String accountId = arguments[0];
+            UUID owner = UUID.fromString(arguments[1]);
+            bankOwners.put(accountId, owner);
+            RedisEconomyPlugin.debug("01d Received bank owner update " + accountId + " to " + owner);
+        } else if (channel.equals(RedisKeys.UPDATE_BANK_CHANNEL_PREFIX.toString())) {
+            String accountId = arguments[0];
+            double balance = Double.parseDouble(arguments[1]);
+            updateBankAccountLocal(accountId, balance);
+            RedisEconomyPlugin.debug("01c Received bank balance update " + accountId + " to " + balance);
+        } else super.processUpdateMessage(channel, arguments);
     }
 
     @Override

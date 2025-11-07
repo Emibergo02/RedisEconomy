@@ -41,6 +41,10 @@ public enum RedisKeys {
         }
     }
 
+    public String wildcard() {
+        return keyName + "*";
+    }
+
     /**
      * Returns the server UUID
      *

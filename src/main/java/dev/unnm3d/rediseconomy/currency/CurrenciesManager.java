@@ -17,7 +17,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
@@ -60,21 +59,55 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             throw new RuntimeException(e);
         }
 
-        configManager.getSettings().currencies.forEach(currencySettings -> {
+        loadCurrencySystem();
+
+        if (plugin.settings().migrationEnabled) return;
+
+        //Register default currency (which is skipped when loadCurrencySystem) into Vault API
+        if (!plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
+                .stream().allMatch(registration -> registration.getPlugin().equals(plugin))) {
+            loadDefaultCurrency(plugin.getVaultPlugin());
+        }
+
+        registerPayMsgChannel();
+        registerBlockAccountChannel();
+        registerUpdateChannelPattern();
+    }
+
+    public void loadCurrencySystem() {
+        for (CurrencySettings currencySettings : configManager.getSettings().currencies) {
+            //Do not register the default currency twice on Vault or the plugins that rely on it will malfunction
+            if (currencySettings.getCurrencyName().equals(configManager.getSettings().defaultCurrencyName)) continue;
+
             Currency currency;
             if (currencySettings.isBankEnabled()) {
                 currency = new CurrencyWithBanks(this, currencySettings);
             } else {
                 currency = new Currency(this, currencySettings);
             }
-            currencies.put(currencySettings.getCurrencyName(), currency);
+
+            //Replace existing currency with updated settings and terminate the old executors
+            Optional.ofNullable(currencies.put(currencySettings.getCurrencyName(), currency))
+                    .ifPresent(oldCurrency -> oldCurrency.updateExecutors.forEach(executor -> {
+                        try {
+                            if (!executor.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+                                executor.shutdownNow();
+                            }
+                        } catch (InterruptedException e1) {
+                            executor.shutdownNow();
+                        }
+                    }));
+        }
+        //Remove currencies that are not in the config anymore
+        currencies.forEach((name, currency) -> {
+            if (configManager.getSettings().currencies.stream().noneMatch(cs -> cs.getCurrencyName().equals(name))) {
+                currencies.remove(name);
+                currency.terminateExecutors();
+            }
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
             currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, -1, true, false, 2)));
         }
-        registerPayMsgChannel();
-        registerBlockAccountChannel();
-
     }
 
     /**
@@ -267,15 +300,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                         }));
     }
 
-    @EventHandler
-    private void onPluginEnable(PluginEnableEvent pluginEnableEvent) {
-        if (plugin.settings().migrationEnabled) return;
-        if (!plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
-                .stream().allMatch(registration -> registration.getPlugin().equals(plugin))) {
-            loadDefaultCurrency(plugin.getVaultPlugin());
-        }
-    }
-
     private CompletionStage<ConcurrentHashMap<String, UUID>> loadRedisNameUniqueIds() {
         return redisManager.getConnectionAsync(connection ->
                 connection.hgetall(NAME_UUID.toString())
@@ -353,18 +377,17 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
      */
     public void switchCurrency(Currency currency, Currency newCurrency) {
         redisManager.getConnectionPipeline(asyncCommands -> {
-            asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup").thenAccept(success -> {
-                RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success);
+            asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(),
+                    RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup")
+                    .thenAccept(success -> RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success));
 
-            });
-            asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success -> {
-                RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success);
+            asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(),
+                    RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success ->
+                            RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success));
 
-            });
-            asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup", RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success -> {
-                RedisEconomyPlugin.debug("Switch2 - Write the backup on the new currency key: " + success);
-
-            });
+            asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup",
+                    RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success ->
+                    RedisEconomyPlugin.debug("Switch2 - Write the backup on the new currency key: " + success));
             return null;
         });
     }
@@ -476,9 +499,36 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     }
 
+    private void registerUpdateChannelPattern() {
+        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        connection.addListener(new RedisEconomyListener() {
+            @Override
+            public void message(String pattern, String channel, String message) {
+                String[] split = message.split(";;");
+                if (split.length < 3) {
+                    Bukkit.getLogger().severe("Invalid message received from RedisEco channel, consider updating RedisEconomy");
+                }
+                //0 instanceID, 1 playerUUID, 2 playerName/maxBal, 3 balance/emtpty/empty (if applicable)
+                if (split[0].equals(RedisEconomyPlugin.getInstanceUUID().toString())) return;
+                final String[] updateArgs = Arrays.copyOfRange(split, 1, split.length);
+                for (Currency currency : getCurrencies()) {
+                    String name = currency.getCurrencyName();
+                    if (channel.endsWith(name)) {
+                        currency.processUpdateMessage(channel.substring(0, channel.length() - name.length()), updateArgs);
+                        return;
+                    }
+                }
+            }
+        });
+        connection.async().psubscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.wildcard(), RedisKeys.UPDATE_MAX_BAL_PREFIX.wildcard(),
+                RedisKeys.UPDATE_BANK_CHANNEL_PREFIX.wildcard(), UPDATE_BANK_OWNER_CHANNEL_PREFIX.wildcard());
+        RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.wildcard());
+
+    }
+
     public void terminate() {
         currencies.values().forEach(currency -> {
-            currency.updateExecutors.forEach(ex->{
+            currency.updateExecutors.forEach(ex -> {
                 try {
                     if (!ex.awaitTermination(100, TimeUnit.MILLISECONDS)) {
                         ex.shutdownNow();

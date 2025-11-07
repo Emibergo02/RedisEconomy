@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '4.5.6'
+version = '4.5.7'
 
 repositories {
     mavenCentral()
@@ -25,9 +25,9 @@ repositories {
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT'
     compileOnly 'org.projectlombok:lombok:1.18.34'
-    compileOnly 'net.kyori:adventure-text-minimessage:4.23.0'
+    compileOnly 'net.kyori:adventure-text-minimessage:4.25.0'
     implementation 'net.kyori:adventure-platform-bukkit:4.4.1'
-    implementation 'io.lettuce:lettuce-core:6.7.1.RELEASE'
+    implementation 'io.lettuce:lettuce-core:6.8.1.RELEASE'
     implementation 'de.exlll:configlib-yaml:4.6.1'
     implementation 'com.github.Anon8281:UniversalScheduler:0.1.6'
 

@@ -5,7 +5,8 @@ import io.lettuce.core.pubsub.RedisPubSubListener;
 public abstract class RedisEconomyListener implements RedisPubSubListener<String, String> {
 
     @Override
-    public abstract void message(String channel, String message);
+    public void message(String channel, String message){
+    }
 
     @Override
     public void message(String pattern, String channel, String message) {
