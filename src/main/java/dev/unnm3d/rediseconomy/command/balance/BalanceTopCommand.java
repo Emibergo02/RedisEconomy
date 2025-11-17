@@ -13,9 +13,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 
 @AllArgsConstructor
@@ -33,6 +31,7 @@ public class BalanceTopCommand implements CommandExecutor, TabCompleter {
         }
 
         int page = 1;
+
         if (args.length >= 1) {
             if (args[0].equals("toggle") && sender.hasPermission("rediseconomy.balancetop.toggle") &&
                     !plugin.getConfigManager().getSettings().enableHidePermissions) {
@@ -46,37 +45,47 @@ public class BalanceTopCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
         }
+        boolean showAllPermission = sender.hasPermission("rediseconomy.balancetop.showall");
 
         final int finalPage = page;
         //Baltop paging, 10 per page
-        baltopCurrency.getOrderedAccounts(200)
-                .thenApply(balances -> {
-                    balances.removeIf(a -> baltopCurrency.isPlayerBaltopHidden(UUID.fromString(a.getValue())));
-                    List<ScoredValue<String>> pageBalances;
-                    if (balances.size() < (finalPage - 1) * 10) {//If the page is higher that the balances available
-                        return new ArrayList<ScoredValue<String>>();
-                    } else if (balances.size() > finalPage * 10) {
-                        pageBalances = balances.subList((finalPage - 1) * 10, finalPage * 10);
-                    } else pageBalances = balances.subList((finalPage - 1) * 10, balances.size());
-                    //Page formatting: clickable arrows to go to next/previous page
-                    plugin.langs().send(sender, plugin.langs().balanceTop.replace("%page%", String.valueOf(finalPage))
-                            .replace("%nextpage%", "<click:run_command:balancetop " + (balances.size() <= finalPage * 10 ? 1 : finalPage + 1) + ">-></click>")
-                            .replace("%prevpage%", "<click:run_command:balancetop " + (finalPage == 1 ? (balances.size() % 10) + 1 : finalPage - 1) + "><-</click>"));
 
-                    return new PageData(finalPage, pageBalances);
-                })
-                .thenAccept((data) -> {
-                    PageData pageData = (PageData) data;
+        baltopCurrency.getOrderedAccounts(200)
+                .thenAccept(balances -> {
+                    final int pageSize = 10;
+                    final int start = (finalPage - 1) * pageSize;
+                    final int end = finalPage * pageSize;
+
+                    final LinkedHashMap<Double, UUID> pageBalances = new LinkedHashMap<>(pageSize);
+                    int visibleCount = 0;
+
+                    // single-pass: count visible entries and collect only the requested page
+                    for (ScoredValue<String> entry : balances) {
+                        final UUID playerUUID = UUID.fromString(entry.getValue());
+                        if (!showAllPermission && baltopCurrency.isPlayerBaltopHidden(playerUUID)) continue;
+
+                        if (visibleCount >= start && visibleCount < end) {
+                            pageBalances.put(entry.getScore(), playerUUID);
+                        }
+
+                        visibleCount++;
+                    }
+
+                    // Page formatting: clickable arrows to go to next/previous page (use visibleCount)
+                    plugin.langs().send(sender, plugin.langs().balanceTop.replace("%page%", String.valueOf(finalPage))
+                            .replace("%nextpage%", "<click:run_command:balancetop " + (visibleCount <= finalPage * pageSize ? 1 : finalPage + 1) + "><gold>→</gold></click>")
+                            .replace("%prevpage%", "<click:run_command:balancetop " + (finalPage == 1 ? (visibleCount / pageSize) + 1 : finalPage - 1) + "><gold>←</gold></click>"));
+
                     int i = 1;
-                    for (ScoredValue<String> tuple : pageData.pageBalances) {
-                        String username = currenciesManager.getUsernameFromUUIDCache(UUID.fromString(tuple.getValue()));
+                    for (Map.Entry<Double, UUID> doubleUUIDEntry : pageBalances.entrySet()) {
+                        final String username = currenciesManager.getUsernameFromUUIDCache(doubleUUIDEntry.getValue());
                         plugin.langs().send(sender, plugin.langs().balanceTopFormat
-                                .replace("%pos%", String.valueOf((pageData.pageNumber - 1) * 10 + i))
-                                .replace("%player%", username == null ? tuple.getValue() + "-Unknown" : username)
+                                .replace("%pos%", String.valueOf((finalPage - 1) * 10 + i))
+                                .replace("%player%", username == null ? doubleUUIDEntry.getValue() + "-Unknown" : username)
                                 .replace("%balance_short%",
-                                        DecimalUtils.shortAmount(tuple.getScore(), baltopCurrency.getDecimalFormat()) +
-                                                (tuple.getScore() == 1 ? baltopCurrency.getCurrencySingular() : baltopCurrency.getCurrencyPlural()))
-                                .replace("%balance%", baltopCurrency.format(tuple.getScore())));
+                                        DecimalUtils.shortAmount(doubleUUIDEntry.getKey(), baltopCurrency.getDecimalFormat()) +
+                                                (doubleUUIDEntry.getKey() == 1 ? baltopCurrency.getCurrencySingular() : baltopCurrency.getCurrencyPlural()))
+                                .replace("%balance%", baltopCurrency.format(doubleUUIDEntry.getKey())));
                         i++;
                     }
                 });

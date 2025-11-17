@@ -29,7 +29,7 @@ public final class Langs {
     public String balanceSet = "<green>You set %player% account to %balance% !</green>";
     public String maxBalanceSet = "<green>You set %player% max balance to %amount% !</green>";
     public String balanceOther = "<green>%player% has %balance_short% !</green>";
-    public String balanceTop = "<green>Top richest players:</green><br>%prevpage%      %page%      %nextpage%";
+    public String balanceTop = "<green>Top richest players:</green><br><hover:show_text:'Previous page'>%prevpage%</hover>      %page%      <hover:show_text:'Previous page'>%nextpage%</hover>";
     public String blockedAccounts = "<green>Blocked accounts:</green><br>%list%";
     public String blockedAccountSuccess = "<green>Account %player% has been blocked!</green>";
     public String unblockedAccountSuccess = "<green>Account %player% has been unblocked!</green>";
