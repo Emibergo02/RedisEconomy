@@ -63,17 +63,22 @@ public abstract class BalanceCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             double amount = plugin.getCurrenciesManager().formatAmountString(target, currency, args[3]);
-            if (amount < 0) {
-                plugin.langs().send(sender, plugin.langs().invalidAmount);
-                return true;
-            }
+
             String reasonOrCommand = null;
             if (args.length > 4) {
                 reasonOrCommand = String.join(" ", Arrays.copyOfRange(args, 4, args.length));
             }
             if (args[2].equalsIgnoreCase("give")) {
+                if (amount < 0) {
+                    plugin.langs().send(sender, plugin.langs().invalidAmount);
+                    return true;
+                }
                 givePlayer(sender, currency, amount, target, reasonOrCommand);
             } else if (args[2].equalsIgnoreCase("take")) {
+                if (amount < 0) {
+                    plugin.langs().send(sender, plugin.langs().invalidAmount);
+                    return true;
+                }
                 if (reasonOrCommand == null)
                     takePlayer(sender, currency, amount, target, null);
                 else if (reasonOrCommand.startsWith("/")) {

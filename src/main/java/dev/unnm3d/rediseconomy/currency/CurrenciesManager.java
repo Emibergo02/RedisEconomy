@@ -4,7 +4,6 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
-import dev.unnm3d.rediseconomy.migrators.*;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
@@ -18,7 +17,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
@@ -63,9 +61,12 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
         loadCurrencySystem();
 
-        if (!plugin.settings().migrationEnabled) {
+        if (plugin.settings().migrationEnabled) return;
+
+        //Register default currency (which is skipped when loadCurrencySystem) into Vault API
+        if (!plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
+                .stream().allMatch(registration -> registration.getPlugin().equals(plugin))) {
             loadDefaultCurrency(plugin.getVaultPlugin());
-            return;
         }
 
         registerPayMsgChannel();
@@ -74,7 +75,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     public void loadCurrencySystem() {
-        configManager.getSettings().currencies.forEach(currencySettings -> {
+        for (CurrencySettings currencySettings : configManager.getSettings().currencies) {
+            //Do not register the default currency twice on Vault or the plugins that rely on it will malfunction
+            if (currencySettings.getCurrencyName().equals(configManager.getSettings().defaultCurrencyName)) continue;
+
             Currency currency;
             if (currencySettings.isBankEnabled()) {
                 currency = new CurrencyWithBanks(this, currencySettings);
@@ -82,10 +86,23 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                 currency = new Currency(this, currencySettings);
             }
 
-            //Do not register the default currency twice on Vault or the plugins that rely on it will malfunction
-            if (!(currency.getCurrencyName().equals(configManager.getSettings().defaultCurrencyName) &&
-                    currencies.containsKey(currency.getCurrencyName()))) {
-                currencies.put(currencySettings.getCurrencyName(), currency);
+            //Replace existing currency with updated settings and terminate the old executors
+            Optional.ofNullable(currencies.put(currencySettings.getCurrencyName(), currency))
+                    .ifPresent(oldCurrency -> oldCurrency.updateExecutors.forEach(executor -> {
+                        try {
+                            if (!executor.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+                                executor.shutdownNow();
+                            }
+                        } catch (InterruptedException e1) {
+                            executor.shutdownNow();
+                        }
+                    }));
+        }
+        //Remove currencies that are not in the config anymore
+        currencies.forEach((name, currency) -> {
+            if (configManager.getSettings().currencies.stream().noneMatch(cs -> cs.getCurrencyName().equals(name))) {
+                currencies.remove(name);
+                currency.terminateExecutors();
             }
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
@@ -289,15 +306,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     }
 
-    @EventHandler
-    private void onPluginEnable(PluginEnableEvent ignored) {
-        if (plugin.settings().migrationEnabled) return;
-        if (!plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
-                .stream().allMatch(registration -> registration.getPlugin().equals(plugin))) {
-            loadDefaultCurrency(plugin.getVaultPlugin());
-        }
-    }
-
     private CompletionStage<ConcurrentHashMap<String, UUID>> loadRedisNameUniqueIds() {
         return redisManager.getConnectionAsync(connection ->
                 connection.hgetall(NAME_UUID.toString())
@@ -375,18 +383,17 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
      */
     public void switchCurrency(Currency currency, Currency newCurrency) {
         redisManager.getConnectionPipeline(asyncCommands -> {
-            asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup").thenAccept(success -> {
-                RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success);
+            asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(),
+                    RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup")
+                    .thenAccept(success -> RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success));
 
-            });
-            asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(), RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success -> {
-                RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success);
+            asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(),
+                    RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success ->
+                            RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success));
 
-            });
-            asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup", RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success -> {
-                RedisEconomyPlugin.debug("Switch2 - Write the backup on the new currency key: " + success);
-
-            });
+            asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup",
+                    RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success ->
+                    RedisEconomyPlugin.debug("Switch2 - Write the backup on the new currency key: " + success));
             return null;
         });
     }
@@ -522,6 +529,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
         });
         connection.async().psubscribe(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.wildcard(), RedisKeys.UPDATE_MAX_BAL_PREFIX.wildcard(),
+                RedisKeys.UPDATE_BANK_CHANNEL_PREFIX.wildcard(), UPDATE_BANK_OWNER_CHANNEL_PREFIX.wildcard(),
                 RedisKeys.UPDATE_BALTOP_HIDDEN_ACCOUNTS.wildcard());
         RedisEconomyPlugin.debug("start1b Listening to RedisEco channel " + RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX.wildcard());
 

@@ -6,8 +6,6 @@ author: Unnm3d
 load: STARTUP
 depend:
   - Vault
-libraries:
-  - io.lettuce:lettuce-core:6.7.1.RELEASE
 softdepend:
   - PlaceholderAPI
   - Essentials

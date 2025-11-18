@@ -76,7 +76,6 @@ public class Currency implements Economy {
         this.taxOnlyPay = currencySettings.isTaxOnlyPay();
         this.accounts = new ConcurrentHashMap<>();
         this.maxPlayerBalances = new ConcurrentHashMap<>();
-        this.baltopHiddenAccounts = ConcurrentHashMap.newKeySet();
         this.decimalFormat = new DecimalFormat(
                 currencySettings.getDecimalFormat() != null ? currencySettings.getDecimalFormat() : "#.##",
                 new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.getLanguageTag() != null ? currencySettings.getLanguageTag() : "en-US"))
@@ -767,6 +766,21 @@ public class Currency implements Economy {
     @SuppressWarnings("unused")
     public final Map<UUID, Double> getAccounts() {
         return Collections.unmodifiableMap(accounts);
+    }
+
+    /**
+     * Terminate all executors
+     */
+    public void terminateExecutors() {
+        updateExecutors.forEach(executor -> {
+            try {
+                if (!executor.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e1) {
+                executor.shutdownNow();
+            }
+        });
     }
 
 }
