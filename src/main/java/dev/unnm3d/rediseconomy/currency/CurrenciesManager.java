@@ -59,7 +59,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             throw new RuntimeException(e);
         }
 
-        loadCurrencySystem();
+        loadCurrencySystem(false);
 
         if (plugin.settings().migrationEnabled) return;
 
@@ -74,10 +74,11 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         registerUpdateChannelPattern();
     }
 
-    public void loadCurrencySystem() {
+    public void loadCurrencySystem(boolean isReload) {
         for (CurrencySettings currencySettings : configManager.getSettings().currencies) {
             //Do not register the default currency twice on Vault or the plugins that rely on it will malfunction
-            if (currencySettings.getCurrencyName().equals(configManager.getSettings().defaultCurrencyName)) continue;
+            if (isReload && currencySettings.getCurrencyName().equals(configManager.getSettings().defaultCurrencyName))
+                continue;
 
             Currency currency;
             if (currencySettings.isBankEnabled()) {
@@ -106,7 +107,14 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, new CurrencySettings(configManager.getSettings().defaultCurrencyName, "€", "€", "#.##", "en-US", 0.0, Double.POSITIVE_INFINITY, 0.0, true, -1, true, false, 2)));
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this,
+                    new CurrencySettings(configManager.getSettings().defaultCurrencyName,
+                            "€", "€",
+                            "#.##", "en-US",
+                            0.0, Double.POSITIVE_INFINITY,
+                            0.0, true,
+                            -1, true,
+                            false, 2)));
         }
     }
 
@@ -121,45 +129,6 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             plugin.getServer().getServicesManager().unregister(Economy.class, registration.getProvider());
         }
         plugin.getServer().getServicesManager().register(Economy.class, getDefaultCurrency(), vaultPlugin, ServicePriority.High);
-    }
-
-    /**
-     * Migrates the balances from the existent economy provider to the new one
-     * using the offline players
-     *
-     * @param offlinePlayers the offline players to migrate
-     */
-    public void migrateFromOfflinePlayers(OfflinePlayer[] offlinePlayers) {
-        final Currency defaultCurrency = getDefaultCurrency();
-        RegisteredServiceProvider<Economy> existentProvider = plugin.getServer().getServicesManager().getRegistration(Economy.class);
-        if (existentProvider == null) {
-            plugin.getLogger().severe("Vault economy provider not found!");
-            return;
-        }
-        plugin.getLogger().info("§aMigrating from " + existentProvider.getProvider().getName() + "...");
-
-        final List<ScoredValue<String>> balances = new ArrayList<>();
-        final Map<String, String> nameUniqueIds = new HashMap<>();
-        for (int i = 0; i < offlinePlayers.length; i++) {
-            final OfflinePlayer offlinePlayer = offlinePlayers[i];
-            try {
-                double bal = existentProvider.getProvider().getBalance(offlinePlayer);
-                balances.add(ScoredValue.just(bal, offlinePlayer.getUniqueId().toString()));
-                if (offlinePlayer.getName() != null)
-                    nameUniqueIds.put(offlinePlayer.getName(), offlinePlayer.getUniqueId().toString());
-                defaultCurrency.updateAccountLocal(offlinePlayer.getUniqueId(), offlinePlayer.getName() == null ? offlinePlayer.getUniqueId().toString() : offlinePlayer.getName(), bal);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            if (i % 100 == 0) {
-                plugin.getLogger().info("Progress: " + i + "/" + offlinePlayers.length);
-            }
-        }
-        defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
-        plugin.getLogger().info("§aMigration completed!");
-        plugin.getLogger().info("§aRestart the server to apply the changes.");
-        configManager.getSettings().migrationEnabled = false;
-        configManager.saveConfigs();
     }
 
     @Override
@@ -378,12 +347,12 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public void switchCurrency(Currency currency, Currency newCurrency) {
         redisManager.getConnectionPipeline(asyncCommands -> {
             asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(),
-                    RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup")
+                            RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup")
                     .thenAccept(success -> RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success));
 
             asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(),
                     RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success ->
-                            RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success));
+                    RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success));
 
             asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup",
                     RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success ->
