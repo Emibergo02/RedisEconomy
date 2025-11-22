@@ -12,7 +12,6 @@ import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -64,9 +63,11 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         if (plugin.settings().migrationEnabled) return;
 
         //Register default currency (which is skipped when loadCurrencySystem) into Vault API
-        if (!plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
-                .stream().allMatch(registration -> registration.getPlugin().equals(plugin))) {
+        if (plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
+                .stream().noneMatch(registration -> registration.getPlugin() == plugin)) {
             loadDefaultCurrency(plugin.getVaultPlugin());
+        } else {
+            plugin.getLogger().warning("RedisEconomy is already registered as an economy provider in Vault, skipping default currency registration.");
         }
 
         registerPayMsgChannel();
@@ -129,6 +130,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             plugin.getServer().getServicesManager().unregister(Economy.class, registration.getProvider());
         }
         plugin.getServer().getServicesManager().register(Economy.class, getDefaultCurrency(), vaultPlugin, ServicePriority.High);
+        plugin.getLogger().info("Successfully registered RedisEconomy default currency '" + getDefaultCurrency().getCurrencyName() + "' as economy provider in Vault");
     }
 
     @Override
