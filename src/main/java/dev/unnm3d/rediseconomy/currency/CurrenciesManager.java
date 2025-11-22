@@ -64,11 +64,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
         //Register default currency (which is skipped when loadCurrencySystem) into Vault API
         if (plugin.getServer().getServicesManager().getRegistrations(net.milkbowl.vault.economy.Economy.class)
-                .stream().noneMatch(registration -> registration.getPlugin() == plugin)) {
-            loadDefaultCurrency(plugin.getVaultPlugin());
-        } else {
-            plugin.getLogger().warning("RedisEconomy is already registered as an economy provider in Vault, skipping default currency registration.");
+                .stream().anyMatch(registration -> registration.getPlugin().getName().equals("RedisEconomy"))) {
+            plugin.getLogger().severe("Reloading the plugin with a PluginManager may cause issues with Vault-registered currencies! Please restart the server instead.");
         }
+        loadDefaultCurrency(plugin.getVaultPlugin());
 
         registerPayMsgChannel();
         registerBlockAccountChannel();
@@ -308,10 +307,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
         }
         redisManager.getConnectionAsync(connection ->
-                connection.hdel(NAME_UUID.toString(), toRemoveArray).thenAccept(integer -> {
-                    RedisEconomyPlugin.debug("purge0 Removed " + integer + " name-uuid pairs");
-
-                }));
+                connection.hdel(NAME_UUID.toString(), toRemoveArray).thenAccept(integer ->
+                        RedisEconomyPlugin.debug("purge0 Removed " + integer + " name-uuid pairs")));
     }
 
     private void registerPayMsgChannel() {
