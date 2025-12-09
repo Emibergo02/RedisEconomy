@@ -5,6 +5,7 @@ import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import io.lettuce.core.ScoredValue;
+import org.bukkit.Bukkit;
 
 import java.util.*;
 import java.util.concurrent.CompletionStage;
@@ -103,37 +104,44 @@ public class RedisEconomyStorage implements EconomyStorage {
     // Write operations
 
     @Override
-    public Optional<List<Object>> updateAccount(String currencyName, UUID uuid, String playerName, double balance, UUID instanceUUID) {
+    public Optional<List<Object>> updateAccount(String currencyName, UUID uuid, String playerName, double balance) {
         return redisManager.executeTransaction(reactiveCommands -> {
             reactiveCommands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balance, uuid.toString());
             if (playerName != null)
                 reactiveCommands.hset(RedisKeys.NAME_UUID.toString(), playerName, uuid.toString());
             reactiveCommands.publish(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
-                    instanceUUID.toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
+                    RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
         });
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public Optional<List<Object>> updateBulkAccounts(String currencyName, List<ScoredValue<String>> balances, Map<String, String> nameUUIDs) {
-        return redisManager.executeTransaction(commands -> {
+        Optional<List<Object>> result = redisManager.executeTransaction(commands -> {
             ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
             balances.toArray(balancesArray);
 
             commands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balancesArray);
             commands.hset(RedisKeys.NAME_UUID.toString(), nameUUIDs);
         });
+        
+        result.ifPresent(r -> {
+            Bukkit.getLogger().info("migration01 updated balances into " + RedisKeys.BALANCE_PREFIX + currencyName + " accounts. result " + r.get(0));
+            Bukkit.getLogger().info("migration02 updated nameuuids into " + RedisKeys.NAME_UUID + " accounts. result " + r.get(1));
+        });
+        
+        return result;
     }
 
     @Override
-    public void updatePlayerMaxBalance(String currencyName, UUID uuid, double amount, double defaultMax, UUID instanceUUID) {
+    public void updatePlayerMaxBalance(String currencyName, UUID uuid, double amount, double defaultMax) {
         redisManager.getConnectionPipeline(asyncCommands -> {
             if (amount == defaultMax) {
                 asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
             } else {
                 asyncCommands.hset(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString(), String.valueOf(amount));
             }
-            return asyncCommands.publish(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName, instanceUUID.toString() + ";;" + uuid + ";;" + amount);
+            return asyncCommands.publish(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + amount);
         });
     }
 

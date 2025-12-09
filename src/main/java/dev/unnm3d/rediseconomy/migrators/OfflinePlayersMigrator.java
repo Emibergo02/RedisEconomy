@@ -54,6 +54,6 @@ public class OfflinePlayersMigrator implements Migrator {
             }
         }
 
-        defaultCurrency.updateBulkAccountsCloudCache(balances, nameUniqueIds);
+        defaultCurrency.getEconomyStorage().updateBulkAccounts(defaultCurrency.getCurrencyName(), balances, nameUniqueIds);
     }
 }

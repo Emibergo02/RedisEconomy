@@ -570,7 +570,7 @@ public class Currency implements Economy {
         CompletableFuture.supplyAsync(() -> {
             RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
 
-            economyStorage.updateAccount(currencyName, uuid, playerName, balance, RedisEconomyPlugin.getInstanceUUID())
+            economyStorage.updateAccount(currencyName, uuid, playerName, balance)
                     .ifPresentOrElse(result -> {
                         RedisEconomyPlugin.debugCache("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
                     }, () -> handleException(uuid, playerName, balance, tries, null));
@@ -617,22 +617,6 @@ public class Currency implements Economy {
     }
 
 
-    /**
-     * Update the balances of all players and their nameuuids
-     * Do not use this method unless you know what you are doing
-     *
-     * @param balances  The balances to update
-     * @param nameUUIDs The name-uuids to update
-     */
-    @SuppressWarnings("unchecked")
-    public void updateBulkAccountsCloudCache(@NotNull List<ScoredValue<String>> balances, @NotNull Map<String, String> nameUUIDs) {
-        economyStorage.updateBulkAccounts(currencyName, balances, nameUUIDs)
-                .ifPresent(result -> {
-                    Bukkit.getLogger().info("migration01 updated balances into " + RedisKeys.BALANCE_PREFIX + currencyName + " accounts. result " + result.get(0));
-                    Bukkit.getLogger().info("migration02 updated nameuuids into " + RedisKeys.NAME_UUID + " accounts. result " + result.get(1));
-                });
-    }
-
     public double getPlayerMaxBalance(UUID uuid) {
         return maxPlayerBalances.getOrDefault(uuid, maxBalance);
     }
@@ -641,16 +625,12 @@ public class Currency implements Economy {
         if (maxAmount < getBalance(uuid)) {
             setPlayerBalance(uuid, null, maxAmount);
         }
-        setPlayerMaxBalanceCloud(uuid, maxAmount);
+        economyStorage.updatePlayerMaxBalance(currencyName, uuid, maxAmount, maxBalance);
         setPlayerMaxBalanceLocal(uuid, maxAmount);
     }
 
     private void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
         maxPlayerBalances.put(uuid, amount);
-    }
-
-    private void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
-        economyStorage.updatePlayerMaxBalance(currencyName, uuid, amount, maxBalance, RedisEconomyPlugin.getInstanceUUID());
     }
 
     /**

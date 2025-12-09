@@ -100,10 +100,9 @@ public interface EconomyStorage {
      * @param uuid         The player UUID
      * @param playerName   The player name (can be null)
      * @param balance      The new balance
-     * @param instanceUUID The instance UUID for pub/sub
      * @return Optional with transaction result or empty if failed
      */
-    Optional<List<Object>> updateAccount(String currencyName, UUID uuid, String playerName, double balance, UUID instanceUUID);
+    Optional<List<Object>> updateAccount(String currencyName, UUID uuid, String playerName, double balance);
 
     /**
      * Bulk update accounts and name-UUID mappings
@@ -122,9 +121,8 @@ public interface EconomyStorage {
      * @param uuid         The player UUID
      * @param amount       The max balance amount
      * @param defaultMax   The default max balance (if amount equals this, delete the entry)
-     * @param instanceUUID The instance UUID for pub/sub
      */
-    void updatePlayerMaxBalance(String currencyName, UUID uuid, double amount, double defaultMax, UUID instanceUUID);
+    void updatePlayerMaxBalance(String currencyName, UUID uuid, double amount, double defaultMax);
 
     /**
      * Remove name-UUID mappings

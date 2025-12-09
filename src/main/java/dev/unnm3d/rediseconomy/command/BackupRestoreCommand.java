@@ -80,7 +80,7 @@ public class BackupRestoreCommand implements CommandExecutor, TabCompleter {
                             if (currency == null) {
                                 plugin.getLogger().warning("Currency " + currencyName + " not found: restoring skipped");
                             } else {
-                                currency.updateBulkAccountsCloudCache(scoredValues, nameUUIDs);
+                                currency.getEconomyStorage().updateBulkAccounts(currencyName, scoredValues, nameUUIDs);
                                 plugin.getLogger().info("Restored " + scoredValues.size() + " accounts for currency " + currencyName);
                             }
                         });
