@@ -570,17 +570,10 @@ public class Currency implements Economy {
         CompletableFuture.supplyAsync(() -> {
             RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
 
-            currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                reactiveCommands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balance, uuid.toString());
-                if (playerName != null)
-                    reactiveCommands.hset(RedisKeys.NAME_UUID.toString(), playerName, uuid.toString());
-                reactiveCommands.publish(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
-                        RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
-                RedisEconomyPlugin.debugCache("01b Publishing update account " + playerName + " to " + balance + " currency " + currencyName);
-
-            }).ifPresentOrElse(result -> {
-                RedisEconomyPlugin.debugCache("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
-            }, () -> handleException(uuid, playerName, balance, tries, null));
+            economyStorage.updateAccount(currencyName, uuid, playerName, balance, RedisEconomyPlugin.getInstanceUUID())
+                    .ifPresentOrElse(result -> {
+                        RedisEconomyPlugin.debugCache("01c Sent update account successfully " + playerName + " to " + balance + " currency " + currencyName);
+                    }, () -> handleException(uuid, playerName, balance, tries, null));
 
             return null;
         }, getExecutor((int) uuid.getMostSignificantBits())).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
@@ -633,17 +626,11 @@ public class Currency implements Economy {
      */
     @SuppressWarnings("unchecked")
     public void updateBulkAccountsCloudCache(@NotNull List<ScoredValue<String>> balances, @NotNull Map<String, String> nameUUIDs) {
-        currenciesManager.getRedisManager().executeTransaction(commands -> {
-            ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
-            balances.toArray(balancesArray);
-
-            commands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balancesArray);
-            commands.hset(RedisKeys.NAME_UUID.toString(), nameUUIDs);
-        }).ifPresent(result -> {
-            Bukkit.getLogger().info("migration01 updated balances into " + RedisKeys.BALANCE_PREFIX + currencyName + " accounts. result " + result.get(0));
-            Bukkit.getLogger().info("migration02 updated nameuuids into " + RedisKeys.NAME_UUID + " accounts. result " + result.get(1));
-
-        });
+        economyStorage.updateBulkAccounts(currencyName, balances, nameUUIDs)
+                .ifPresent(result -> {
+                    Bukkit.getLogger().info("migration01 updated balances into " + RedisKeys.BALANCE_PREFIX + currencyName + " accounts. result " + result.get(0));
+                    Bukkit.getLogger().info("migration02 updated nameuuids into " + RedisKeys.NAME_UUID + " accounts. result " + result.get(1));
+                });
     }
 
     public double getPlayerMaxBalance(UUID uuid) {
@@ -663,14 +650,7 @@ public class Currency implements Economy {
     }
 
     private void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
-        currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
-            if (amount == maxBalance) {
-                asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
-            } else {
-                asyncCommands.hset(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString(), String.valueOf(amount));
-            }
-            return asyncCommands.publish(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + amount);
-        });
+        economyStorage.updatePlayerMaxBalance(currencyName, uuid, amount, maxBalance, RedisEconomyPlugin.getInstanceUUID());
     }
 
     /**

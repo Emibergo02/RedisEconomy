@@ -6,6 +6,7 @@ import io.lettuce.core.ScoredValue;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
@@ -13,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Interface for economy data storage operations.
- * Provides methods to retrieve economy-related data from various storage backends.
+ * Provides methods to retrieve and update economy-related data from various storage backends.
  * This abstraction allows for future implementations such as file-based storage.
  */
 public interface EconomyStorage {
@@ -89,4 +90,64 @@ public interface EconomyStorage {
      * @return The current transaction counter, or null if not set
      */
     CompletionStage<String> getCurrentTransactionCounter();
+
+    // Write operations
+
+    /**
+     * Update account balance and optionally name-UUID mapping
+     *
+     * @param currencyName The currency name
+     * @param uuid         The player UUID
+     * @param playerName   The player name (can be null)
+     * @param balance      The new balance
+     * @param instanceUUID The instance UUID for pub/sub
+     * @return Optional with transaction result or empty if failed
+     */
+    Optional<List<Object>> updateAccount(String currencyName, UUID uuid, String playerName, double balance, UUID instanceUUID);
+
+    /**
+     * Bulk update accounts and name-UUID mappings
+     *
+     * @param currencyName The currency name
+     * @param balances     The balances to update
+     * @param nameUUIDs    The name-UUID mappings to update
+     * @return Optional with transaction result or empty if failed
+     */
+    Optional<List<Object>> updateBulkAccounts(String currencyName, List<ScoredValue<String>> balances, Map<String, String> nameUUIDs);
+
+    /**
+     * Update or delete player max balance
+     *
+     * @param currencyName The currency name
+     * @param uuid         The player UUID
+     * @param amount       The max balance amount
+     * @param defaultMax   The default max balance (if amount equals this, delete the entry)
+     * @param instanceUUID The instance UUID for pub/sub
+     */
+    void updatePlayerMaxBalance(String currencyName, UUID uuid, double amount, double defaultMax, UUID instanceUUID);
+
+    /**
+     * Remove name-UUID mappings
+     *
+     * @param toRemove The names to remove
+     */
+    void removeNameUniqueIds(Map<String, UUID> toRemove);
+
+    /**
+     * Switch currency accounts between two currencies
+     *
+     * @param oldCurrencyName The old currency name
+     * @param newCurrencyName The new currency name
+     */
+    void switchCurrency(String oldCurrencyName, String newCurrencyName);
+
+    /**
+     * Update locked accounts
+     *
+     * @param uuid        The account UUID
+     * @param redisString The locked accounts as comma-separated string
+     * @return CompletionStage that completes when the update is published
+     */
+    CompletionStage<Long> updateLockedAccounts(UUID uuid, String redisString);
 }
+

@@ -99,4 +99,84 @@ public class RedisEconomyStorage implements EconomyStorage {
         return redisManager.getConnectionAsync(connection ->
                 connection.get(RedisKeys.TRANSACTIONS_COUNTER.toString()));
     }
+
+    // Write operations
+
+    @Override
+    public Optional<List<Object>> updateAccount(String currencyName, UUID uuid, String playerName, double balance, UUID instanceUUID) {
+        return redisManager.executeTransaction(reactiveCommands -> {
+            reactiveCommands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balance, uuid.toString());
+            if (playerName != null)
+                reactiveCommands.hset(RedisKeys.NAME_UUID.toString(), playerName, uuid.toString());
+            reactiveCommands.publish(RedisKeys.UPDATE_PLAYER_CHANNEL_PREFIX + currencyName,
+                    instanceUUID.toString() + ";;" + uuid + ";;" + playerName + ";;" + balance);
+        });
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Optional<List<Object>> updateBulkAccounts(String currencyName, List<ScoredValue<String>> balances, Map<String, String> nameUUIDs) {
+        return redisManager.executeTransaction(commands -> {
+            ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
+            balances.toArray(balancesArray);
+
+            commands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balancesArray);
+            commands.hset(RedisKeys.NAME_UUID.toString(), nameUUIDs);
+        });
+    }
+
+    @Override
+    public void updatePlayerMaxBalance(String currencyName, UUID uuid, double amount, double defaultMax, UUID instanceUUID) {
+        redisManager.getConnectionPipeline(asyncCommands -> {
+            if (amount == defaultMax) {
+                asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
+            } else {
+                asyncCommands.hset(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString(), String.valueOf(amount));
+            }
+            return asyncCommands.publish(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName, instanceUUID.toString() + ";;" + uuid + ";;" + amount);
+        });
+    }
+
+    @Override
+    public void removeNameUniqueIds(Map<String, UUID> toRemove) {
+        String[] toRemoveArray = toRemove.keySet().toArray(new String[0]);
+        for (int i = 0; i < toRemoveArray.length; i++) {
+            if (toRemoveArray[i] == null) {
+                toRemoveArray[i] = "null";
+            }
+        }
+        redisManager.getConnectionAsync(connection ->
+                connection.hdel(RedisKeys.NAME_UUID.toString(), toRemoveArray).thenAccept(integer ->
+                        RedisEconomyPlugin.debug("purge0 Removed " + integer + " name-uuid pairs")));
+    }
+
+    @Override
+    public void switchCurrency(String oldCurrencyName, String newCurrencyName) {
+        redisManager.getConnectionPipeline(asyncCommands -> {
+            asyncCommands.copy(RedisKeys.BALANCE_PREFIX + oldCurrencyName,
+                            RedisKeys.BALANCE_PREFIX + oldCurrencyName + "_backup")
+                    .thenAccept(success -> RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success));
+
+            asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrencyName,
+                    RedisKeys.BALANCE_PREFIX + oldCurrencyName).thenAccept(success ->
+                    RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success));
+
+            asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + oldCurrencyName + "_backup",
+                    RedisKeys.BALANCE_PREFIX + newCurrencyName).thenAccept(success ->
+                    RedisEconomyPlugin.debug("Switch2 - Write the backup on the new currency key: " + success));
+            return null;
+        });
+    }
+
+    @Override
+    public CompletionStage<Long> updateLockedAccounts(UUID uuid, String redisString) {
+        return redisManager.getConnectionPipeline(connection -> {
+            connection.hset(RedisKeys.LOCKED_ACCOUNTS.toString(),
+                    uuid.toString(),
+                    redisString
+            );
+            return connection.publish(RedisKeys.UPDATE_LOCKED_ACCOUNTS.toString(), uuid + "," + redisString);
+        });
+    }
 }
+

@@ -283,15 +283,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void removeRedisNameUniqueIds(Map<String, UUID> toRemove) {
-        String[] toRemoveArray = toRemove.keySet().toArray(new String[0]);
-        for (int i = 0; i < toRemoveArray.length; i++) {
-            if (toRemoveArray[i] == null) {
-                toRemoveArray[i] = "null";
-            }
-        }
-        redisManager.getConnectionAsync(connection ->
-                connection.hdel(NAME_UUID.toString(), toRemoveArray).thenAccept(integer ->
-                        RedisEconomyPlugin.debug("purge0 Removed " + integer + " name-uuid pairs")));
+        economyStorage.removeNameUniqueIds(toRemove);
     }
 
     private void registerPayMsgChannel() {
@@ -327,20 +319,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
      * @param newCurrency The new currency to switch to
      */
     public void switchCurrency(Currency currency, Currency newCurrency) {
-        redisManager.getConnectionPipeline(asyncCommands -> {
-            asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(),
-                            RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup")
-                    .thenAccept(success -> RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success));
-
-            asyncCommands.rename(RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName(),
-                    RedisKeys.BALANCE_PREFIX + currency.getCurrencyName()).thenAccept(success ->
-                    RedisEconomyPlugin.debug("Switch1 - Overwrite new currency key with the old one: " + success));
-
-            asyncCommands.renamenx(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup",
-                    RedisKeys.BALANCE_PREFIX + newCurrency.getCurrencyName()).thenAccept(success ->
-                    RedisEconomyPlugin.debug("Switch2 - Write the backup on the new currency key: " + success));
-            return null;
-        });
+        economyStorage.switchCurrency(currency.getCurrencyName(), newCurrency.getCurrencyName());
     }
 
     /**
@@ -364,21 +343,13 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         //The string to be stored into Redis
         String redisString = locked.stream().map(UUID::toString).collect(Collectors.joining(","));
 
-        redisManager.getConnectionPipeline(connection -> {
-                    connection.hset(LOCKED_ACCOUNTS.toString(),
-                            uuid.toString(),
-                            redisString
-                    );
-                    connection.publish(UPDATE_LOCKED_ACCOUNTS.toString(), uuid + "," + redisString)
-                            .thenAccept(integer -> {
-                                RedisEconomyPlugin.debug("Lock0 - Published update locked accounts message: " + integer);
+        economyStorage.updateLockedAccounts(uuid, redisString)
+                .thenAccept(integer -> {
+                    RedisEconomyPlugin.debug("Lock0 - Published update locked accounts message: " + integer);
 
-                                lockedAccounts.put(uuid, locked);
-                                future.complete(!isLocked);
-                            });
-                    return null;
-                }
-        );
+                    lockedAccounts.put(uuid, locked);
+                    future.complete(!isLocked);
+                });
 
         return future;
     }
