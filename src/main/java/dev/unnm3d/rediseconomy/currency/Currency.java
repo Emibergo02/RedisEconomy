@@ -26,7 +26,8 @@ import java.util.concurrent.*;
 @AllArgsConstructor
 public class Currency implements Economy {
     protected final CurrenciesManager currenciesManager;
-    protected final EconomyStorage economyStorage;
+    @Getter
+    private final EconomyStorage economyStorage;
 
     @Getter
     protected final String currencyName;
