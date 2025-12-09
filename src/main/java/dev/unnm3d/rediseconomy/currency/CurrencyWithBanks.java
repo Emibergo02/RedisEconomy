@@ -29,8 +29,8 @@ public class CurrencyWithBanks extends Currency {
      */
     private final ConcurrentHashMap<String, UUID> bankOwners;
 
-    public CurrencyWithBanks(CurrenciesManager currenciesManager, CurrencySettings currencySettings) {
-        super(currenciesManager, currencySettings);
+    public CurrencyWithBanks(CurrenciesManager currenciesManager, EconomyStorage economyStorage, CurrencySettings currencySettings) {
+        super(currenciesManager, economyStorage, currencySettings);
         bankAccounts = new ConcurrentHashMap<>();
         bankOwners = new ConcurrentHashMap<>();
         getOrderedBankAccounts().thenApply(list -> {
@@ -323,8 +323,7 @@ public class CurrencyWithBanks extends Currency {
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
     public CompletionStage<List<ScoredValue<String>>> getOrderedBankAccounts() {
-        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
-                connection.zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, -1));
+        return economyStorage.getOrderedBankAccounts(currencyName);
     }
 
     /**
@@ -333,8 +332,7 @@ public class CurrencyWithBanks extends Currency {
      * @return A map of bank owners
      */
     public CompletionStage<Map<String, String>> getRedisBankOwners() {
-        return currenciesManager.getRedisManager().getConnectionAsync(connection ->
-                connection.hgetall(BANK_OWNERS.toString()));
+        return economyStorage.getBankOwners();
     }
 
 

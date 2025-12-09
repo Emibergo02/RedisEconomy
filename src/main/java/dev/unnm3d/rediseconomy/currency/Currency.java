@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.currency;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
+import dev.unnm3d.rediseconomy.storage.EconomyStorage;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
@@ -25,6 +26,7 @@ import java.util.concurrent.*;
 @AllArgsConstructor
 public class Currency implements Economy {
     protected final CurrenciesManager currenciesManager;
+    protected final EconomyStorage economyStorage;
 
     @Getter
     protected final String currencyName;
@@ -58,10 +60,12 @@ public class Currency implements Economy {
      * Currency implements Economy from Vault, so it's the same as using any other Vault Economy plugin
      *
      * @param currenciesManager The CurrenciesManager instance
+     * @param economyStorage    The economy storage instance
      * @param currencySettings  The currency settings
      */
-    public Currency(CurrenciesManager currenciesManager, CurrencySettings currencySettings) {
+    public Currency(CurrenciesManager currenciesManager, EconomyStorage economyStorage, CurrencySettings currencySettings) {
         this.currenciesManager = currenciesManager;
+        this.economyStorage = economyStorage;
         this.enabled = true;
         this.updateExecutors = generateExecutors(currencySettings.getExecutorThreads());
         this.currencyName = currencySettings.getCurrencyName();
@@ -650,9 +654,7 @@ public class Currency implements Economy {
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
     public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts(int limit) {
-        return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
-                accounts.zrevrangeWithScores(RedisKeys.BALANCE_PREFIX + currencyName, 0, limit));
-
+        return economyStorage.getOrderedAccounts(currencyName, limit);
     }
 
     public double getPlayerMaxBalance(UUID uuid) {
@@ -683,13 +685,7 @@ public class Currency implements Economy {
     }
 
     public CompletionStage<Map<UUID, Double>> getPlayerMaxBalances() {
-        return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
-                        accounts.hgetall(RedisKeys.MAX_PLAYER_BALANCES + currencyName))
-                .thenApply(result -> {
-                    final Map<UUID, Double> maxBalances = new HashMap<>();
-                    result.forEach((key, value) -> maxBalances.put(UUID.fromString(key), Double.parseDouble(value)));
-                    return maxBalances;
-                });
+        return economyStorage.getPlayerMaxBalances(currencyName);
     }
 
     /**
@@ -699,7 +695,7 @@ public class Currency implements Economy {
      * @return The balance associated with the UUID on Redis
      */
     public CompletionStage<Double> getAccountRedis(UUID uuid) {
-        return currenciesManager.getRedisManager().getConnectionAsync(connection -> connection.zscore(RedisKeys.BALANCE_PREFIX + currencyName, uuid.toString()));
+        return economyStorage.getAccountBalance(currencyName, uuid);
     }
 
     /**

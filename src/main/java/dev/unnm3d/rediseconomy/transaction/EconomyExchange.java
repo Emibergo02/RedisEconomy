@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.TransactionEvent;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
+import dev.unnm3d.rediseconomy.storage.EconomyStorage;
 import io.lettuce.core.ScriptOutputType;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,7 @@ import java.util.concurrent.*;
 public class EconomyExchange {
 
     private final RedisEconomyPlugin plugin;
+    private final EconomyStorage economyStorage;
     private final ExecutorService executorService;
     private long updateTIDTimestamp = System.currentTimeMillis();
     private int lastTID = 0;
@@ -27,10 +29,12 @@ public class EconomyExchange {
     /**
      * Constructor for EconomyExchange
      *
-     * @param plugin The RedisEconomyPlugin instance
+     * @param plugin         The RedisEconomyPlugin instance
+     * @param economyStorage The economy storage instance
      */
-    public EconomyExchange(final RedisEconomyPlugin plugin) {
+    public EconomyExchange(final RedisEconomyPlugin plugin, EconomyStorage economyStorage) {
         this.plugin = plugin;
+        this.economyStorage = economyStorage;
         this.executorService = Executors.newFixedThreadPool(plugin.getConfigManager().getSettings().transactionExecutorThreads,
                 Thread.ofVirtual().factory());
     }
@@ -44,9 +48,7 @@ public class EconomyExchange {
      */
     public CompletionStage<TreeMap<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
         return CompletableFuture.supplyAsync(() ->
-                        plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
-                                connection.hgetall(RedisKeys.TRANSACTIONS + accountId.toString())
-                        ), executorService)
+                        economyStorage.getTransactions(accountId).toCompletableFuture().join(), executorService)
                 .thenApply(transactions -> {
                     if (transactions == null || transactions.isEmpty()) {
                         return new TreeMap<Long, Transaction>();
@@ -71,9 +73,7 @@ public class EconomyExchange {
 
     public int getCurrentTransactionID() {
         if (System.currentTimeMillis() - this.updateTIDTimestamp > 10000 || this.lastTID == 0) {
-            plugin.getCurrenciesManager().getRedisManager()
-                    .getConnectionAsync(connection ->
-                            connection.get(RedisKeys.TRANSACTIONS_COUNTER.toString()))
+            economyStorage.getCurrentTransactionCounter()
                     .thenAccept(s -> this.lastTID = Integer.parseInt(Optional.ofNullable(s).orElse("0")));
             this.updateTIDTimestamp = System.currentTimeMillis();
         }

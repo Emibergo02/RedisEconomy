@@ -6,6 +6,8 @@ import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
+import dev.unnm3d.rediseconomy.storage.EconomyStorage;
+import dev.unnm3d.rediseconomy.storage.RedisEconomyStorage;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
@@ -36,6 +38,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final ConfigManager configManager;
     @Getter
     private final RedisManager redisManager;
+    private final EconomyStorage economyStorage;
     private final EconomyExchange exchange;
     private final HashMap<String, Currency> currencies;
     @Getter
@@ -47,7 +50,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         INSTANCE = this;
         this.completeMigration = new CompletableFuture<>();
         this.redisManager = redisManager;
-        this.exchange = new EconomyExchange(plugin);
+        this.economyStorage = new RedisEconomyStorage(redisManager);
+        this.exchange = new EconomyExchange(plugin, economyStorage);
         this.plugin = plugin;
         this.configManager = configManager;
         this.currencies = new HashMap<>();
@@ -82,9 +86,9 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
             Currency currency;
             if (currencySettings.isBankEnabled()) {
-                currency = new CurrencyWithBanks(this, currencySettings);
+                currency = new CurrencyWithBanks(this, economyStorage, currencySettings);
             } else {
-                currency = new Currency(this, currencySettings);
+                currency = new Currency(this, economyStorage, currencySettings);
             }
 
             //Replace existing currency with updated settings and terminate the old executors
@@ -107,7 +111,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             }
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
-            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this,
+            currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this, economyStorage,
                     new CurrencySettings(configManager.getSettings().defaultCurrencyName,
                             "€", "€",
                             "#.##", "en-US",
@@ -271,32 +275,11 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private CompletionStage<ConcurrentHashMap<String, UUID>> loadRedisNameUniqueIds() {
-        return redisManager.getConnectionAsync(connection ->
-                connection.hgetall(NAME_UUID.toString())
-                        .thenApply(result -> {
-                            ConcurrentHashMap<String, UUID> nameUUIDs = new ConcurrentHashMap<>();
-                            result.forEach((name, uuid) -> nameUUIDs.put(name, UUID.fromString(uuid)));
-                            RedisEconomyPlugin.debug("start0 Loaded " + nameUUIDs.size() + " name-uuid pairs");
-                            return nameUUIDs;
-                        })
-        );
+        return economyStorage.loadNameUniqueIds();
     }
 
     private CompletionStage<ConcurrentHashMap<UUID, List<UUID>>> loadLockedAccounts() {
-        return redisManager.getConnectionAsync(connection ->
-                connection.hgetall(LOCKED_ACCOUNTS.toString())
-                        .thenApply(result -> {
-                            ConcurrentHashMap<UUID, List<UUID>> lockedAccounts = new ConcurrentHashMap<>();
-                            result.forEach((uuid, uuidList) ->
-                                    lockedAccounts.put(UUID.fromString(uuid),
-                                            new ArrayList<>(Arrays.stream(uuidList.split(","))
-                                                    .filter(stringUUID -> stringUUID.length() >= 32)
-                                                    .map(UUID::fromString).toList())
-                                    )
-                            );
-                            return lockedAccounts;
-                        })
-        );
+        return economyStorage.loadLockedAccounts();
     }
 
     private void removeRedisNameUniqueIds(Map<String, UUID> toRemove) {
