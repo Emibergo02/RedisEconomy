@@ -84,7 +84,7 @@ public class Currency implements Economy {
                 new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.getLanguageTag() != null ? currencySettings.getLanguageTag() : "en-US"))
         );
 
-        getOrderedAccounts(-1).thenApply(result -> {
+        economyStorage.getOrderedAccounts(currencyName, -1).thenApply(result -> {
             result.forEach(t ->
                     accounts.put(UUID.fromString(t.getValue()), t.getScore()));
             if (!accounts.isEmpty()) {
@@ -93,7 +93,7 @@ public class Currency implements Economy {
             return result;
         }).toCompletableFuture().join(); //Wait to avoid API calls before accounts are loaded
 
-        getPlayerMaxBalances().thenApply(result -> {
+        economyStorage.getPlayerMaxBalances(currencyName).thenApply(result -> {
             maxPlayerBalances.putAll(result);
             if (!maxPlayerBalances.isEmpty()) {
                 RedisEconomyPlugin.debug("start1 Loaded " + maxPlayerBalances.size() + " max balances for currency " + currencyName);
@@ -645,18 +645,6 @@ public class Currency implements Economy {
         });
     }
 
-    /**
-     * Get ordered accounts from Redis
-     * Redis uses ordered sets as data structures
-     * This method has a time complexity of O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements returned.
-     *
-     * @param limit The number of accounts to return from the top 1
-     * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
-     */
-    public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts(int limit) {
-        return economyStorage.getOrderedAccounts(currencyName, limit);
-    }
-
     public double getPlayerMaxBalance(UUID uuid) {
         return maxPlayerBalances.getOrDefault(uuid, maxBalance);
     }
@@ -682,20 +670,6 @@ public class Currency implements Economy {
             }
             return asyncCommands.publish(RedisKeys.UPDATE_MAX_BAL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + uuid + ";;" + amount);
         });
-    }
-
-    public CompletionStage<Map<UUID, Double>> getPlayerMaxBalances() {
-        return economyStorage.getPlayerMaxBalances(currencyName);
-    }
-
-    /**
-     * Get single ordered account from Redis
-     *
-     * @param uuid The UUID of the account
-     * @return The balance associated with the UUID on Redis
-     */
-    public CompletionStage<Double> getAccountRedis(UUID uuid) {
-        return economyStorage.getAccountBalance(currencyName, uuid);
     }
 
     /**

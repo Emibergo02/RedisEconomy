@@ -33,7 +33,7 @@ public class CurrencyWithBanks extends Currency {
         super(currenciesManager, economyStorage, currencySettings);
         bankAccounts = new ConcurrentHashMap<>();
         bankOwners = new ConcurrentHashMap<>();
-        getOrderedBankAccounts().thenApply(list -> {
+        economyStorage.getOrderedBankAccounts(currencyName).thenApply(list -> {
             for (ScoredValue<String> scoredValue : list) {
                 bankAccounts.put(scoredValue.getValue(), scoredValue.getScore());
             }
@@ -42,7 +42,7 @@ public class CurrencyWithBanks extends Currency {
             }
             return list;
         }).toCompletableFuture().join();
-        getRedisBankOwners().thenApply(map -> {
+        economyStorage.getBankOwners().thenApply(map -> {
             map.forEach((k, v) -> bankOwners.put(k, UUID.fromString(v)));
             if (!bankOwners.isEmpty()) {
                 RedisEconomyPlugin.debug("start1bankb Loaded " + bankOwners.size() + " accounts owners for currency " + currencyName);
@@ -313,26 +313,6 @@ public class CurrencyWithBanks extends Currency {
             if (e != null)
                 e.printStackTrace();
         }
-    }
-
-    /**
-     * Get ordered accounts from Redis
-     * Redis uses ordered sets as data structures
-     * This method has a time complexity of O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements returned.
-     *
-     * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
-     */
-    public CompletionStage<List<ScoredValue<String>>> getOrderedBankAccounts() {
-        return economyStorage.getOrderedBankAccounts(currencyName);
-    }
-
-    /**
-     * Get bank owners from Redis. Use with caution, this method is not cached
-     *
-     * @return A map of bank owners
-     */
-    public CompletionStage<Map<String, String>> getRedisBankOwners() {
-        return economyStorage.getBankOwners();
     }
 
 

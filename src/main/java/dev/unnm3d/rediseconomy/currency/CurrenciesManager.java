@@ -259,7 +259,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     @EventHandler
     private void onJoin(PlayerJoinEvent e) {
         getCurrencies().forEach(currency ->
-                currency.getAccountRedis(e.getPlayer().getUniqueId())
+                currency.economyStorage.getAccountBalance(currency.getCurrencyName(), e.getPlayer().getUniqueId())
                         .thenAccept(balance -> {
                             RedisEconomyPlugin.debug("00 Loaded " + e.getPlayer().getName() + "'s balance of " + balance + " " + currency.getCurrencyName());
 

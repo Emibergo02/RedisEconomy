@@ -47,9 +47,8 @@ public class EconomyExchange {
      * @return Map of transaction ids and transactions
      */
     public CompletionStage<TreeMap<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
-        return CompletableFuture.supplyAsync(() ->
-                        economyStorage.getTransactions(accountId).toCompletableFuture().join(), executorService)
-                .thenApply(transactions -> {
+        return economyStorage.getTransactions(accountId)
+                .thenApplyAsync(transactions -> {
                     if (transactions == null || transactions.isEmpty()) {
                         return new TreeMap<Long, Transaction>();
                     }
@@ -64,7 +63,7 @@ public class EconomyExchange {
                                     Transaction.fromString(entry.getValue())
                             ));
                     return transactionsMap;
-                })
+                }, executorService)
                 .exceptionally(exc -> {
                     exc.printStackTrace();
                     return new TreeMap<>(); // Return empty map instead of null for better error handling
