@@ -14,6 +14,7 @@ import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
+import dev.unnm3d.rediseconomy.messaging.RedisMessaging;
 import dev.unnm3d.rediseconomy.migrators.*;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.storage.RedisEconomyStorage;
@@ -53,6 +54,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Getter
     private CurrenciesManager currenciesManager;
     private RedisEconomyStorage redisEconomyStorage;
+    private RedisMessaging redisMessaging;
     @Nullable
     @Getter
     private PlayerListManager playerListManager;
@@ -102,10 +104,12 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getServer().getPluginManager().disablePlugin(this);
             return;
         }
-        loadPlayerList();
 
-        this.currenciesManager = new CurrenciesManager(redisEconomyStorage, this, configManager);
+        this.redisMessaging = new RedisMessaging(redisEconomyStorage);
+        this.currenciesManager = new CurrenciesManager(redisEconomyStorage, redisMessaging, this, configManager);
         this.getLogger().info("Hooked into Vault!");
+        
+        loadPlayerList();
 
         if (settings().migrationEnabled) {
             scheduler.runTaskLater(() -> {
@@ -181,7 +185,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
      */
     public void loadPlayerList() {
         if (configManager.getSettings().tabOnlinePlayers) {
-            this.playerListManager = new PlayerListManager(this.redisManager, this);
+            this.playerListManager = new PlayerListManager(this.redisMessaging, this);
         } else if (playerListManager != null) {
             playerListManager.stop();
             playerListManager = null;

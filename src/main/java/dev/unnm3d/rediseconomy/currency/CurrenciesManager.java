@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.RedisEconomyAPI;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
+import dev.unnm3d.rediseconomy.messaging.Messaging;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.storage.EconomyStorage;
@@ -37,6 +38,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final CompletableFuture<Void> completeMigration;
     private final ConfigManager configManager;
     private final RedisEconomyStorage economyStorage;
+    private final Messaging messaging;
     private final EconomyExchange exchange;
     private final HashMap<String, Currency> currencies;
     @Getter
@@ -44,17 +46,18 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final ConcurrentHashMap<UUID, List<UUID>> lockedAccounts;
 
 
-    public CurrenciesManager(RedisEconomyStorage economyStorage, RedisEconomyPlugin plugin, ConfigManager configManager) {
+    public CurrenciesManager(RedisEconomyStorage economyStorage, Messaging messaging, RedisEconomyPlugin plugin, ConfigManager configManager) {
         INSTANCE = this;
         this.completeMigration = new CompletableFuture<>();
         this.economyStorage = economyStorage;
+        this.messaging = messaging;
         this.exchange = new EconomyExchange(plugin, economyStorage);
         this.plugin = plugin;
         this.configManager = configManager;
         this.currencies = new HashMap<>();
         try {
-            this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
-            this.lockedAccounts = loadLockedAccounts().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
+            this.nameUniqueIds = economyStorage.loadNameUniqueIds().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
+            this.lockedAccounts = economyStorage.loadLockedAccounts().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -138,8 +141,12 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         return currencies.get(name);
     }
 
-    public RedisManager getRedisManager() {
+    public RedisEconomyStorage getEconomyStorage() {
         return economyStorage;
+    }
+
+    public Messaging getMessaging() {
+        return messaging;
     }
 
     @Override
@@ -182,7 +189,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         }
         nameUniqueIds.entrySet().removeAll(removed.entrySet());
         if (!removed.isEmpty()) {
-            removeRedisNameUniqueIds(removed);
+            economyStorage.removeNameUniqueIds(removed);
             if (resetBalance) {
                 for (Currency currency : currencies.values()) {
                     removed.forEach((name, uuid) -> currency.setPlayerBalance(uuid, name, 0.0));
@@ -275,20 +282,8 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                         }));
     }
 
-    private CompletionStage<ConcurrentHashMap<String, UUID>> loadRedisNameUniqueIds() {
-        return economyStorage.loadNameUniqueIds();
-    }
-
-    private CompletionStage<ConcurrentHashMap<UUID, List<UUID>>> loadLockedAccounts() {
-        return economyStorage.loadLockedAccounts();
-    }
-
-    private void removeRedisNameUniqueIds(Map<String, UUID> toRemove) {
-        economyStorage.removeNameUniqueIds(toRemove);
-    }
-
     private void registerPayMsgChannel() {
-        StatefulRedisPubSubConnection<String, String> connection = economyStorage.getPubSubConnection();
+        StatefulRedisPubSubConnection<String, String> connection = messaging.getPubSubConnection();
         connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
@@ -394,7 +389,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void registerBlockAccountChannel() {
-        StatefulRedisPubSubConnection<String, String> connection = economyStorage.getPubSubConnection();
+        StatefulRedisPubSubConnection<String, String> connection = messaging.getPubSubConnection();
         connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
@@ -423,7 +418,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void registerUpdateChannelPattern() {
-        StatefulRedisPubSubConnection<String, String> connection = economyStorage.getPubSubConnection();
+        StatefulRedisPubSubConnection<String, String> connection = messaging.getPubSubConnection();
         connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String pattern, String channel, String message) {

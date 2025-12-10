@@ -85,7 +85,7 @@ public class EconomyExchange {
      * @return How many transaction accounts were removed
      */
     public CompletionStage<Long> removeAllTransactions() {
-        return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection -> {
+        return plugin.getCurrenciesManager().getEconomyStorage().getConnectionAsync(connection -> {
                     try {
                         List<String> keys = connection.keys(RedisKeys.TRANSACTIONS + "*").get();
                         if (keys.isEmpty()) {
@@ -108,7 +108,7 @@ public class EconomyExchange {
      */
     public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, long id) {
         return CompletableFuture.supplyAsync(() -> {
-            return Transaction.fromString(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
+            return Transaction.fromString(plugin.getCurrenciesManager().getEconomyStorage().getConnectionSync(connection ->
                     connection.hget(RedisKeys.TRANSACTIONS + accountId.toString(), String.valueOf(id))));
         }, executorService).orTimeout(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS).exceptionally(exc -> {
             exc.printStackTrace();
@@ -151,7 +151,7 @@ public class EconomyExchange {
                     });
 
                     //noinspection unchecked
-                    return plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
+                    return plugin.getCurrenciesManager().getEconomyStorage().getConnectionSync(connection ->
                             (List<Long>) connection.eval(
                                     "local a=redis.call('incr',KEYS[1])local b=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])redis.call('hset',KEYS[3],b,ARGV[2])if tonumber(ARGV[3])>0 then redis.call('hexpire',KEYS[2],ARGV[3],'FIELDS',1,a)redis.call('hexpire',KEYS[3],ARGV[3],'FIELDS',1,b)end;return{a,b}",
                                     ScriptOutputType.MULTI,
@@ -199,7 +199,7 @@ public class EconomyExchange {
                             //If target is null, it has been sent from the server
                             amount, null, reason + stackTrace));
                     plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
-                    return (long) plugin.getCurrenciesManager().getRedisManager().getConnectionSync(commands -> commands.eval(
+                    return (long) plugin.getCurrenciesManager().getEconomyStorage().getConnectionSync(commands -> commands.eval(
                             "local a=redis.call('incr',KEYS[1])redis.call('hset',KEYS[2],a,ARGV[1])if tonumber(ARGV[2])>0 then redis.call('hexpire',KEYS[2],ARGV[2],'FIELDS',1,a)end;return a",
                             ScriptOutputType.INTEGER,
                             new String[]{
@@ -264,7 +264,7 @@ public class EconomyExchange {
                                 revertTransactionEvent.getTransaction().setRevertedWith(String.valueOf(newId));
 
                                 // Update Redis asynchronously and return the newId
-                                return plugin.getCurrenciesManager().getRedisManager()
+                                return plugin.getCurrenciesManager().getEconomyStorage()
                                         .getConnectionAsync(connection ->
                                                 connection.hset(
                                                         RedisKeys.TRANSACTIONS + accountOwner.toString(),

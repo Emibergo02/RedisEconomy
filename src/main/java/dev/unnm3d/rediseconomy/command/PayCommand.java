@@ -121,17 +121,15 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                         .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
         );
         //Send msg to target
-        currenciesManager.getRedisManager().getConnectionAsync(commands -> {
-            commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + target + ";;" + currency.format(amount));
+        currenciesManager.getMessaging().publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + target + ";;" + currency.format(amount));
 
-            RedisEconomyPlugin.debug("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
-            //Register transaction
-            String reason = "Payment";
-            if (args.length >= 4) {
-                reason = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
-            }
-            return currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), targetUUID, amount, currency, reason);
-        });
+        RedisEconomyPlugin.debug("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
+        //Register transaction
+        String reason = "Payment";
+        if (args.length >= 4) {
+            reason = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
+        }
+        currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), targetUUID, amount, currency, reason);
     }
 
     /**
@@ -170,11 +168,9 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                             .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
             );
             //Send msg to target
-            currenciesManager.getRedisManager().getConnectionAsync(commands -> {
-                commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + onlinePlayer.getName() + ";;" + currency.format(amount));
-                //Register transaction
-                return currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), onlinePlayer.getUniqueId(), amount, currency, "Payment to all online players");
-            });
+            currenciesManager.getMessaging().publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + onlinePlayer.getName() + ";;" + currency.format(amount));
+            //Register transaction
+            currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), onlinePlayer.getUniqueId(), amount, currency, "Payment to all online players");
         }
     }
 

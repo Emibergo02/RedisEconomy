@@ -56,7 +56,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         new UniversalRunnable() {
                             @Override
                             public void run() {
-                                plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection ->
+                                plugin.getCurrenciesManager().getEconomyStorage().getConnectionAsync(connection ->
                                                 connection.zscore(RedisKeys.BALANCE_BANK_PREFIX + defaultBankCurrency.getCurrencyName(), accountId))
                                         .thenAccept(balance -> {
                                             sender.sendMessage("§bBank " + accountId + " balance -> remote: " + balance + " local: " + finalShouldBeBalance + " in " + (System.currentTimeMillis() - init) + "ms");
@@ -113,7 +113,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     private void expandPool(CommandSender sender, String arg) {
         try {
-            plugin.getCurrenciesManager().getRedisManager().expandPool(Integer.parseInt(arg));
+            plugin.getCurrenciesManager().getEconomyStorage().expandPool(Integer.parseInt(arg));
             plugin.getConfigManager().getLangs().send(sender, "§aPool expanded successfully!");
         } catch (Exception e) {
             plugin.getConfigManager().getLangs().send(sender, "§cError expanding pool: " + e.getMessage());

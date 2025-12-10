@@ -4,8 +4,8 @@ import com.github.Anon8281.universalScheduler.UniversalRunnable;
 import com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.currency.RedisEconomyListener;
+import dev.unnm3d.rediseconomy.messaging.Messaging;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
-import dev.unnm3d.rediseconomy.redis.RedisManager;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import org.bukkit.entity.HumanEntity;
 
@@ -18,9 +18,9 @@ public class PlayerListManager {
     private final ConcurrentHashMap<String, Long> playerList;
     private final StatefulRedisPubSubConnection<String, String> connection;
 
-    public PlayerListManager(RedisManager redisManager, RedisEconomyPlugin plugin) {
+    public PlayerListManager(Messaging messaging, RedisEconomyPlugin plugin) {
         this.playerList = new ConcurrentHashMap<>();
-        this.connection = redisManager.getPubSubConnection();
+        this.connection = messaging.getPubSubConnection();
         this.connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
