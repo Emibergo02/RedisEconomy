@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
+import io.lettuce.core.RedisClient;
 import io.lettuce.core.ScoredValue;
 import org.bukkit.Bukkit;
 
@@ -14,30 +15,29 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Redis implementation of EconomyStorage.
  * Uses Lettuce async connections to retrieve data from Redis.
+ * Extends RedisManager to have direct access to all Redis operations.
  */
-public class RedisEconomyStorage implements EconomyStorage {
+public class RedisEconomyStorage extends RedisManager implements EconomyStorage {
 
-    private final RedisManager redisManager;
-
-    public RedisEconomyStorage(RedisManager redisManager) {
-        this.redisManager = redisManager;
+    public RedisEconomyStorage(RedisClient lettuceRedisClient, int poolSize) {
+        super(lettuceRedisClient, poolSize);
     }
 
     @Override
     public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts(String currencyName, int limit) {
-        return redisManager.getConnectionAsync(accounts ->
+        return this.getConnectionAsync(accounts ->
                 accounts.zrevrangeWithScores(RedisKeys.BALANCE_PREFIX + currencyName, 0, limit));
     }
 
     @Override
     public CompletionStage<Double> getAccountBalance(String currencyName, UUID uuid) {
-        return redisManager.getConnectionAsync(connection ->
+        return this.getConnectionAsync(connection ->
                 connection.zscore(RedisKeys.BALANCE_PREFIX + currencyName, uuid.toString()));
     }
 
     @Override
     public CompletionStage<Map<UUID, Double>> getPlayerMaxBalances(String currencyName) {
-        return redisManager.getConnectionAsync(accounts ->
+        return this.getConnectionAsync(accounts ->
                         accounts.hgetall(RedisKeys.MAX_PLAYER_BALANCES + currencyName))
                 .thenApply(result -> {
                     final Map<UUID, Double> maxBalances = new HashMap<>();
@@ -48,19 +48,19 @@ public class RedisEconomyStorage implements EconomyStorage {
 
     @Override
     public CompletionStage<List<ScoredValue<String>>> getOrderedBankAccounts(String currencyName) {
-        return redisManager.getConnectionAsync(connection ->
+        return this.getConnectionAsync(connection ->
                 connection.zrevrangeWithScores(RedisKeys.BALANCE_PREFIX + currencyName, 0, -1));
     }
 
     @Override
     public CompletionStage<Map<String, String>> getBankOwners() {
-        return redisManager.getConnectionAsync(connection ->
+        return this.getConnectionAsync(connection ->
                 connection.hgetall(RedisKeys.BANK_OWNERS.toString()));
     }
 
     @Override
     public CompletionStage<ConcurrentHashMap<String, UUID>> loadNameUniqueIds() {
-        return redisManager.getConnectionAsync(connection ->
+        return this.getConnectionAsync(connection ->
                 connection.hgetall(RedisKeys.NAME_UUID.toString())
                         .thenApply(result -> {
                             ConcurrentHashMap<String, UUID> nameUUIDs = new ConcurrentHashMap<>();
@@ -73,7 +73,7 @@ public class RedisEconomyStorage implements EconomyStorage {
 
     @Override
     public CompletionStage<ConcurrentHashMap<UUID, List<UUID>>> loadLockedAccounts() {
-        return redisManager.getConnectionAsync(connection ->
+        return this.getConnectionAsync(connection ->
                 connection.hgetall(RedisKeys.LOCKED_ACCOUNTS.toString())
                         .thenApply(result -> {
                             ConcurrentHashMap<UUID, List<UUID>> lockedAccounts = new ConcurrentHashMap<>();
@@ -91,13 +91,13 @@ public class RedisEconomyStorage implements EconomyStorage {
 
     @Override
     public CompletionStage<Map<String, String>> getTransactions(AccountID accountId) {
-        return redisManager.getConnectionAsync(connection ->
+        return this.getConnectionAsync(connection ->
                 connection.hgetall(RedisKeys.TRANSACTIONS + accountId.toString()));
     }
 
     @Override
     public CompletionStage<String> getCurrentTransactionCounter() {
-        return redisManager.getConnectionAsync(connection ->
+        return this.getConnectionAsync(connection ->
                 connection.get(RedisKeys.TRANSACTIONS_COUNTER.toString()));
     }
 
@@ -105,7 +105,7 @@ public class RedisEconomyStorage implements EconomyStorage {
 
     @Override
     public Optional<List<Object>> updateAccount(String currencyName, UUID uuid, String playerName, double balance) {
-        return redisManager.executeTransaction(reactiveCommands -> {
+        return this.executeTransaction(reactiveCommands -> {
             reactiveCommands.zadd(RedisKeys.BALANCE_PREFIX + currencyName, balance, uuid.toString());
             if (playerName != null)
                 reactiveCommands.hset(RedisKeys.NAME_UUID.toString(), playerName, uuid.toString());
@@ -117,7 +117,7 @@ public class RedisEconomyStorage implements EconomyStorage {
     @Override
     @SuppressWarnings("unchecked")
     public Optional<List<Object>> updateBulkAccounts(String currencyName, List<ScoredValue<String>> balances, Map<String, String> nameUUIDs) {
-        Optional<List<Object>> result = redisManager.executeTransaction(commands -> {
+        Optional<List<Object>> result = this.executeTransaction(commands -> {
             ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
             balances.toArray(balancesArray);
 
@@ -135,7 +135,7 @@ public class RedisEconomyStorage implements EconomyStorage {
 
     @Override
     public void updatePlayerMaxBalance(String currencyName, UUID uuid, double amount, double defaultMax) {
-        redisManager.getConnectionPipeline(asyncCommands -> {
+        this.getConnectionPipeline(asyncCommands -> {
             if (amount == defaultMax) {
                 asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
             } else {
@@ -153,14 +153,14 @@ public class RedisEconomyStorage implements EconomyStorage {
                 toRemoveArray[i] = "null";
             }
         }
-        redisManager.getConnectionAsync(connection ->
+        this.getConnectionAsync(connection ->
                 connection.hdel(RedisKeys.NAME_UUID.toString(), toRemoveArray).thenAccept(integer ->
                         RedisEconomyPlugin.debug("purge0 Removed " + integer + " name-uuid pairs")));
     }
 
     @Override
     public void switchCurrency(String oldCurrencyName, String newCurrencyName) {
-        redisManager.getConnectionPipeline(asyncCommands -> {
+        this.getConnectionPipeline(asyncCommands -> {
             asyncCommands.copy(RedisKeys.BALANCE_PREFIX + oldCurrencyName,
                             RedisKeys.BALANCE_PREFIX + oldCurrencyName + "_backup")
                     .thenAccept(success -> RedisEconomyPlugin.debug("Switch0 - Backup currency accounts: " + success));
@@ -178,12 +178,40 @@ public class RedisEconomyStorage implements EconomyStorage {
 
     @Override
     public CompletionStage<Long> updateLockedAccounts(UUID uuid, String redisString) {
-        return redisManager.getConnectionPipeline(connection -> {
+        return this.getConnectionPipeline(connection -> {
             connection.hset(RedisKeys.LOCKED_ACCOUNTS.toString(),
                     uuid.toString(),
                     redisString
             );
             return connection.publish(RedisKeys.UPDATE_LOCKED_ACCOUNTS.toString(), uuid + "," + redisString);
+        });
+    }
+
+    // Bank operations
+
+    @Override
+    public CompletionStage<Long> deleteBank(String currencyName, String accountId) {
+        return this.getConnectionPipeline(redisAsyncCommands -> {
+            redisAsyncCommands.zrem(RedisKeys.BALANCE_BANK_PREFIX + currencyName, accountId);
+            return redisAsyncCommands.hdel(RedisKeys.BANK_OWNERS.toString(), accountId);
+        });
+    }
+
+    @Override
+    public CompletionStage<Long> setBankOwner(String currencyName, String accountId, UUID ownerUUID) {
+        return this.getConnectionPipeline(connection -> {
+            connection.hset(RedisKeys.BANK_OWNERS.toString(), accountId, ownerUUID.toString());
+            return connection.publish(RedisKeys.UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName, 
+                    RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + ownerUUID);
+        });
+    }
+
+    @Override
+    public Optional<List<Object>> updateBankAccount(String currencyName, String accountId, double balance) {
+        return this.executeTransaction(reactiveCommands -> {
+            reactiveCommands.zadd(RedisKeys.BALANCE_BANK_PREFIX + currencyName, balance, accountId);
+            reactiveCommands.publish(RedisKeys.UPDATE_BANK_CHANNEL_PREFIX + currencyName,
+                    RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
         });
     }
 }

@@ -16,7 +16,7 @@ import dev.unnm3d.rediseconomy.config.Settings;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.migrators.*;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
-import dev.unnm3d.rediseconomy.redis.RedisManager;
+import dev.unnm3d.rediseconomy.storage.RedisEconomyStorage;
 import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
 import dev.unnm3d.rediseconomy.utils.Metrics;
 import dev.unnm3d.rediseconomy.utils.PlaceholderAPIHook;
@@ -52,7 +52,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     private ConfigManager configManager;
     @Getter
     private CurrenciesManager currenciesManager;
-    private RedisManager redisManager;
+    private RedisEconomyStorage redisEconomyStorage;
     @Nullable
     @Getter
     private PlayerListManager playerListManager;
@@ -104,7 +104,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
         loadPlayerList();
 
-        this.currenciesManager = new CurrenciesManager(redisManager, this, configManager);
+        this.currenciesManager = new CurrenciesManager(redisEconomyStorage, this, configManager);
         this.getLogger().info("Hooked into Vault!");
 
         if (settings().migrationEnabled) {
@@ -168,7 +168,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         if (playerListManager != null)
             playerListManager.stop();
         if (redisManager != null)
-            redisManager.close();
+            redisEconomyStorage.close();
         if (currenciesManager != null) {
             this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
             currenciesManager.terminate();
@@ -207,8 +207,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
                             redisURIBuilder.withAuthentication(configManager.getSettings().redis.user(), configManager.getSettings().redis.password());
 
             getLogger().info("Connecting to redis server " + redisURIBuilder.build().toString() + "...");
-            this.redisManager = new RedisManager(RedisClient.create(redisURIBuilder.build()), configManager.getSettings().redis.getPoolSize());
-            redisManager.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
+            this.redisEconomyStorage = new RedisEconomyStorage(RedisClient.create(redisURIBuilder.build()), configManager.getSettings().redis.getPoolSize());
+            redisEconomyStorage.isConnected().get(1, java.util.concurrent.TimeUnit.SECONDS);
             if (!configManager.getSettings().clusterId.isEmpty())
                 RedisKeys.setClusterId(configManager.getSettings().clusterId);
             return true;

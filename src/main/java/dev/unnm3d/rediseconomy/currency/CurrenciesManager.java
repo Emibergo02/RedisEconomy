@@ -36,9 +36,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     @Getter
     private final CompletableFuture<Void> completeMigration;
     private final ConfigManager configManager;
-    @Getter
-    private final RedisManager redisManager;
-    private final EconomyStorage economyStorage;
+    private final RedisEconomyStorage economyStorage;
     private final EconomyExchange exchange;
     private final HashMap<String, Currency> currencies;
     @Getter
@@ -46,11 +44,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final ConcurrentHashMap<UUID, List<UUID>> lockedAccounts;
 
 
-    public CurrenciesManager(RedisManager redisManager, RedisEconomyPlugin plugin, ConfigManager configManager) {
+    public CurrenciesManager(RedisEconomyStorage economyStorage, RedisEconomyPlugin plugin, ConfigManager configManager) {
         INSTANCE = this;
         this.completeMigration = new CompletableFuture<>();
-        this.redisManager = redisManager;
-        this.economyStorage = new RedisEconomyStorage(redisManager);
+        this.economyStorage = economyStorage;
         this.exchange = new EconomyExchange(plugin, economyStorage);
         this.plugin = plugin;
         this.configManager = configManager;
@@ -139,6 +136,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     @Override
     public @Nullable Currency getCurrencyByName(@NotNull String name) {
         return currencies.get(name);
+    }
+
+    public RedisManager getRedisManager() {
+        return economyStorage;
     }
 
     @Override
@@ -287,7 +288,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void registerPayMsgChannel() {
-        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        StatefulRedisPubSubConnection<String, String> connection = economyStorage.getPubSubConnection();
         connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
@@ -393,7 +394,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void registerBlockAccountChannel() {
-        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        StatefulRedisPubSubConnection<String, String> connection = economyStorage.getPubSubConnection();
         connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String channel, String message) {
@@ -422,7 +423,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void registerUpdateChannelPattern() {
-        StatefulRedisPubSubConnection<String, String> connection = redisManager.getPubSubConnection();
+        StatefulRedisPubSubConnection<String, String> connection = economyStorage.getPubSubConnection();
         connection.addListener(new RedisEconomyListener() {
             @Override
             public void message(String pattern, String channel, String message) {

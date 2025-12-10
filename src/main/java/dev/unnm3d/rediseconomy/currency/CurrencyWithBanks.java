@@ -109,10 +109,7 @@ public class CurrencyWithBanks extends Currency {
 
     @Override
     public EconomyResponse deleteBank(@NotNull String accountId) {
-        currenciesManager.getRedisManager().getConnectionPipeline(redisAsyncCommands -> {
-            redisAsyncCommands.zrem(BALANCE_BANK_PREFIX + currencyName, accountId);
-            return redisAsyncCommands.hdel(BANK_OWNERS.toString(), accountId);
-        }).thenAccept(result -> {
+        economyStorage.deleteBank(currencyName, accountId).thenAccept(result -> {
             bankAccounts.remove(accountId);
             RedisEconomyPlugin.debug("Deleted bank account " + accountId + " with result " + result);
 
@@ -256,10 +253,7 @@ public class CurrencyWithBanks extends Currency {
     }
 
     private void setOwner(@NotNull String accountId, UUID ownerUUID) {
-        currenciesManager.getRedisManager().getConnectionPipeline(connection -> {
-            connection.hset(BANK_OWNERS.toString(), accountId, ownerUUID.toString());
-            return connection.publish(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + ownerUUID);
-        }).thenAccept((result) -> {
+        economyStorage.setBankOwner(currencyName, accountId, ownerUUID).thenAccept((result) -> {
             RedisEconomyPlugin.debug("Set owner of bank " + accountId + " to " + ownerUUID + " with result " + result);
 
             bankOwners.put(accountId, ownerUUID);
@@ -279,15 +273,10 @@ public class CurrencyWithBanks extends Currency {
         CompletableFuture.supplyAsync(() -> {
             RedisEconomyPlugin.debugCache("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
 
-            currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
-                reactiveCommands.zadd(BALANCE_BANK_PREFIX + currencyName, balance, accountId);
-                reactiveCommands.publish(UPDATE_BANK_CHANNEL_PREFIX + currencyName,
-                        RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + balance);
-                RedisEconomyPlugin.debugCache("01b Publishing update bank account " + accountId + " to " + balance + " currency " + currencyName);
-
-            }).ifPresentOrElse(result -> {
-                RedisEconomyPlugin.debugCache("01c Sent bank update account " + accountId + " to " + balance);
-            }, () -> handleException(accountId, balance, tries, null));
+            economyStorage.updateBankAccount(currencyName, accountId, balance)
+                    .ifPresentOrElse(result -> {
+                        RedisEconomyPlugin.debugCache("01c Sent bank update account " + accountId + " to " + balance);
+                    }, () -> handleException(accountId, balance, tries, null));
 
             return null;
         }, getExecutor(accountId.getBytes()[accountId.length() - 1])).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
@@ -309,7 +298,7 @@ public class CurrencyWithBanks extends Currency {
             updateBankAccountCloudCache(accountId, balance, tries + 1);
         } else {
             plugin.getLogger().severe("Failed to update bank account " + accountId + " after " + tries + " tries");
-            currenciesManager.getRedisManager().printPool();
+            economyStorage.printPool();
             if (e != null)
                 e.printStackTrace();
         }

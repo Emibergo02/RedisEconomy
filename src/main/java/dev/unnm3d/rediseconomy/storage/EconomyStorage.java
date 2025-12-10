@@ -147,5 +147,35 @@ public interface EconomyStorage {
      * @return CompletionStage that completes when the update is published
      */
     CompletionStage<Long> updateLockedAccounts(UUID uuid, String redisString);
+
+    // Bank operations
+
+    /**
+     * Delete a bank account
+     *
+     * @param currencyName The currency name
+     * @param accountId    The bank account ID
+     * @return CompletionStage with the number of entries deleted
+     */
+    CompletionStage<Long> deleteBank(String currencyName, String accountId);
+
+    /**
+     * Set the owner of a bank account
+     *
+     * @param accountId The bank account ID
+     * @param ownerUUID The owner UUID
+     * @return CompletionStage that completes when the update is published
+     */
+    CompletionStage<Long> setBankOwner(String currencyName, String accountId, UUID ownerUUID);
+
+    /**
+     * Update bank account balance
+     *
+     * @param currencyName The currency name
+     * @param accountId    The bank account ID
+     * @param balance      The new balance
+     * @return Optional with transaction result or empty if failed
+     */
+    Optional<List<Object>> updateBankAccount(String currencyName, String accountId, double balance);
 }
 

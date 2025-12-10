@@ -600,7 +600,7 @@ public class Currency implements Economy {
         if (plugin.settings().debugUpdateCache) {
             plugin.getLogger().severe("Failed to update account " + playerName + " after " + tries + " tries");
             RedisEconomyPlugin.debugCache("ERROR! Failed to update account " + playerName + " after " + tries + " tries");
-            currenciesManager.getRedisManager().printPool();
+            economyStorage.printPool();
             if (e != null)
                 e.printStackTrace();
         }
