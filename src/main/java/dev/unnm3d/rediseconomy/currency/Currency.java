@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.currency;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
+import dev.unnm3d.rediseconomy.storage.FileStorageService;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
@@ -30,6 +31,8 @@ public class Currency implements Economy {
     protected final String currencyName;
     private final ConcurrentHashMap<UUID, Double> accounts;
     private final ConcurrentHashMap<UUID, Double> maxPlayerBalances;
+    private final FileStorageService fileStorageService;
+    private final boolean fileStorage;
 
     private boolean enabled;
     @Getter
@@ -60,8 +63,10 @@ public class Currency implements Economy {
      * @param currenciesManager The CurrenciesManager instance
      * @param currencySettings  The currency settings
      */
-    public Currency(CurrenciesManager currenciesManager, CurrencySettings currencySettings) {
+    public Currency(CurrenciesManager currenciesManager, CurrencySettings currencySettings, FileStorageService fileStorageService) {
         this.currenciesManager = currenciesManager;
+        this.fileStorageService = fileStorageService;
+        this.fileStorage = currenciesManager.isFileStorage();
         this.enabled = true;
         this.updateExecutors = generateExecutors(currencySettings.getExecutorThreads());
         this.currencyName = currencySettings.getCurrencyName();
@@ -80,22 +85,30 @@ public class Currency implements Economy {
                 new DecimalFormatSymbols(Locale.forLanguageTag(currencySettings.getLanguageTag() != null ? currencySettings.getLanguageTag() : "en-US"))
         );
 
-        getOrderedAccounts(-1).thenApply(result -> {
-            result.forEach(t ->
-                    accounts.put(UUID.fromString(t.getValue()), t.getScore()));
+        if (fileStorage && fileStorageService != null) {
+            accounts.putAll(fileStorageService.loadCurrencyAccounts(currencyName));
+            maxPlayerBalances.putAll(fileStorageService.loadCurrencyMaxBalances(currencyName));
             if (!accounts.isEmpty()) {
-                RedisEconomyPlugin.debug("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
+                RedisEconomyPlugin.debug("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName + " from file");
             }
-            return result;
-        }).toCompletableFuture().join(); //Wait to avoid API calls before accounts are loaded
+        } else {
+            getOrderedAccounts(-1).thenApply(result -> {
+                result.forEach(t ->
+                        accounts.put(UUID.fromString(t.getValue()), t.getScore()));
+                if (!accounts.isEmpty()) {
+                    RedisEconomyPlugin.debug("start1 Loaded " + accounts.size() + " accounts for currency " + currencyName);
+                }
+                return result;
+            }).toCompletableFuture().join(); //Wait to avoid API calls before accounts are loaded
 
-        getPlayerMaxBalances().thenApply(result -> {
-            maxPlayerBalances.putAll(result);
-            if (!maxPlayerBalances.isEmpty()) {
-                RedisEconomyPlugin.debug("start1 Loaded " + maxPlayerBalances.size() + " max balances for currency " + currencyName);
-            }
-            return result;
-        }); //Not as critical as accounts, so we don't wait
+            getPlayerMaxBalances().thenApply(result -> {
+                maxPlayerBalances.putAll(result);
+                if (!maxPlayerBalances.isEmpty()) {
+                    RedisEconomyPlugin.debug("start1 Loaded " + maxPlayerBalances.size() + " max balances for currency " + currencyName);
+                }
+                return result;
+            }); //Not as critical as accounts, so we don't wait
+        }
 
 
     }
@@ -554,14 +567,22 @@ public class Currency implements Economy {
         if (playerName != null)
             currenciesManager.updateNameUniqueId(playerName, uuid);
         accounts.put(uuid, balance);
+        if (fileStorage) {
+            currenciesManager.markDirty();
+        }
     }
 
     protected void updateAccount(@NotNull UUID uuid, @Nullable String playerName, double balance) {
+        if (fileStorage) {
+            updateAccountLocal(uuid, playerName, balance);
+            return;
+        }
         updateAccountCloudCache(uuid, playerName, balance, 0);
         updateAccountLocal(uuid, playerName, balance);
     }
 
     private synchronized void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
+        if (fileStorage) return;
         CompletableFuture.supplyAsync(() -> {
             RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
 
@@ -628,6 +649,13 @@ public class Currency implements Economy {
      */
     @SuppressWarnings("unchecked")
     public void updateBulkAccountsCloudCache(@NotNull List<ScoredValue<String>> balances, @NotNull Map<String, String> nameUUIDs) {
+        if (fileStorage) {
+            accounts.clear();
+            balances.forEach(balance -> accounts.put(UUID.fromString(balance.getValue()), balance.getScore()));
+            nameUUIDs.forEach((name, uuid) -> currenciesManager.updateNameUniqueId(name, UUID.fromString(uuid)));
+            currenciesManager.markDirty();
+            return;
+        }
         currenciesManager.getRedisManager().executeTransaction(commands -> {
             ScoredValue<String>[] balancesArray = new ScoredValue[balances.size()];
             balances.toArray(balancesArray);
@@ -650,6 +678,15 @@ public class Currency implements Economy {
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
     public CompletionStage<List<ScoredValue<String>>> getOrderedAccounts(int limit) {
+        if (fileStorage) {
+            int toTake = limit < 0 ? accounts.size() : limit + 1;
+            List<ScoredValue<String>> ordered = accounts.entrySet().stream()
+                    .sorted(Map.Entry.<UUID, Double>comparingByValue().reversed())
+                    .limit(toTake)
+                    .map(entry -> ScoredValue.just(entry.getValue(), entry.getKey().toString()))
+                    .toList();
+            return CompletableFuture.completedFuture(ordered);
+        }
         return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
                 accounts.zrevrangeWithScores(RedisKeys.BALANCE_PREFIX + currencyName, 0, limit));
 
@@ -663,15 +700,21 @@ public class Currency implements Economy {
         if (maxAmount < getBalance(uuid)) {
             setPlayerBalance(uuid, null, maxAmount);
         }
-        setPlayerMaxBalanceCloud(uuid, maxAmount);
+        if (!fileStorage) {
+            setPlayerMaxBalanceCloud(uuid, maxAmount);
+        }
         setPlayerMaxBalanceLocal(uuid, maxAmount);
     }
 
     private void setPlayerMaxBalanceLocal(UUID uuid, double amount) {
         maxPlayerBalances.put(uuid, amount);
+        if (fileStorage) {
+            currenciesManager.markDirty();
+        }
     }
 
     private void setPlayerMaxBalanceCloud(UUID uuid, double amount) {
+        if (fileStorage) return;
         currenciesManager.getRedisManager().getConnectionPipeline(asyncCommands -> {
             if (amount == maxBalance) {
                 asyncCommands.hdel(RedisKeys.MAX_PLAYER_BALANCES + currencyName, uuid.toString());
@@ -683,6 +726,9 @@ public class Currency implements Economy {
     }
 
     public CompletionStage<Map<UUID, Double>> getPlayerMaxBalances() {
+        if (fileStorage) {
+            return CompletableFuture.completedFuture(new HashMap<>(maxPlayerBalances));
+        }
         return currenciesManager.getRedisManager().getConnectionAsync(accounts ->
                         accounts.hgetall(RedisKeys.MAX_PLAYER_BALANCES + currencyName))
                 .thenApply(result -> {
@@ -699,6 +745,9 @@ public class Currency implements Economy {
      * @return The balance associated with the UUID on Redis
      */
     public CompletionStage<Double> getAccountRedis(UUID uuid) {
+        if (fileStorage) {
+            return CompletableFuture.completedFuture(accounts.getOrDefault(uuid, 0.0D));
+        }
         return currenciesManager.getRedisManager().getConnectionAsync(connection -> connection.zscore(RedisKeys.BALANCE_PREFIX + currencyName, uuid.toString()));
     }
 
@@ -710,6 +759,14 @@ public class Currency implements Economy {
     @SuppressWarnings("unused")
     public final Map<UUID, Double> getAccounts() {
         return Collections.unmodifiableMap(accounts);
+    }
+
+    public Map<UUID, Double> getMaxPlayerBalances() {
+        return Collections.unmodifiableMap(maxPlayerBalances);
+    }
+
+    protected boolean isFileStorage() {
+        return fileStorage;
     }
 
     /**

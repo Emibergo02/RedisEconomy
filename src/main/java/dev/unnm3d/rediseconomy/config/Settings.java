@@ -16,6 +16,10 @@ public class Settings {
     public boolean debug = false;
     @Comment("A specific debug for cache update")
     public boolean debugUpdateCache = false;
+    @Comment({"Data storage type. Use REDIS for clustered environments or FILE for standalone servers"})
+    public StorageType storageType = StorageType.REDIS;
+    @Comment("How often (in seconds) file storage should be flushed to disk. Only used with FILE storage type")
+    public int fileSaveSeconds = 300;
     @Comment({"If 0 registerCalls is disabled, if 1 it will log only the calling class",
             "if 2 it will log the calling class and method, if 3 it will log the calling class, method and line number"})
     public int registerCallsVerbosity = 0;
@@ -71,5 +75,9 @@ public class Settings {
         public int getTryAgainCount() {
             return tryAgainCount == 0 ? 3 : tryAgainCount;
         }
+    }
+
+    public enum StorageType {
+        REDIS, FILE
     }
 }

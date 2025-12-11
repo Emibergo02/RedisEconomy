@@ -4,6 +4,7 @@ import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.api.TransactionEvent;
 import dev.unnm3d.rediseconomy.currency.Currency;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
+import dev.unnm3d.rediseconomy.storage.FileStorageService;
 import io.lettuce.core.ScriptOutputType;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +24,8 @@ public class EconomyExchange {
     private final ExecutorService executorService;
     private long updateTIDTimestamp = System.currentTimeMillis();
     private int lastTID = 0;
+    @Nullable
+    private FileStorageService fileStorageServiceCached;
 
     /**
      * Constructor for EconomyExchange
@@ -35,6 +38,13 @@ public class EconomyExchange {
                 Thread.ofVirtual().factory());
     }
 
+    private @Nullable FileStorageService fileStorageService() {
+        if (fileStorageServiceCached == null) {
+            fileStorageServiceCached = plugin.getFileStorageService();
+        }
+        return fileStorageServiceCached;
+    }
+
     /**
      * Get transactions from an account id
      *
@@ -43,6 +53,13 @@ public class EconomyExchange {
      * @return Map of transaction ids and transactions
      */
     public CompletionStage<TreeMap<Long, Transaction>> getTransactions(AccountID accountId, int limit) {
+        if (plugin.isFileStorage()) {
+            return CompletableFuture.supplyAsync(() -> {
+                FileStorageService service = fileStorageService();
+                if (service == null) return new TreeMap<>();
+                return service.getTransactions(accountId, limit);
+            }, executorService);
+        }
         return CompletableFuture.supplyAsync(() ->
                         plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                                 connection.hgetall(RedisKeys.TRANSACTIONS + accountId.toString())
@@ -70,6 +87,10 @@ public class EconomyExchange {
     }
 
     public int getCurrentTransactionID() {
+        if (plugin.isFileStorage()) {
+            FileStorageService service = fileStorageService();
+            return service == null ? 0 : (int) service.getTransactionCounter();
+        }
         if (System.currentTimeMillis() - this.updateTIDTimestamp > 10000 || this.lastTID == 0) {
             plugin.getCurrenciesManager().getRedisManager()
                     .getConnectionAsync(connection ->
@@ -86,6 +107,11 @@ public class EconomyExchange {
      * @return How many transaction accounts were removed
      */
     public CompletionStage<Long> removeAllTransactions() {
+        if (plugin.isFileStorage()) {
+            FileStorageService service = fileStorageService();
+            if (service == null) return CompletableFuture.completedFuture(0L);
+            return CompletableFuture.completedFuture(service.clearTransactions());
+        }
         return plugin.getCurrenciesManager().getRedisManager().getConnectionAsync(connection -> {
                     try {
                         List<String> keys = connection.keys(RedisKeys.TRANSACTIONS + "*").get();
@@ -108,6 +134,13 @@ public class EconomyExchange {
      * @return Transaction
      */
     public CompletionStage<Transaction> getTransaction(@NotNull AccountID accountId, long id) {
+        if (plugin.isFileStorage()) {
+            return CompletableFuture.supplyAsync(() -> {
+                FileStorageService service = fileStorageService();
+                if (service == null) return null;
+                return service.getTransaction(accountId, id);
+            }, executorService);
+        }
         return CompletableFuture.supplyAsync(() -> {
             return Transaction.fromString(plugin.getCurrenciesManager().getRedisManager().getConnectionSync(connection ->
                     connection.hget(RedisKeys.TRANSACTIONS + accountId.toString(), String.valueOf(id))));
@@ -129,6 +162,33 @@ public class EconomyExchange {
      */
     public CompletionStage<List<Long>> savePaymentTransaction(@NotNull UUID sender, @NotNull UUID target, double amount, @NotNull Currency currency, @NotNull String reason) {
         if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage(List.of((long) -1, (long) -1));
+
+        if (plugin.isFileStorage()) {
+            FileStorageService service = fileStorageService();
+            if (service == null) return CompletableFuture.completedFuture(List.of((long) -1, (long) -1));
+            final String stackTrace = getCallerPluginString();
+            TransactionEvent transactionSenderEvent = new TransactionEvent(new Transaction(
+                    new AccountID(sender),
+                    new AccountID(target), currency.getCurrencyName(), System.currentTimeMillis(),
+                    -amount,
+                    null, reason + stackTrace
+            ));
+            TransactionEvent transactionReceiverEvent = new TransactionEvent(new Transaction(
+                    new AccountID(target),
+                    new AccountID(sender), currency.getCurrencyName(), System.currentTimeMillis(),
+                    amount,
+                    null, reason + stackTrace
+            ));
+            plugin.getScheduler().runTask(() -> {
+                plugin.getServer().getPluginManager().callEvent(transactionSenderEvent);
+                plugin.getServer().getPluginManager().callEvent(transactionReceiverEvent);
+            });
+            long first = service.nextTransactionId();
+            long second = service.nextTransactionId();
+            service.saveTransaction(new AccountID(sender), first, transactionSenderEvent.getTransaction());
+            service.saveTransaction(new AccountID(target), second, transactionReceiverEvent.getTransaction());
+            return CompletableFuture.completedFuture(List.of(first, second));
+        }
 
         long init = System.currentTimeMillis();
         final String stackTrace = getCallerPluginString();
@@ -189,6 +249,19 @@ public class EconomyExchange {
      */
     public CompletionStage<Long> saveTransaction(@NotNull AccountID accountOwner, @NotNull AccountID target, double amount, @NotNull Currency currency, @NotNull String reason) {
         if (!currency.shouldSaveTransactions()) return CompletableFuture.completedStage((long) -1);
+        if (plugin.isFileStorage()) {
+            FileStorageService service = fileStorageService();
+            if (service == null) return CompletableFuture.completedFuture(-1L);
+            final String stackTrace = getCallerPluginString();
+            TransactionEvent transactionEvent = new TransactionEvent(new Transaction(
+                    accountOwner,
+                    target, currency.getCurrencyName(), System.currentTimeMillis(),
+                    amount, null, reason + stackTrace));
+            plugin.getScheduler().runTask(() -> plugin.getServer().getPluginManager().callEvent(transactionEvent));
+            long id = service.nextTransactionId();
+            service.saveTransaction(accountOwner, id, transactionEvent.getTransaction());
+            return CompletableFuture.completedFuture(id);
+        }
         long init = System.currentTimeMillis();
 
         final String stackTrace = getCallerPluginString();

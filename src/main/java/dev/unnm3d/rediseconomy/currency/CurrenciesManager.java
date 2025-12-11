@@ -7,6 +7,7 @@ import dev.unnm3d.rediseconomy.config.CurrencySettings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
 import dev.unnm3d.rediseconomy.transaction.EconomyExchange;
+import dev.unnm3d.rediseconomy.storage.FileStorageService;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.Getter;
@@ -35,25 +36,37 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     private final CompletableFuture<Void> completeMigration;
     private final ConfigManager configManager;
     @Getter
+    @Nullable
     private final RedisManager redisManager;
+    private final FileStorageService fileStorageService;
+    private final boolean fileStorage;
     private final EconomyExchange exchange;
     private final HashMap<String, Currency> currencies;
     @Getter
     private final ConcurrentHashMap<String, UUID> nameUniqueIds;
     private final ConcurrentHashMap<UUID, List<UUID>> lockedAccounts;
+    private volatile boolean dirty;
 
 
-    public CurrenciesManager(RedisManager redisManager, RedisEconomyPlugin plugin, ConfigManager configManager) {
+    public CurrenciesManager(@Nullable RedisManager redisManager, @Nullable FileStorageService fileStorageService, RedisEconomyPlugin plugin, ConfigManager configManager) {
         INSTANCE = this;
         this.completeMigration = new CompletableFuture<>();
         this.redisManager = redisManager;
+        this.fileStorageService = fileStorageService;
+        this.fileStorage = plugin.isFileStorage();
         this.exchange = new EconomyExchange(plugin);
         this.plugin = plugin;
         this.configManager = configManager;
         this.currencies = new HashMap<>();
         try {
-            this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
-            this.lockedAccounts = loadLockedAccounts().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
+            if (fileStorage && fileStorageService != null) {
+                this.nameUniqueIds = new ConcurrentHashMap<>(fileStorageService.loadNameUniqueIds());
+                this.lockedAccounts = new ConcurrentHashMap<>(fileStorageService.loadLockedAccounts());
+                this.dirty = true;
+            } else {
+                this.nameUniqueIds = loadRedisNameUniqueIds().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
+                this.lockedAccounts = loadLockedAccounts().toCompletableFuture().get(plugin.getConfigManager().getSettings().redis.timeout(), TimeUnit.MILLISECONDS);
+            }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -69,9 +82,31 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
         }
         loadDefaultCurrency(plugin.getVaultPlugin());
 
-        registerPayMsgChannel();
-        registerBlockAccountChannel();
-        registerUpdateChannelPattern();
+        if (!fileStorage) {
+            registerPayMsgChannel();
+            registerBlockAccountChannel();
+            registerUpdateChannelPattern();
+        }
+    }
+
+    public boolean isFileStorage() {
+        return fileStorage;
+    }
+
+    public void markDirty() {
+        if (fileStorage) {
+            dirty = true;
+        }
+    }
+
+    public boolean consumeDirtyFlag() {
+        boolean current = dirty;
+        dirty = false;
+        return current;
+    }
+
+    public ConcurrentHashMap<UUID, List<UUID>> getLockedAccountsMap() {
+        return lockedAccounts;
     }
 
     public void loadCurrencySystem(boolean isReload) {
@@ -82,9 +117,9 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
             Currency currency;
             if (currencySettings.isBankEnabled()) {
-                currency = new CurrencyWithBanks(this, currencySettings);
+                currency = new CurrencyWithBanks(this, currencySettings, fileStorage ? fileStorageService : null);
             } else {
-                currency = new Currency(this, currencySettings);
+                currency = new Currency(this, currencySettings, fileStorage ? fileStorageService : null);
             }
 
             //Replace existing currency with updated settings and terminate the old executors
@@ -114,7 +149,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                             0.0, Double.POSITIVE_INFINITY,
                             0.0, true,
                             -1, true,
-                            false, 2)));
+                            false, 2), fileStorage ? fileStorageService : null));
+        }
+        if (fileStorage) {
+            markDirty();
         }
     }
 
@@ -159,6 +197,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
 
     void updateNameUniqueId(String name, UUID uuid) {
         nameUniqueIds.put(name, uuid);
+        markDirty();
     }
 
     /**
@@ -183,6 +222,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                     removed.forEach((name, uuid) -> currency.setPlayerBalance(uuid, name, 0.0));
                 }
             }
+            markDirty();
         }
         return removed;
     }
@@ -300,6 +340,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     private void removeRedisNameUniqueIds(Map<String, UUID> toRemove) {
+        if (fileStorage) {
+            markDirty();
+            return;
+        }
         String[] toRemoveArray = toRemove.keySet().toArray(new String[0]);
         for (int i = 0; i < toRemoveArray.length; i++) {
             if (toRemoveArray[i] == null) {
@@ -344,6 +388,10 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
      * @param newCurrency The new currency to switch to
      */
     public void switchCurrency(Currency currency, Currency newCurrency) {
+        if (fileStorage) {
+            plugin.getLogger().warning("Switch currency is not supported in file storage mode.");
+            return;
+        }
         redisManager.getConnectionPipeline(asyncCommands -> {
             asyncCommands.copy(RedisKeys.BALANCE_PREFIX + currency.getCurrencyName(),
                             RedisKeys.BALANCE_PREFIX + currency.getCurrencyName() + "_backup")
@@ -376,6 +424,13 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
             locked.remove(target);
         } else {
             locked.add(target);
+        }
+
+        if (fileStorage) {
+            lockedAccounts.put(uuid, locked);
+            markDirty();
+            future.complete(!isLocked);
+            return future;
         }
 
         //The string to be stored into Redis
