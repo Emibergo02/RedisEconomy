@@ -120,16 +120,27 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                         .replace("%tax_percentage%", (currency.getTransactionTax() * 100) + "%")
                         .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
         );
+        String reason = "Payment";
+        if (args.length >= 4) {
+            reason = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
+        }
+        if (plugin.isFileStorage()) {
+            Player targetPlayer = plugin.getServer().getPlayerExact(target);
+            if (targetPlayer != null && targetPlayer.isOnline()) {
+                plugin.langs().send(targetPlayer, plugin.langs().payReceived
+                        .replace("%player%", sender.getName())
+                        .replace("%amount%", currency.format(amount)));
+            }
+            currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), targetUUID, amount, currency, reason);
+            RedisEconomyPlugin.debug("02 Pay msg sent locally in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
+            return;
+        }
         //Send msg to target
         currenciesManager.getRedisManager().getConnectionAsync(commands -> {
             commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + target + ";;" + currency.format(amount));
 
             RedisEconomyPlugin.debug("02 Pay msg sent in " + (System.currentTimeMillis() - init) + "ms. current timestamp" + System.currentTimeMillis());
             //Register transaction
-            String reason = "Payment";
-            if (args.length >= 4) {
-                reason = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
-            }
             return currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), targetUUID, amount, currency, reason);
         });
     }
@@ -170,11 +181,21 @@ public class PayCommand implements CommandExecutor, TabCompleter {
                             .replace("%tax_applied%", currency.format(currency.getTransactionTax() * amount))
             );
             //Send msg to target
-            currenciesManager.getRedisManager().getConnectionAsync(commands -> {
-                commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + onlinePlayer.getName() + ";;" + currency.format(amount));
-                //Register transaction
-                return currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), onlinePlayer.getUniqueId(), amount, currency, "Payment to all online players");
-            });
+            if (plugin.isFileStorage()) {
+                Player targetPlayer = plugin.getServer().getPlayerExact(onlinePlayer.getName());
+                if (targetPlayer != null && targetPlayer.isOnline()) {
+                    plugin.langs().send(targetPlayer, plugin.langs().payReceived
+                            .replace("%player%", sender.getName())
+                            .replace("%amount%", currency.format(amount)));
+                }
+                currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), onlinePlayer.getUniqueId(), amount, currency, "Payment to all online players");
+            } else {
+                currenciesManager.getRedisManager().getConnectionAsync(commands -> {
+                    commands.publish(MSG_CHANNEL.toString(), sender.getName() + ";;" + onlinePlayer.getName() + ";;" + currency.format(amount));
+                    //Register transaction
+                    return currenciesManager.getExchange().savePaymentTransaction(sender.getUniqueId(), onlinePlayer.getUniqueId(), amount, currency, "Payment to all online players");
+                });
+            }
         }
     }
 

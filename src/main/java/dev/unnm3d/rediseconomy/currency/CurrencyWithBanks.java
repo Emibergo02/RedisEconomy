@@ -3,6 +3,7 @@ package dev.unnm3d.rediseconomy.currency;
 import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
 import dev.unnm3d.rediseconomy.config.CurrencySettings;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
+import dev.unnm3d.rediseconomy.storage.FileStorageService;
 import dev.unnm3d.rediseconomy.transaction.AccountID;
 import dev.unnm3d.rediseconomy.transaction.Transaction;
 import io.lettuce.core.RedisCommandTimeoutException;
@@ -29,26 +30,31 @@ public class CurrencyWithBanks extends Currency {
      */
     private final ConcurrentHashMap<String, UUID> bankOwners;
 
-    public CurrencyWithBanks(CurrenciesManager currenciesManager, CurrencySettings currencySettings) {
-        super(currenciesManager, currencySettings);
+    public CurrencyWithBanks(CurrenciesManager currenciesManager, CurrencySettings currencySettings, FileStorageService fileStorageService) {
+        super(currenciesManager, currencySettings, fileStorageService);
         bankAccounts = new ConcurrentHashMap<>();
         bankOwners = new ConcurrentHashMap<>();
-        getOrderedBankAccounts().thenApply(list -> {
-            for (ScoredValue<String> scoredValue : list) {
-                bankAccounts.put(scoredValue.getValue(), scoredValue.getScore());
-            }
-            if (!bankAccounts.isEmpty()) {
-                RedisEconomyPlugin.debug("start1bank Loaded " + bankAccounts.size() + " accounts for currency " + currencyName);
-            }
-            return list;
-        }).toCompletableFuture().join();
-        getRedisBankOwners().thenApply(map -> {
-            map.forEach((k, v) -> bankOwners.put(k, UUID.fromString(v)));
-            if (!bankOwners.isEmpty()) {
-                RedisEconomyPlugin.debug("start1bankb Loaded " + bankOwners.size() + " accounts owners for currency " + currencyName);
-            }
-            return map;
-        }).toCompletableFuture().join();
+        if (isFileStorage() && fileStorageService != null) {
+            bankAccounts.putAll(fileStorageService.loadBankAccounts(currencyName));
+            bankOwners.putAll(fileStorageService.loadBankOwners(currencyName));
+        } else {
+            getOrderedBankAccounts().thenApply(list -> {
+                for (ScoredValue<String> scoredValue : list) {
+                    bankAccounts.put(scoredValue.getValue(), scoredValue.getScore());
+                }
+                if (!bankAccounts.isEmpty()) {
+                    RedisEconomyPlugin.debug("start1bank Loaded " + bankAccounts.size() + " accounts for currency " + currencyName);
+                }
+                return list;
+            }).toCompletableFuture().join();
+            getRedisBankOwners().thenApply(map -> {
+                map.forEach((k, v) -> bankOwners.put(k, UUID.fromString(v)));
+                if (!bankOwners.isEmpty()) {
+                    RedisEconomyPlugin.debug("start1bankb Loaded " + bankOwners.size() + " accounts owners for currency " + currencyName);
+                }
+                return map;
+            }).toCompletableFuture().join();
+        }
 
     }
 
@@ -109,6 +115,13 @@ public class CurrencyWithBanks extends Currency {
 
     @Override
     public EconomyResponse deleteBank(@NotNull String accountId) {
+        if (isFileStorage()) {
+            bankAccounts.remove(accountId);
+            bankOwners.remove(accountId);
+            currenciesManager.markDirty();
+            currenciesManager.getExchange().saveTransaction(new AccountID(accountId), new AccountID(), 0, this, "Bank account deletion");
+            return new EconomyResponse(0, 0, EconomyResponse.ResponseType.SUCCESS, null);
+        }
         currenciesManager.getRedisManager().getConnectionPipeline(redisAsyncCommands -> {
             redisAsyncCommands.zrem(BALANCE_BANK_PREFIX + currencyName, accountId);
             return redisAsyncCommands.hdel(BANK_OWNERS.toString(), accountId);
@@ -256,6 +269,11 @@ public class CurrencyWithBanks extends Currency {
     }
 
     private void setOwner(@NotNull String accountId, UUID ownerUUID) {
+        if (isFileStorage()) {
+            bankOwners.put(accountId, ownerUUID);
+            currenciesManager.markDirty();
+            return;
+        }
         currenciesManager.getRedisManager().getConnectionPipeline(connection -> {
             connection.hset(BANK_OWNERS.toString(), accountId, ownerUUID.toString());
             return connection.publish(UPDATE_BANK_OWNER_CHANNEL_PREFIX + currencyName, RedisEconomyPlugin.getInstanceUUID().toString() + ";;" + accountId + ";;" + ownerUUID);
@@ -268,14 +286,22 @@ public class CurrencyWithBanks extends Currency {
 
     void updateBankAccountLocal(String accountId, double balance) {
         bankAccounts.put(accountId, balance);
+        if (isFileStorage()) {
+            currenciesManager.markDirty();
+        }
     }
 
     private void updateBankAccount(@NotNull String accountId, double balance) {
+        if (isFileStorage()) {
+            updateBankAccountLocal(accountId, balance);
+            return;
+        }
         updateBankAccountCloudCache(accountId, balance, 0);
         updateBankAccountLocal(accountId, balance);
     }
 
     private synchronized void updateBankAccountCloudCache(@NotNull String accountId, double balance, int tries) {
+        if (isFileStorage()) return;
         CompletableFuture.supplyAsync(() -> {
             RedisEconomyPlugin.debugCache("01a Starting update bank account " + accountId + " to " + balance + " currency " + currencyName);
 
@@ -323,6 +349,13 @@ public class CurrencyWithBanks extends Currency {
      * @return A list of accounts ordered by balance in Tuples of UUID and balance (UUID is stringified)
      */
     public CompletionStage<List<ScoredValue<String>>> getOrderedBankAccounts() {
+        if (isFileStorage()) {
+            List<ScoredValue<String>> ordered = bankAccounts.entrySet().stream()
+                    .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                    .map(entry -> ScoredValue.just(entry.getValue(), entry.getKey()))
+                    .toList();
+            return CompletableFuture.completedFuture(ordered);
+        }
         return currenciesManager.getRedisManager().getConnectionAsync(connection ->
                 connection.zrevrangeWithScores(BALANCE_PREFIX + currencyName, 0, -1));
     }
@@ -333,8 +366,21 @@ public class CurrencyWithBanks extends Currency {
      * @return A map of bank owners
      */
     public CompletionStage<Map<String, String>> getRedisBankOwners() {
+        if (isFileStorage()) {
+            Map<String, String> owners = bankOwners.entrySet().stream()
+                    .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString()));
+            return CompletableFuture.completedFuture(owners);
+        }
         return currenciesManager.getRedisManager().getConnectionAsync(connection ->
                 connection.hgetall(BANK_OWNERS.toString()));
+    }
+
+    public Map<String, Double> getBankAccounts() {
+        return java.util.Collections.unmodifiableMap(bankAccounts);
+    }
+
+    public Map<String, UUID> getBankOwners() {
+        return java.util.Collections.unmodifiableMap(bankOwners);
     }
 
 

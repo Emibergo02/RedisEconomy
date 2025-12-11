@@ -13,10 +13,12 @@ import dev.unnm3d.rediseconomy.command.transaction.TransactionCommand;
 import dev.unnm3d.rediseconomy.config.ConfigManager;
 import dev.unnm3d.rediseconomy.config.Langs;
 import dev.unnm3d.rediseconomy.config.Settings;
+import dev.unnm3d.rediseconomy.config.Settings.StorageType;
 import dev.unnm3d.rediseconomy.currency.CurrenciesManager;
 import dev.unnm3d.rediseconomy.migrators.*;
 import dev.unnm3d.rediseconomy.redis.RedisKeys;
 import dev.unnm3d.rediseconomy.redis.RedisManager;
+import dev.unnm3d.rediseconomy.storage.FileStorageService;
 import dev.unnm3d.rediseconomy.utils.AdventureWebuiEditorAPI;
 import dev.unnm3d.rediseconomy.utils.Metrics;
 import dev.unnm3d.rediseconomy.utils.PlaceholderAPIHook;
@@ -53,6 +55,8 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     @Getter
     private CurrenciesManager currenciesManager;
     private RedisManager redisManager;
+    @Getter
+    private FileStorageService fileStorageService;
     @Nullable
     @Getter
     private PlayerListManager playerListManager;
@@ -80,7 +84,11 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
         this.configManager = new ConfigManager(this);
 
-        if (!setupRedis()) {
+        if (settings().storageType == StorageType.FILE) {
+            getDataFolder().mkdirs();
+            this.fileStorageService = new FileStorageService(this);
+            getLogger().info("File storage mode enabled. Redis features are disabled.");
+        } else if (!setupRedis()) {
             this.getLogger().severe("Disabling: redis server unreachable!");
             this.getLogger().severe("Please setup a redis server before running this plugin!");
             this.getServer().getPluginManager().disablePlugin(this);
@@ -91,7 +99,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        if (redisManager == null) return;
+        if (settings().storageType == StorageType.REDIS && redisManager == null) return;
         loadDebugFile();
 
         this.scheduler = UniversalScheduler.getScheduler(this);
@@ -104,7 +112,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
         loadPlayerList();
 
-        this.currenciesManager = new CurrenciesManager(redisManager, this, configManager);
+        this.currenciesManager = new CurrenciesManager(redisManager, fileStorageService, this, configManager);
         this.getLogger().info("Hooked into Vault!");
 
         if (settings().migrationEnabled) {
@@ -161,6 +169,14 @@ public final class RedisEconomyPlugin extends JavaPlugin {
         }
 
         new Metrics(this, 16802);
+
+        if (settings().storageType == StorageType.FILE && fileStorageService != null) {
+            int intervalSeconds = Math.max(1, settings().fileSaveSeconds);
+            getServer().getScheduler().runTaskTimerAsynchronously(this,
+                    () -> fileStorageService.saveSnapshot(currenciesManager),
+                    intervalSeconds * 20L, intervalSeconds * 20L);
+            fileStorageService.saveSnapshot(currenciesManager);
+        }
     }
 
     @Override
@@ -173,6 +189,9 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             this.getServer().getServicesManager().unregister(Economy.class, currenciesManager.getDefaultCurrency());
             currenciesManager.terminate();
         }
+        if (settings().storageType == StorageType.FILE && fileStorageService != null && currenciesManager != null) {
+            fileStorageService.saveSnapshot(currenciesManager);
+        }
         getLogger().info("RedisEconomy disabled successfully!");
     }
 
@@ -180,7 +199,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
      * Load the player list manager if the tabOnlinePlayers setting is enabled
      */
     public void loadPlayerList() {
-        if (configManager.getSettings().tabOnlinePlayers) {
+        if (configManager.getSettings().tabOnlinePlayers && settings().storageType == StorageType.REDIS) {
             this.playerListManager = new PlayerListManager(this.redisManager, this);
         } else if (playerListManager != null) {
             playerListManager.stop();
@@ -218,6 +237,10 @@ public final class RedisEconomyPlugin extends JavaPlugin {
             } else e.printStackTrace();
             return false;
         }
+    }
+
+    public boolean isFileStorage() {
+        return settings().storageType == StorageType.FILE;
     }
 
     private void loadCommand(String cmdName, CommandExecutor executor, TabCompleter tabCompleter) {

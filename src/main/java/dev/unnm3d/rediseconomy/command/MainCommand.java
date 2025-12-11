@@ -35,6 +35,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             if (args[0].equalsIgnoreCase("test")) {
+                if (plugin.isFileStorage()) {
+                    plugin.getConfigManager().getLangs().send(sender, "§cTest command is unavailable with file storage.");
+                    return true;
+                }
                 if (sender.hasPermission("rediseconomy.admin.test")) {
                     long init = System.currentTimeMillis();
                     sender.sendMessage("§6Processing 10000 transactions...");
@@ -78,6 +82,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         if (args[0].equalsIgnoreCase("expandpool")) {
             if (sender.hasPermission("rediseconomy.admin.expandpool")) {
+                if (plugin.isFileStorage()) {
+                    plugin.getConfigManager().getLangs().send(sender, "§cPool expansion is not available with file storage.");
+                    return true;
+                }
                 expandPool(sender, args[1]);
             } else {
                 plugin.getConfigManager().getLangs().send(sender, plugin.getConfigManager().getLangs().noPermission);
@@ -113,6 +121,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     private void expandPool(CommandSender sender, String arg) {
         try {
+            if (plugin.getCurrenciesManager().getRedisManager() == null) {
+                plugin.getConfigManager().getLangs().send(sender, "§cRedis storage is not enabled.");
+                return;
+            }
             plugin.getCurrenciesManager().getRedisManager().expandPool(Integer.parseInt(arg));
             plugin.getConfigManager().getLangs().send(sender, "§aPool expanded successfully!");
         } catch (Exception e) {
