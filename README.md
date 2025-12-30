@@ -38,7 +38,7 @@ dependencies {
 }
 ```
 ## API usage
-YOU PROBABLY DON'T NEED TO USE REDISECONOMY API: USE VAULT API https://github.com/MilkBowl/VaultAPI
+Use the Vault API only for the Vault-linked main currency, and for other currencies use RedisEconomy’s API directly
 ```java
 // Access Point
 RedisEconomyAPI api = RedisEconomyAPI.getAPI();
