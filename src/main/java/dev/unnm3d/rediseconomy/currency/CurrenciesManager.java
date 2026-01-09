@@ -100,11 +100,12 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
                     }));
         }
         //Remove currencies that are not in the config anymore
-        currencies.forEach((name, currency) -> {
-            if (configManager.getSettings().currencies.stream().noneMatch(cs -> cs.getCurrencyName().equals(name))) {
-                currencies.remove(name);
-                currency.terminateExecutors();
+        currencies.entrySet().removeIf(entry->{
+            if (configManager.getSettings().currencies.stream().noneMatch(cs -> cs.getCurrencyName().equals(entry.getKey()))) {
+                entry.getValue().terminateExecutors();
+                return true;
             }
+            return false;
         });
         if (currencies.get(configManager.getSettings().defaultCurrencyName) == null) {
             currencies.put(configManager.getSettings().defaultCurrencyName, new Currency(this,
