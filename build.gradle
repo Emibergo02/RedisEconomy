@@ -27,7 +27,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.34'
     compileOnly 'net.kyori:adventure-text-minimessage:4.25.0'
     implementation 'net.kyori:adventure-platform-bukkit:4.4.1'
-    implementation 'io.lettuce:lettuce-core:6.8.1.RELEASE'
+    implementation 'io.lettuce:lettuce-core:6.8.2.RELEASE'
     implementation 'de.exlll:configlib-yaml:4.6.1'
     implementation 'com.github.Anon8281:UniversalScheduler:0.1.6'
 
@@ -65,10 +65,10 @@ shadowJar {
     relocate 'reactor', 'dev.unnm3d.shaded.lettucedep.reactor'
     relocate 'io.lettuce', 'dev.unnm3d.shaded.lettuce'
     relocate 'io.netty', 'dev.unnm3d.shaded.lettucedep.netty'
-    relocate 'org.slf4j', 'dev.unnm3d.shaded.lettucedep.slf4j'
     relocate 'org.reactivestreams', 'dev.unnm3d.shaded.lettucedep.reactivestreams'
     relocate 'com.github.Anon8281.universalScheduler', 'dev.unnm3d.shaded.universalScheduler'
     minimize()
+    exclude 'org/slf4j/**'
 }
 
 def targetJavaVersion = 21

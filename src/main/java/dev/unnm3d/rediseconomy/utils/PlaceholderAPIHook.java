@@ -105,25 +105,25 @@ public class PlaceholderAPIHook extends PlaceholderExpansion implements Relation
     public String onRequest(OfflinePlayer player, String params) {
         List<String> splitted = List.of(params.split("_"));
         if (splitted.size() < 2) return null;
-        Currency currency = currenciesManager.getCurrencyByName(splitted.get(splitted.size() - 1));
+        Currency currency = currenciesManager.getCurrencyByName(splitted.getLast());
         if (currency == null) return "Invalid currency";
 
-        if (splitted.get(0).equals("bal")) {
+        if (splitted.getFirst().equals("bal")) {
             double balance = currency.getBalance(player);
             return parseParams(balance, splitted, currency);
 
         }
 
-        if (splitted.get(0).equals("singular")) {
+        if (splitted.getFirst().equals("singular")) {
             return currency.getCurrencySingular();
         }
-        if (splitted.get(0).equals("plural")) {
+        if (splitted.getFirst().equals("plural")) {
             return currency.getCurrencyPlural();
         }
 
         updatePlaceholdersCache();
 
-        switch (splitted.get(0)) {
+        switch (splitted.getFirst()) {
             case "totsupply" -> {
                 return parseParams(totalSupplyCache.get(currency), splitted, currency);
             }

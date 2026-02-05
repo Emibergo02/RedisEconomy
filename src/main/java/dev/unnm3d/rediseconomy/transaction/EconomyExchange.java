@@ -408,7 +408,7 @@ public class EconomyExchange {
 
     public void terminate() {
         try {
-            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+            if (!executorService.awaitTermination(500, TimeUnit.MILLISECONDS)) {
                 executorService.shutdownNow();
             }
         } catch (InterruptedException e) {

@@ -498,13 +498,15 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public void terminate() {
         currencies.values().forEach(currency -> {
             currency.updateExecutors.forEach(ex -> {
-                try {
-                    if (!ex.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        if (!ex.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+                            ex.shutdownNow();
+                        }
+                    } catch (InterruptedException e1) {
                         ex.shutdownNow();
                     }
-                } catch (InterruptedException e1) {
-                    ex.shutdownNow();
-                }
+                });
             });
         });
         exchange.terminate();
