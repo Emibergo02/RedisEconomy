@@ -40,6 +40,10 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 }
 
+jar {
+    archiveClassifier.set('original')
+}
+
 shadowJar {
     dependencies{
         exclude(dependency('net.kyori:adventure-platform-viaversion'))
