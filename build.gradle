@@ -26,7 +26,6 @@ dependencies {
     compileOnly 'io.papermc.paper:paper-api:26.2.build.+'
     compileOnly 'org.projectlombok:lombok:1.18.42'
     compileOnly 'net.kyori:adventure-text-minimessage:5.2.0'
-    implementation 'net.kyori:adventure-platform-bukkit:4.4.1'
     implementation 'io.lettuce:lettuce-core:7.6.0.RELEASE'
     implementation 'de.exlll:configlib-yaml:4.8.0'
     implementation 'com.github.Anon8281:UniversalScheduler:0.1.6'
@@ -47,25 +46,9 @@ jar {
 }
 
 shadowJar {
-    dependencies{
-        exclude(dependency('net.kyori:adventure-platform-viaversion'))
-        exclude(dependency('net.kyori:adventure-text-minimessage'))
-        exclude(dependency('net.kyori:adventure-text-serializer-legacy'))
-        exclude(dependency('net.kyori:adventure-text-serializer-json'))
-        exclude(dependency('net.kyori:adventure-text-serializer-json-legacy-impl'))
-        exclude(dependency('net.kyori:adventure-text-serializer-gson'))
-        exclude(dependency('net.kyori:adventure-text-serializer-bungeecord'))
-        exclude(dependency('net.kyori:adventure-api'))
-        exclude(dependency('net.kyori:adventure-nbt'))
-        exclude(dependency('net.kyori:adventure-key'))
-        exclude(dependency('net.kyori:option'))
-        exclude(dependency('net.kyori:examination-api'))
-    }
-
     destinationDirectory.set(file("$rootDir/target"))
     archiveClassifier.set('')
 
-    relocate 'net.kyori.adventure.platform', 'dev.unnm3d.shaded.kyori.adventure.platform'
     relocate 'de.exlll.configlib', 'dev.unnm3d.shaded.configlib'
     relocate 'org.snakeyaml.engine', 'dev.unnm3d.shaded.snakeyaml'
     relocate 'reactor', 'dev.unnm3d.shaded.lettucedep.reactor'
