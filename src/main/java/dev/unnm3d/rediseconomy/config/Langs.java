@@ -2,8 +2,6 @@ package dev.unnm3d.rediseconomy.config;
 
 import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
-import dev.unnm3d.rediseconomy.RedisEconomyPlugin;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +12,6 @@ import java.util.TreeMap;
 
 @Configuration
 public final class Langs {
-    private final BukkitAudiences audiences = BukkitAudiences.create(RedisEconomyPlugin.getInstance());
 
     public String noConsole = "<red>You must be in-game to use this command!</red>";
     public String noPermission = "<red>You do not have permission to use this command!</red>";
@@ -101,7 +98,7 @@ public final class Langs {
     }
 
     public void send(CommandSender sender, String text) {
-        audiences.sender(sender).sendMessage(MiniMessage.miniMessage().deserialize(text));
+        sender.sendMessage(MiniMessage.miniMessage().deserialize(text));
     }
 
     public @Nullable Field getStringField(String name) throws NoSuchFieldException {
