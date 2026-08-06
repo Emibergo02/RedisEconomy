@@ -1,6 +1,6 @@
 name: RedisEconomy
 version: '${version}'
-api-version: '1.17'
+api-version: '26.2'
 main: dev.unnm3d.rediseconomy.RedisEconomyPlugin
 author: Unnm3d
 load: STARTUP
