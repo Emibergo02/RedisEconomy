@@ -30,6 +30,7 @@ import static dev.unnm3d.rediseconomy.redis.RedisKeys.*;
 
 
 public class CurrenciesManager extends RedisEconomyAPI implements Listener {
+    @Getter
     private final RedisEconomyPlugin plugin;
     @Getter
     private final CompletableFuture<Void> completeMigration;
@@ -254,7 +255,7 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     }
 
     @EventHandler
-    private void onJoin(PlayerJoinEvent e) {
+    public void onJoin(PlayerJoinEvent e) {
         getCurrencies().forEach(currency ->
                 currency.getAccountRedis(e.getPlayer().getUniqueId())
                         .thenAccept(balance -> {
@@ -498,15 +499,14 @@ public class CurrenciesManager extends RedisEconomyAPI implements Listener {
     public void terminate() {
         currencies.values().forEach(currency -> {
             currency.updateExecutors.forEach(ex -> {
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        if (!ex.awaitTermination(100, TimeUnit.MILLISECONDS)) {
-                            ex.shutdownNow();
-                        }
-                    } catch (InterruptedException e1) {
+                ex.shutdown();
+                try {
+                    if (!ex.awaitTermination(200, TimeUnit.MILLISECONDS)) {
                         ex.shutdownNow();
                     }
-                });
+                } catch (InterruptedException e1) {
+                    ex.shutdownNow();
+                }
             });
         });
         exchange.terminate();

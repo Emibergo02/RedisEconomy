@@ -42,7 +42,7 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public final class RedisEconomyPlugin extends JavaPlugin {
+public class RedisEconomyPlugin extends JavaPlugin {
 
     @Getter
     private static RedisEconomyPlugin instance;
@@ -247,7 +247,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     public static void debug(String string) {
-        if (RedisEconomyPlugin.getInstance().settings().debug) {
+        if (RedisEconomyPlugin.getInstance() != null && RedisEconomyPlugin.getInstance().settings() != null && RedisEconomyPlugin.getInstance().settings().debug) {
             try {
                 final FileWriter writer = new FileWriter(RedisEconomyPlugin.getInstance().getDebugFile().getAbsoluteFile(), true);
                 writer.append("[")
@@ -264,7 +264,7 @@ public final class RedisEconomyPlugin extends JavaPlugin {
     }
 
     public static void debugCache(String string) {
-        if (RedisEconomyPlugin.getInstance().settings().debugUpdateCache) {
+        if (RedisEconomyPlugin.getInstance() != null && RedisEconomyPlugin.getInstance().settings() != null && RedisEconomyPlugin.getInstance().settings().debugUpdateCache) {
             try {
                 final FileWriter writer = new FileWriter(RedisEconomyPlugin.getInstance().getDebugFile().getAbsoluteFile(), true);
                 writer.append("[")

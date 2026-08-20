@@ -561,8 +561,8 @@ public class Currency implements Economy {
         updateAccountLocal(uuid, playerName, balance);
     }
 
-    private synchronized void updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
-        CompletableFuture.supplyAsync(() -> {
+    public synchronized CompletableFuture<Object> updateAccountCloudCache(@NotNull UUID uuid, @Nullable String playerName, double balance, int tries) {
+        return CompletableFuture.supplyAsync(() -> {
             RedisEconomyPlugin.debugCache("01a Starting update account " + playerName + " to " + balance + " currency " + currencyName);
 
             currenciesManager.getRedisManager().executeTransaction(reactiveCommands -> {
